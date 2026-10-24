@@ -1,0 +1,126 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="theme-color" content="#d8eff5">
+  <meta name="description" content="滚一滚，合个大的！两只同级的肥鱼碰在一起，就能长大一点。">
+  <title>合成大肥鱼 · 滚一滚，合个大的</title>
+  <link rel="stylesheet" href="./style.css">
+</head>
+<body>
+  <main class="shell">
+    <header class="topbar">
+      <a class="brand" href="#game" aria-label="合成大肥鱼主页">
+        <span class="brand-mark" aria-hidden="true"><canvas id="brand-avatar" width="88" height="88"></canvas></span>
+        <span><strong>合成大肥鱼</strong><small>滚一滚，合个大的</small></span>
+      </a>
+      <div class="top-actions">
+        <a class="leaderboard-link" href="#weekly-board" aria-label="查看周排行榜">🏆<span>周榜</span></a>
+        <a class="login-link" id="login-link" href="/sign-in?redirect=%2Fgames%2Ffat-fish%2F">登录以保存图鉴</a>
+        <span class="account-label" id="account-label" hidden></span>
+        <button class="admin-open" id="admin-open" type="button" hidden>奖品管理</button>
+        <button class="sound-button" id="sound-toggle" type="button" aria-pressed="false" aria-label="开启音效"><span class="sound-symbol" aria-hidden="true">♫</span><span class="sound-label">音效：关</span></button>
+      </div>
+    </header>
+
+    <section class="layout" id="game" aria-label="游戏区域">
+      <section class="game-card" aria-label="合成游戏">
+        <div class="game-head">
+          <div><h1>合个大的！</h1><p class="game-subtitle">每个模样都有固定等级，同级就能合。</p></div>
+          <button class="restart-button" id="restart" type="button"><span class="restart-icon" aria-hidden="true">↻</span>重新开始</button>
+        </div>
+        <div class="score-row" aria-live="polite">
+          <div class="score-box"><span>这局得分</span><strong id="score">0</strong></div>
+          <div class="score-box record"><span>最佳纪录</span><strong id="best-score">0</strong></div>
+          <div class="next-box"><span>下一只</span><canvas id="next-canvas" width="76" height="76" aria-label="下一只鱼"></canvas></div>
+        </div>
+        <div class="board-wrap">
+          <canvas id="game-canvas" width="480" height="620" tabindex="0" aria-label="合成大肥鱼游戏画布。鼠标移动或触屏拖动选择位置，鼠标点击或触屏松手投放；聚焦后可用左右方向键选择位置，空格或 Enter 投放。"></canvas>
+          <div class="game-overlay" id="overlay" hidden>
+            <div class="overlay-card"><span class="overlay-whale" aria-hidden="true"><canvas id="gameover-avatar" width="128" height="128"></canvas></span><h2>鱼缸满啦！</h2><p>这局得分 <strong id="final-score">0</strong></p><button id="play-again" type="button">再合一局</button></div>
+          </div>
+          <div class="toast" id="toast" role="status" aria-live="polite"></div>
+        </div>
+        <details class="controls-hint">
+          <summary>操作提示 · 触屏拖动选位置，松手放下</summary>
+          <p>电脑：移动鼠标选位置，点击投放。键盘：Tab 聚焦鱼缸，按 <kbd>←</kbd> <kbd>→</kbd> 选位置，再按 <kbd>空格</kbd> 或 Enter 投放。</p>
+        </details>
+      </section>
+
+      <aside class="side-column" aria-label="成长图鉴与谢礼">
+        <section class="side-card growth-card">
+          <div class="side-title"><div><h2>肥鱼成长册</h2><p class="side-intro">新模样，等你合出来。</p></div><span class="book-count" id="book-count">0 / 11</span></div>
+          <div class="gallery" id="gallery" aria-label="成长图鉴"></div>
+          <p class="gallery-note">从小鲸鱼到最大号，一共 11 个模样。</p>
+          <div class="egg-entry">
+            <div class="egg-entry-copy"><strong>偶遇彩蛋</strong><span id="easter-count" aria-live="polite">彩蛋阶段 0 / 20</span></div>
+            <button id="show-easter-eggs" type="button">彩蛋图鉴</button>
+          </div>
+        </section>
+        <section class="side-card gift-card" id="gift-card">
+          <div class="gift-top"><span class="gift-icon" aria-hidden="true">✿</span></div>
+          <h2>女仆的谢礼</h2>
+          <p class="gift-copy" id="gift-copy">登录后查看谢礼与领取状态。</p>
+          <div class="reward-list" id="reward-list" aria-live="polite"></div>
+        </section>
+        <section class="side-card leaderboard-card" id="weekly-board" aria-labelledby="leaderboard-title">
+          <div class="side-title"><div><h2 id="leaderboard-title">本周肥鱼榜</h2><p class="side-intro" id="leaderboard-week">正在加载周榜。</p></div><span class="leaderboard-crown" aria-hidden="true">🏆</span></div>
+          <div class="leaderboard-periods"><button id="leaderboard-current" type="button" aria-pressed="true">本周</button><button id="leaderboard-previous" type="button" aria-pressed="false">上周</button><button id="leaderboard-refresh" type="button" aria-label="刷新排行榜">↻</button></div>
+          <p id="leaderboard-status" class="leaderboard-status" role="status" aria-live="polite">只统计登录账户的有效成绩。</p>
+          <ol id="leaderboard-rows" class="leaderboard-rows" aria-label="周排行榜前二十名"></ol>
+          <p id="leaderboard-mine" class="leaderboard-mine">登录后参与周榜。</p>
+          <p class="leaderboard-rules">取每人本周单局最高分，同分先达到者优先。北京时间周一 00:00 结算，冠军获得一张专用奖池兑换码；缺货时保留资格，补货后补发。</p>
+          <div id="weekly-rewards" class="weekly-rewards" hidden></div>
+        </section>
+      </aside>
+    </section>
+  </main>
+  <dialog class="gift-dialog" id="gift-dialog" aria-labelledby="gift-dialog-title">
+    <div class="dialog-art" aria-hidden="true">🎟️</div><h2 id="gift-dialog-title">女仆的谢礼</h2>
+    <p id="gift-dialog-copy">正在查看谢礼状态。</p>
+    <label class="reward-code-label" id="reward-code-label" hidden for="reward-code">领取码</label>
+    <input class="reward-code" id="reward-code" readonly hidden value="">
+    <div class="gift-dialog-actions"><button id="copy-reward" type="button" hidden>复制领取码</button><a id="wallet-link" href="/wallet" target="_blank" rel="noopener" hidden>前往账户钱包</a></div>
+    <button id="close-gift" type="button">关闭</button>
+  </dialog>
+  <dialog class="easter-dialog" id="easter-dialog" aria-labelledby="easter-dialog-title">
+    <div class="easter-dialog-head">
+      <div><h2 id="easter-dialog-title">彩蛋图鉴</h2><p>每个模样都有固定等级，同级碰在一起就能合成。</p></div>
+      <button class="easter-close" id="close-easter-eggs" type="button" aria-label="关闭彩蛋图鉴">×</button>
+    </div>
+    <p class="easter-dialog-count" id="easter-dialog-count" aria-live="polite">彩蛋阶段 0 / 20</p>
+    <div class="easter-grid" id="easter-grid"></div>
+  </dialog>
+  <dialog class="admin-dialog" id="admin-dialog" aria-labelledby="admin-title">
+    <div class="admin-dialog-head"><div><h2 id="admin-title">奖品管理</h2><p>按活动导入奖品，或移除尚未领取的兑换码。</p></div><button class="easter-close" id="admin-close" type="button" aria-label="关闭奖品管理">×</button></div>
+    <div class="admin-campaign-heading"><strong>选择奖品所属活动</strong><button id="admin-new-campaign-open" type="button">＋ 新建活动</button></div>
+    <form id="admin-new-campaign-form" class="admin-new-campaign" hidden>
+      <label class="admin-kind-field">活动类型<select id="admin-new-kind"><option value="level">合成等级奖励</option><option value="weekly">每周榜一奖励</option></select></label>
+      <label>活动名称<input id="admin-new-title" maxlength="80" placeholder="例如：周末合成谢礼" required></label>
+      <label id="admin-new-level-field">解锁等级<input id="admin-new-min-level" type="number" min="2" max="11" step="1" value="6" required></label>
+      <p id="admin-new-rule-copy">每个账户达到该等级后，可领取本活动的一个兑换码。创建后再导入奖品。</p>
+      <div class="admin-new-actions"><button id="admin-create-campaign" type="submit">创建活动</button><button id="admin-cancel-campaign" type="button">取消</button></div>
+    </form>
+    <div class="admin-campaign-fields"><label>当前活动<select id="admin-campaign" required></select></label><label>活动名称<input id="admin-campaign-title" value="首次合成谢礼" readonly required></label><label><span id="admin-rule-label">解锁等级</span><input id="admin-min-level" value="6" readonly required></label></div>
+    <p class="admin-status" id="admin-status" role="status" aria-live="polite">输入名称后搜索可用奖品。</p>
+    <div class="admin-tabs" aria-label="奖品操作"><button id="admin-mode-import" type="button" aria-pressed="true">导入奖品</button><button id="admin-mode-stock" type="button" aria-pressed="false">活动内兑换码</button></div>
+    <section id="admin-import-panel" aria-label="导入奖品">
+      <form id="admin-search-form" class="admin-search"><label for="admin-keyword">搜索名称</label><input id="admin-keyword" autocomplete="off" required><button type="submit">搜索</button></form>
+      <div class="admin-selection"><label><input id="admin-select-all" type="checkbox" disabled> 全选本次结果</label><span id="admin-selection-count" aria-live="polite">已选 0 / 0</span></div>
+      <p class="admin-selection-note">每次搜索最多列出 100 个兑换码。</p>
+      <div class="admin-candidates" id="admin-candidates"></div>
+      <button class="admin-import" id="admin-import" type="button" disabled>导入所选奖品</button>
+    </section>
+    <section id="admin-stock-panel" aria-label="活动内兑换码" hidden>
+      <p class="admin-stock-note">移除只取消游戏奖池分配，New API 原码仍保留，可重新导入。已领取的码保留记录。</p>
+      <p id="admin-stock-status" class="admin-status" role="status" aria-live="polite">选择活动后查看已导入的兑换码。</p>
+      <div class="admin-selection"><label><input id="admin-stock-select-all" type="checkbox" disabled> 全选本页可移除项</label><span id="admin-stock-count" aria-live="polite">已选 0 / 0</span></div>
+      <div id="admin-stock-list" class="admin-candidates admin-stock-list"></div>
+      <div class="admin-stock-pages"><button id="admin-stock-prev" type="button" disabled>上一页</button><span id="admin-stock-page">第 1 / 1 页</span><button id="admin-stock-next" type="button" disabled>下一页</button><button id="admin-stock-refresh" type="button">刷新列表</button></div>
+      <button id="admin-stock-remove" class="admin-remove" type="button" disabled>从活动移除所选</button>
+    </section>
+  </dialog>
+  <script type="module" src="./game.js"></script>
+</body>
+</html>

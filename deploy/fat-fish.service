@@ -1,0 +1,31 @@
+[Unit]
+Description=Fat Fish Game
+After=network.target
+
+[Service]
+Type=simple
+User=fat-fish
+Group=fat-fish
+WorkingDirectory=/srv/fat-fish
+ExecStart=/usr/bin/node /srv/fat-fish/production.mjs
+EnvironmentFile=/etc/fat-fish.env
+Environment=NODE_ENV=production
+Environment=PORT=4180
+Environment=NEWAPI_URL=http://127.0.0.1:3000
+Environment=GAME_DB=/var/lib/fat-fish/game.sqlite
+Restart=on-failure
+RestartSec=3
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectHome=true
+ProtectSystem=strict
+ReadWritePaths=/var/lib/fat-fish
+MemoryMax=256M
+CPUQuota=25%
+Nice=10
+TasksMax=40
+LimitNOFILE=1024
+UMask=0077
+
+[Install]
+WantedBy=multi-user.target
