@@ -6,6 +6,7 @@ import { createCompanion } from './companion.js';
 import { createFishDiscoveryTracker, fatFishSnapshot } from './companion-scene.js';
 import { createWardrobeClient } from './wardrobe-client.js';
 import { createPersonalCompanion } from './personal-companion.js';
+import { createCornerCompanion } from './companion-corner.js';
 
 export const MAX_LEVEL = 11;
 export const GIFT_LEVEL = 6;
@@ -590,6 +591,8 @@ function setupUI() {
     personalClient: personalCompanion,
     getSnapshot: () => fatFishSnapshot(game),
     fetchImpl: (url, options) => onlineClient.requestCompanion(url, options) });
+  createCornerCompanion({ container: document.querySelector('#companion'), trigger: document.querySelector('#companion-toggle'),
+    panel: document.querySelector('#companion-popover') });
 
   const renderGallery = () => {
     gallery.replaceChildren();

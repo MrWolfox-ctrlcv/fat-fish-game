@@ -40,7 +40,7 @@ export async function createGameServer(options = {}) {
   const playroomRoot = options.playroomRoot ?? new URL('../playroom/', import.meta.url);
   let sendPlayroom = null;
   try {
-    const names = (await readdir(playroomRoot, { recursive: true })).filter((name) => /^(index\.html|style\.css|wardrobe\.css|companion-account\.css|src\/(?:modes\/)?[a-z-]+\.js)$/.test(name.replaceAll('\\', '/'))).map((name) => name.replaceAll('\\', '/'));
+    const names = (await readdir(playroomRoot, { recursive: true })).filter((name) => /^(index\.html|style\.css|wardrobe\.css|companion-account\.css|companion-corner\.css|src\/(?:modes\/)?[a-z-]+\.js)$/.test(name.replaceAll('\\', '/'))).map((name) => name.replaceAll('\\', '/'));
     sendPlayroom = await createStaticAssets(playroomRoot, names);
   } catch (error) { if (error.code !== 'ENOENT') throw error; }
   const wardrobe = createWardrobe({ store });

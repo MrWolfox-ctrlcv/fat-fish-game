@@ -6,7 +6,7 @@ if (!process.argv[2]) throw new Error('Usage: node scripts/prepare-playroom.mjs 
 const source = resolve(process.argv[2]);
 const target = fileURLToPath(new URL('../playroom/', import.meta.url));
 const names = (await readdir(source, { recursive: true })).map((name) => name.replaceAll('\\', '/'))
-  .filter((name) => /^(index\.html|style\.css|wardrobe\.css|companion-account\.css|src\/(?:modes\/)?[a-z-]+\.js)$/.test(name));
+  .filter((name) => /^(index\.html|style\.css|wardrobe\.css|companion-account\.css|companion-corner\.css|src\/(?:modes\/)?[a-z-]+\.js)$/.test(name));
 if (!names.includes('index.html') || !names.includes('src/wardrobe.js')) throw new Error('Incomplete playroom sources');
 for (const name of names) {
   const output = resolve(target, name);

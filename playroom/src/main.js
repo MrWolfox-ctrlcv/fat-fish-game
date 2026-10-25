@@ -43,6 +43,7 @@ if (!localPreview) {
   document.title = '碰碰擂台 · 保持 Q 弹';
   document.querySelector('.mode-tabs').hidden = true;
   document.querySelector('.brand i').hidden = true;
+  document.querySelector('.tasting-card').hidden = true;
   const back = document.querySelector('.old-game');
   back.href = '/games/fat-fish/'; back.textContent = '合成大肥鱼 ↗';
 }
@@ -153,7 +154,7 @@ function reset() {
   aim = { x: 360, y: 120 };
   dirty = true;
   updateHud();
-  setFocusMode(id === 'bumper');
+  setFocusMode(id === 'bumper' && matchMedia('(max-width: 900px)').matches);
 }
 
 function chooseMode(next) {
@@ -196,7 +197,7 @@ function chooseMode(next) {
   aim = { x: 360, y: 120 };
   dirty = true;
   updateHud();
-  setFocusMode(id === 'bumper');
+  setFocusMode(id === 'bumper' && matchMedia('(max-width: 900px)').matches);
 }
 
 function start() {
@@ -206,7 +207,6 @@ function start() {
   running = true;
   paused = false;
   clearInput();
-  if (id === 'bumper') setFocusMode(true);
   lastFrame = performance.now();
   void audio.unlock().catch(() => {});
   dirty = true;

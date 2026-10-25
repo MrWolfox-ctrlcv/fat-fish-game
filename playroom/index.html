@@ -9,6 +9,7 @@
   <link rel="stylesheet" href="./style.css">
   <link rel="stylesheet" href="./wardrobe.css">
   <link rel="stylesheet" href="./companion-account.css">
+  <link rel="stylesheet" href="./companion-corner.css">
 </head>
 <body>
   <div class="shell">
@@ -38,7 +39,7 @@
               <img id="companion-avatar" src="/games/fat-fish/companion-portrait.png" width="128" height="128" alt="小鲸" draggable="false">
             </button>
             <section id="companion-popover" class="companion-popover" aria-label="陪玩设置与聊天" hidden>
-              <div class="companion-popover-heading"><strong>小鲸 · 陪玩</strong><button class="companion-close" type="button" aria-label="关闭陪玩面板">×</button></div>
+              <div class="companion-popover-heading"><strong>小鲸 · 陪玩</strong><label class="companion-squeak-setting"><input type="checkbox" data-companion-squeak> 互动音效</label><button class="companion-close" type="button" aria-label="关闭陪玩面板">×</button></div>
               <details class="companion-tools" open><summary>陪玩设置 / 聊一句</summary><div class="companion-body"><div class="companion-top"><label><input type="checkbox" data-companion-enable disabled> 开启 AI 陪玩</label><button type="button" data-companion-refresh>刷新</button></div><form data-companion-form><label class="sr-only" for="companion-input">给 AI 陪玩发消息</label><input id="companion-input" data-companion-input maxlength="160" autocomplete="off" placeholder="说句话，最多 160 字" disabled><button type="submit" disabled>发送</button></form></div></details>
               <p data-companion-status role="status" aria-live="polite">正在读取陪玩服务配置…</p>
             </section>

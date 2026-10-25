@@ -16,12 +16,28 @@ test('bumper publishes only public shell and modules, sharing the existing game 
     assert.equal(redirect.headers.get('location'), '/games/bumper/');
     const page = await fetch(`${base}/games/bumper/`);
     assert.equal(page.status, 200);
-    assert.match(await page.text(), /wardrobe-dialog/);
-    for (const name of ['src/wardrobe.js', 'src/companion-scene.js', 'src/companion-corner.js', 'src/modes/bumper.js', 'wardrobe.css']) {
+    const html = await page.text();
+    assert.match(html, /wardrobe-dialog/);
+    assert.match(html, /id="companion-popover"/);
+    assert.match(html, /src="\/games\/fat-fish\/companion-portrait\.png"/);
+    assert.equal([...html.matchAll(/data-companion-output/g)].length, 1, 'the live companion output has one node');
+    assert.match(html, /data-companion-squeak/);
+    for (const name of ['companion-corner.css', 'src/floating-drag.js', 'src/wardrobe.js', 'src/companion-scene.js', 'src/companion-corner.js', 'src/modes/bumper.js', 'wardrobe.css']) {
       assert.equal((await fetch(`${base}/games/bumper/${name}`)).status, 200);
     }
     for (const name of ['server.mjs', '.env', 'backend/companion.mjs', 'assets/maids.png', 'data/game.sqlite']) {
       assert.equal((await fetch(`${base}/games/bumper/${name}`)).status, 404);
+    }
+    const fishPage = await fetch(`${base}/games/fat-fish/`);
+    assert.equal(fishPage.status, 200);
+    const fishHtml = await fishPage.text();
+    assert.match(fishHtml, /id="companion-popover"/);
+    assert.match(fishHtml, /src="\/games\/fat-fish\/companion-portrait\.png"/);
+    assert.equal([...fishHtml.matchAll(/data-companion-output/g)].length, 1, 'the merge game uses the same single output bubble');
+    const fishScript = await fetch(`${base}/games/fat-fish/game.js`);
+    assert.match(await fishScript.text(), /from ['"]\.\/companion-corner\.js['"]/);
+    for (const name of ['companion-corner.js', 'floating-drag.js', 'companion-corner.css']) {
+      assert.equal((await fetch(`${base}/games/fat-fish/${name}`)).status, 200);
     }
   } finally { await new Promise((resolve) => server.close(resolve)); store.close(); }
 });
