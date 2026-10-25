@@ -6,6 +6,7 @@ import { initialState, replayCheckpoint } from '../backend/replay.mjs';
 import { createGame, dropBody, stepGame } from '../dist/game.js';
 import { seededRandom } from '../dist/seeded-random.js';
 import { weekFor } from '../backend/weekly.mjs';
+import { PHYSICS_VERSION } from '../dist/physics-version.js';
 
 test('服务器逐帧复算与浏览器相同，并拒绝密集投放和倒退记录', () => {
   const game = createGame({ random: seededRandom(431), variantRandom: seededRandom(987) });
@@ -92,7 +93,12 @@ test('鉴权、越权素材、私有原图、幂等复算与兑换码导入的�
     const imported = await (await request('api/admin/import', 'administrator-token', { ids: [17], campaign_id: 'first-fat-fish-6', title: '首次合成谢礼', min_level: 6 })).json();
     assert.equal(imported.imported, 1);
     assert.equal((await request('api/admin/import', 'administrator-token', { ids: [17], campaign_id: 'first-fat-fish-6', title: '首次合成谢礼', min_level: 6 })).status, 200);
-    const started = await (await request('api/run', undefined, { height: 620 })).json();
+    for (const payload of [{}, { physics_version: PHYSICS_VERSION - 1 }]) {
+      const outdated = await request('api/run', undefined, payload);
+      assert.equal(outdated.status, 409);
+      assert.equal((await outdated.json()).code, 'GAME_UPDATED');
+    }
+    const started = await (await request('api/run', undefined, { height: 620, physics_version: PHYSICS_VERSION })).json();
     assert.deepEqual(started.play.levels, [1, 2, 3]);
     assert.equal((await request(`api/play/art?run_id=${started.run.id}&level=3`)).status, 200);
     assert.equal((await request(`api/play/art?run_id=${started.run.id}&level=3`, 'third-user-token')).status, 409);
@@ -153,7 +159,12 @@ test('游客正常显示本局生成素材，不解锁账户图鉴，也不能�
     'Content-Type': 'application/json', ...(cookie ? { Cookie: cookie } : {}),
   }, body: JSON.stringify(payload) });
   try {
-    const response = await post('api/play/run', {});
+    for (const payload of [{}, { physics_version: PHYSICS_VERSION - 1 }]) {
+      const outdated = await post('api/play/run', payload);
+      assert.equal(outdated.status, 409);
+      assert.equal((await outdated.json()).code, 'GAME_UPDATED');
+    }
+    const response = await post('api/play/run', { physics_version: PHYSICS_VERSION });
     const cookie = response.headers.get('set-cookie').split(';')[0];
     assert.match(response.headers.get('set-cookie'), /HttpOnly; SameSite=Lax/);
     const started = await response.json();
@@ -177,7 +188,7 @@ test('游客正常显示本局生成素材，不解锁账户图鉴，也不能�
     assert.deepEqual((await (await post('api/play/checkpoint', payload, cookie)).json()), checked);
     assert.deepEqual(store.profile(1).unlocked, [1]);
     assert.equal((await post('api/rewards/claim', { run_id: started.run.id, campaign_id: 'gift' }, cookie)).status, 401);
-    await post('api/play/run', {}, cookie);
+    await post('api/play/run', { physics_version: PHYSICS_VERSION }, cookie);
     assert.equal((await fetch(base + imagePath, { headers: { Cookie: cookie } })).status, 409);
   } finally { await new Promise((resolve) => server.close(resolve)); store.close(); }
 });
@@ -267,7 +278,7 @@ test('真实合成的服务端复算分数能上周榜，重复同步不改变�
     headers: { Authorization: 'Bearer verified-player-token', 'Content-Type': 'application/json' },
     ...(payload ? { body: JSON.stringify(payload) } : {}) });
   try {
-    const { run } = await (await request('run', {})).json();
+    const { run } = await (await request('run', { physics_version: PHYSICS_VERSION })).json();
     const game = createGame({ height: 620, random: seededRandom(run.seed), variantRandom: seededRandom(run.variant_seed) });
     const moves = [];
     while (game.stepIndex < 900 && !game.over) {

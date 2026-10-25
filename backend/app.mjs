@@ -6,10 +6,17 @@ import { GameStore } from './store.mjs';
 import { initialState } from './replay.mjs';
 import { prepareArt } from './art.mjs';
 import { previousWeek, publicName, weekFor } from './weekly.mjs';
+import { PHYSICS_VERSION } from '../dist/physics-version.js';
 
 const fail = (status, message, code) => Object.assign(new Error(message), { status, code });
 const sha = (value) => createHash('sha256').update(value).digest('hex');
 const seed = () => randomBytes(4).readUInt32LE() || 1;
+
+function requireCurrentPhysics(input) {
+  if (input?.physics_version !== PHYSICS_VERSION) {
+    throw fail(409, '游戏已更新，请刷新页面后开始新一局。', 'GAME_UPDATED');
+  }
+}
 
 export async function createGameServer(options = {}) {
   const base = options.base ?? '/games/fat-fish/';
@@ -192,7 +199,7 @@ export async function createGameServer(options = {}) {
           weekly_rewards: store.weeklyRewardRows(user.id) }); return;
       }
       if (path === 'api/play/run' && request.method === 'POST') {
-        await body(request);
+        requireCurrentPhysics(await body(request));
         rate(`guest-start:${clientIP}`, 60, 3600000);
         for (const [id, old] of runs) if (now() - old.created > 1800000) runs.delete(id);
         let session = guestSession(request);
@@ -247,7 +254,7 @@ export async function createGameServer(options = {}) {
         response.writeHead(200, { ...headers, 'Content-Type': 'image/png', 'Content-Length': image.length }); response.end(image); return;
       }
       if (path === 'api/run' && request.method === 'POST') {
-        await body(request);
+        requireCurrentPhysics(await body(request));
         rate(`start:${user.id}`, 30, 3600000);
         for (const [id, old] of runs) if (now() - old.created > 1800000) runs.delete(id);
         if (runs.size >= 200 && !currentRun.has(user.id)) throw fail(503, '鱼缸有点拥挤，请稍后再来。');

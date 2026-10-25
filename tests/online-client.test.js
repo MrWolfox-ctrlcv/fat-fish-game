@@ -1,6 +1,7 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 import { createOnlineClient } from "../dist/online-client.js";
+import { PHYSICS_VERSION } from '../dist/physics-version.js';
 
 const jsonResponse = (status, payload) => ({ status, ok: status >= 200 && status < 300, json: async () => payload });
 
@@ -136,7 +137,7 @@ test("访客使用独立 play API 和 cookie，401 不触发 new-api 刷新", as
   assert.equal(started.run.id, "guest-run");
   const runCall = calls.find((call) => call.path.endsWith("/api/play/run"));
   assert.equal(runCall.options.method, "POST");
-  assert.equal(runCall.options.body, "{}");
+  assert.deepEqual(JSON.parse(runCall.options.body), { physics_version: PHYSICS_VERSION });
   assert.equal(runCall.options.credentials, "include");
   assert.equal(runCall.options.headers.Authorization, undefined);
 
@@ -206,7 +207,7 @@ test("登录账户继续使用普通 run/checkpoint 接口并提交固定场地�
   await client.checkpoint({ run_id: "account-run", step: 4, moves: [{ step: 1, x: 200 }] });
   const runCall = calls.find((call) => call.path.endsWith("/api/run"));
   const checkpointCall = calls.find((call) => call.path.endsWith("/api/run/checkpoint"));
-  assert.equal(runCall.options.body, JSON.stringify({ height: 620 }));
+  assert.deepEqual(JSON.parse(runCall.options.body), { height: 620, physics_version: PHYSICS_VERSION });
   assert.equal(runCall.options.headers.Authorization, "Bearer account-token");
   assert.equal(checkpointCall.options.headers.Authorization, "Bearer account-token");
   assert.equal(calls.some((call) => call.path.endsWith("/api/play/run")), false);

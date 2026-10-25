@@ -7,6 +7,7 @@ import { DatabaseSync } from 'node:sqlite';
 import { GameStore } from '../backend/store.mjs';
 import { createGameServer } from '../backend/app.mjs';
 import { previousWeek, weekFor } from '../backend/weekly.mjs';
+import { PHYSICS_VERSION } from '../dist/physics-version.js';
 
 const weekly = { id: 'weekly-pool', title: '周冠军专属奖池', min_level: 2, kind: 'weekly' };
 const normal = { id: 'level-pool', title: '等级谢礼', min_level: 2, kind: 'level' };
@@ -240,7 +241,7 @@ test('API 仅用核验分记周榜，跨周对局不计入旧榜，公开榜不�
   const base = `http://127.0.0.1:${server.address().port}/games/fat-fish/`;
   const request = (path, token) => fetch(base + path, token ? { headers: { Authorization: token } } : {});
   try {
-    const started = await (await fetch(base + 'api/run', { method: 'POST', headers: { Authorization: 'Bearer player-one-token' }, body: '{}' })).json();
+    const started = await (await fetch(base + 'api/run', { method: 'POST', headers: { Authorization: 'Bearer player-one-token' }, body: JSON.stringify({ physics_version: PHYSICS_VERSION }) })).json();
     crossingDuringVerify = true;
     clockCalls = 0;
     const checkpoint = await fetch(base + 'api/run/checkpoint', { method: 'POST', headers: { Authorization: 'Bearer player-one-token', 'Content-Type': 'application/json' },
@@ -250,7 +251,7 @@ test('API 仅用核验分记周榜，跨周对局不计入旧榜，公开榜不�
     assert.equal(store.weeklyScore('2026-10-19', 3).score, 88);
     assert.equal(store.weeklyRows('2026-10-26').length, 0); // started before week boundary
 
-    const currentStarted = await (await fetch(base + 'api/run', { method: 'POST', headers: { Authorization: 'Bearer player-one-token' }, body: '{}' })).json();
+    const currentStarted = await (await fetch(base + 'api/run', { method: 'POST', headers: { Authorization: 'Bearer player-one-token' }, body: JSON.stringify({ physics_version: PHYSICS_VERSION }) })).json();
     const currentCheckpoint = await fetch(base + 'api/run/checkpoint', { method: 'POST', headers: { Authorization: 'Bearer player-one-token', 'Content-Type': 'application/json' },
       body: JSON.stringify({ run_id: currentStarted.run.id, step: 60, moves: [{ step: 0, x: 240 }], score: 999999, max_level: 11 }) });
     assert.equal(currentCheckpoint.status, 200);

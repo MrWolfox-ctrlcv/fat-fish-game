@@ -199,7 +199,7 @@ test("第 11 级不再合成", () => {
   assert.equal(radiusForLevel(MAX_LEVEL), 123);
 });
 
-test('近距离同级肥鱼轻微靠拢并在真实接触后合成，保留自然滚动', () => {
+test('近距离同级肥鱼及时靠拢并在真实接触后合成，保留自然滚动', () => {
   const game = createGame({ random: fixedRandom });
   const r = radiusForLevel(2);
   const y = game.height - 9 - r;
@@ -209,7 +209,7 @@ test('近距离同级肥鱼轻微靠拢并在真实接触后合成，保留自�
   const center = (a.x + b.x) / 2;
   assert.equal(stepGame(game, 1 / 60).merged.length, 0, '吸附不能隔空直接合成');
   assert.ok(a.vx > 0 && b.vx < 0);
-  assert.ok(a.x - 180 < .1, '每步只移动很小距离');
+  assert.ok(a.x - 180 < .2, '每步平滑移动，不直接跳到一起');
   assert.ok(Math.abs((a.x + b.x) / 2 - center) < 1e-9);
   for (let i = 0; i < 20; i++) stepGame(game, 1 / 60);
   assert.ok(a.angle > 0 && b.angle < 0, '靠拢过程仍是滚动');
@@ -217,6 +217,23 @@ test('近距离同级肥鱼轻微靠拢并在真实接触后合成，保留自�
   assert.equal(game.bodies.length, 1);
   assert.equal(game.bodies[0].level, 3);
   assert.equal(game.score, awardForLevel(3));
+});
+
+test('小中大球隔着可见间隙时能在一秒内滚动合成', () => {
+  for (const [level, gap] of [[1, 20], [2, 24], [6, 40], [9, 48], [10, 20]]) {
+    const game = createGame({ random: fixedRandom });
+    const r = radiusForLevel(level);
+    const y = game.height - 9 - r;
+    const a = makeBody(game, level, 240 - r - gap / 2, y);
+    const b = makeBody(game, level, 240 + r + gap / 2, y);
+    game.bodies.push(a, b);
+    assert.equal(stepGame(game, 1 / 60).merged.length, 0, `等级 ${level} 不能隔空合成`);
+    assert.ok(a.vx > 0 && b.vx < 0, `等级 ${level} 应在更大间隙内启动吸附`);
+    let frames = 1;
+    while (!game.score && frames < 60) { stepGame(game, 1 / 60); frames++; }
+    assert.equal(game.bodies.length, 1, `等级 ${level}、间隙 ${gap} 应在一秒内合成`);
+    assert.equal(game.bodies[0].level, level + 1);
+  }
 });
 
 test('不同等级、远距离、合成冷却和封顶肥鱼不受吸附影响', () => {
@@ -228,7 +245,7 @@ test('不同等级、远距离、合成冷却和封顶肥鱼不受吸附影响',
       b = makeBody(game, MAX_LEVEL, 350, 290);
     } else {
       const otherLevel = scenario === 'different' ? 3 : 2;
-      const gap = scenario === 'far' ? 30 : 8;
+      const gap = scenario === 'far' ? 80 : 8;
       a = makeBody(game, 2, 180, 300, { mergeCooldown: scenario === 'cooldown' ? .2 : 0 });
       b = makeBody(game, otherLevel, 180 + a.r + radiusForLevel(otherLevel) + gap, 300);
     }
@@ -245,12 +262,15 @@ test('成堆肥鱼只吸附最近伙伴，不叠加拉力，也不钳制原有�
   stepGame(game, 1 / 60);
   assert.ok(game.bodies[0].vx > 0 && game.bodies[1].vx < 0);
   assert.equal(game.bodies[2].vx, 0);
-  assert.ok(Math.abs(game.bodies[1].vx) < 1);
+  const pair = createGame({ random: fixedRandom });
+  pair.bodies.push(makeBody(pair, 1, 160, 300), makeBody(pair, 1, 214, 300));
+  stepGame(pair, 1 / 60);
+  assert.equal(game.bodies[1].vx, pair.bodies[1].vx, '三只同级球不能叠加拉力');
   const fast = createGame({ random: fixedRandom });
-  fast.bodies.push(makeBody(fast, 2, 180, 300, { vx: 40 }), makeBody(fast, 2, 248, 300, { vx: -40 }));
+  fast.bodies.push(makeBody(fast, 2, 180, 300, { vx: 60 }), makeBody(fast, 2, 248, 300, { vx: -60 }));
   stepGame(fast, 1 / 60);
-  assert.ok(Math.abs(fast.bodies[0].vx - 40 * .986) < 1e-9);
-  assert.ok(Math.abs(fast.bodies[1].vx + 40 * .986) < 1e-9);
+  assert.ok(Math.abs(fast.bodies[0].vx - 60 * .986) < 1e-9);
+  assert.ok(Math.abs(fast.bodies[1].vx + 60 * .986) < 1e-9);
 });
 
 test("地面水平滚动按方向生成角速度", () => {

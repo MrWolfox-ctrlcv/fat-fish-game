@@ -1,3 +1,5 @@
+import { PHYSICS_VERSION } from './physics-version.js';
+
 const REFRESH_LOCK = "new-api:auth-refresh";
 const REFRESH_DELAYS = [80, 200, 500];
 
@@ -157,8 +159,8 @@ export function createOnlineClient({
     },
     getLeaderboard: (period = 'current') => request(`leaderboard?period=${encodeURIComponent(period)}`, { withBearer: false, retryUnauthorized: false }),
     getWeeklyMe: () => request('leaderboard/me'),
-    startRun: (height = 620) => request("run", { method: "POST", body: { height } }),
-    startGuestRun: () => request("play/run", { method: "POST", body: {}, withBearer: false, retryUnauthorized: false }),
+    startRun: (height = 620) => request("run", { method: "POST", body: { height, physics_version: PHYSICS_VERSION } }),
+    startGuestRun: () => request("play/run", { method: "POST", body: { physics_version: PHYSICS_VERSION }, withBearer: false, retryUnauthorized: false }),
     checkpoint: (payload) => request("run/checkpoint", { method: "POST", body: payload }),
     checkpointGuest: (payload) => request("play/checkpoint", { method: "POST", body: payload, withBearer: false, retryUnauthorized: false }),
     claimReward: (campaign_id, run_id) => request("rewards/claim", { method: "POST", body: { campaign_id, run_id } }),

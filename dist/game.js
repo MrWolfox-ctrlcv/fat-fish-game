@@ -250,7 +250,7 @@ function applySurfaceFriction(body, tx, ty, armX, armY, maxImpulse) {
 }
 
 function attractNearbyMatches(game, delta) {
-  // Mutual nearest neighbours receive a small, symmetric pull. Each ball has
+  // Mutual nearest neighbours receive a bounded, symmetric pull. Each ball has
   // at most one partner, so a crowded group cannot multiply the attraction.
   const nearest = new Map();
   for (let i = 0; i < game.bodies.length; i++) {
@@ -263,7 +263,7 @@ function attractNearbyMatches(game, delta) {
       const dy = b.y - a.y;
       const distance = Math.hypot(dx, dy);
       const gap = distance - a.r - b.r;
-      const range = clamp((a.r + b.r) * 0.18, 10, 22);
+      const range = clamp((a.r + b.r) * 0.45, 24, 56);
       if (gap < 0 || gap >= range || distance < 0.001) continue;
       if (!nearest.has(a) || gap < nearest.get(a).gap) nearest.set(a, { other: b, gap, range, distance });
       if (!nearest.has(b) || gap < nearest.get(b).gap) nearest.set(b, { other: a, gap, range, distance });
@@ -276,7 +276,10 @@ function attractNearbyMatches(game, delta) {
     const nx = (b.x - a.x) / match.distance;
     const ny = (b.y - a.y) / match.distance;
     const closingSpeed = (a.vx - b.vx) * nx + (a.vy - b.vy) * ny;
-    const change = Math.min(80 * (1 - match.gap / match.range) * delta, Math.max(0, 24 - closingSpeed) / 2);
+    // Keep enough pull near the edge to overcome rolling friction, then ease
+    // into contact. Limit only added speed; never slow an existing collision.
+    const proximity = 1 - match.gap / match.range;
+    const change = Math.min(360 * (0.35 + 0.65 * proximity) * delta, Math.max(0, 84 - closingSpeed) / 2);
     a.vx += nx * change; a.vy += ny * change;
     b.vx -= nx * change; b.vy -= ny * change;
     pulled.add(a); pulled.add(b);
