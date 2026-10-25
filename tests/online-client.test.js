@@ -148,7 +148,9 @@ test("访客使用独立 play API 和 cookie，401 不触发 new-api 刷新", as
   const art = await client.requestPlayingArt({ run_id: "guest-run", level: 1, guest: true });
   assert.equal(art, image);
   const artCall = calls.at(-1);
-  assert.match(artCall.path, /\/api\/play\/art\?run_id=guest-run&level=1$/);
+  assert.match(artCall.path, /\/api\/play\/art\?level=1$/);
+  assert.equal(artCall.options.headers['X-Game-Run'], 'guest-run');
+  assert.equal(artCall.options.cache, 'no-cache');
   assert.equal(artCall.options.credentials, "include");
   assert.equal(artCall.options.headers.Authorization, undefined);
   await assert.rejects(client.requestPlayingArt({ run_id: "guest-run", level: 2, guest: true }), { status: 401 });
@@ -178,7 +180,8 @@ test("登录账户的 play/art 使用 Bearer 并只在 401 时刷新后重试", 
   assert.equal(await client.requestPlayingArt({ run_id: "account-run", level: 4, variant: "gpt-normal" }), image);
   const artCalls = calls.filter((call) => call.path.includes("/api/play/art?"));
   assert.equal(artCalls.length, 2);
-  assert.match(artCalls[0].path, /run_id=account-run&level=4&variant=gpt-normal$/);
+  assert.match(artCalls[0].path, /level=4&variant=gpt-normal$/);
+  assert.equal(artCalls[0].options.headers['X-Game-Run'], 'account-run');
   assert.equal(artCalls[0].options.headers.Authorization, "Bearer account-token");
   assert.equal(artCalls[1].options.headers.Authorization, "Bearer account-token");
   assert.equal(calls.filter((call) => call.path.endsWith("/api/user/auth/refresh")).length, 2);

@@ -2,6 +2,7 @@ import { EASTER_EGGS, EASTER_STAGE_COUNT, getAllowedVariants, getEasterEgg, getE
 import { onlineClient, OnlineApiError } from "./online-client.js";
 import { seededRandom } from "./seeded-random.js";
 import { setupLeaderboard } from './leaderboard.js';
+import { createCompanion } from './companion.js';
 
 export const MAX_LEVEL = 11;
 export const GIFT_LEVEL = 6;
@@ -23,9 +24,9 @@ export function isInvalidRunError(error) {
   return error instanceof OnlineApiError && ["RUN_EXPIRED", "RUN_INVALID", "RUN_NOT_FOUND"].includes(error.code);
 }
 
-export function ensureAdminCampaigns(campaigns) {
+export function ensureAdminCampaigns(campaigns, includeDefault = true) {
   const list = Array.isArray(campaigns) ? [...campaigns] : [];
-  if (!list.some((campaign) => String(campaign.id) === "first-fat-fish-6")) {
+  if (includeDefault && !list.some((campaign) => String(campaign.id) === "first-fat-fish-6")) {
     list.push({ id: "first-fat-fish-6", title: "首次合成谢礼", min_level: GIFT_LEVEL, remaining: 0, total: 0, isDefault: true });
   }
   return list;
@@ -523,6 +524,11 @@ function setupUI() {
   const adminNewCampaignForm = document.querySelector("#admin-new-campaign-form");
   const adminNewCampaignOpen = document.querySelector("#admin-new-campaign-open");
   const adminCreateCampaign = document.querySelector("#admin-create-campaign");
+  const adminDeleteCampaign = document.querySelector('#admin-delete-campaign');
+  const deleteDialog = document.querySelector('#campaign-delete-dialog');
+  const deleteConfirm = document.querySelector('#campaign-delete-confirm');
+  let deletingCampaign = false;
+  let deleteTarget = null;
   const adminStockPanel = document.querySelector('#admin-stock-panel');
   const adminStockList = document.querySelector('#admin-stock-list');
   const adminStockStatus = document.querySelector('#admin-stock-status');
@@ -574,6 +580,9 @@ function setupUI() {
   let retryCheckpointPayload = null;
   let lastCheckpointAt = 0;
   const leaderboard = setupLeaderboard({ client: onlineClient, onReward: (details) => showRewardDialog(details) });
+  const companion = createCompanion({ container: document.querySelector('#companion'), gameId: 'fat-fish',
+    getSnapshot: () => ({ score: game.score, level: Math.max(...game.unlocked), elapsed: Math.floor(game.stepIndex / 60) }),
+    fetchImpl: (url, options) => onlineClient.requestCompanion(url, options) });
 
   const renderGallery = () => {
     gallery.replaceChildren();
@@ -1096,7 +1105,7 @@ function setupUI() {
 
   const scheduleCheckpoint = () => {
     if (!activeRun || (!pendingMoves.length && !checkpointNeeded) || checkpointTimer) return;
-    const delay = Math.max(0, 3000 - (Date.now() - lastCheckpointAt));
+    const delay = Math.max(500, 8000 - (Date.now() - lastCheckpointAt));
     checkpointTimer = setTimeout(() => { checkpointTimer = null; void flushCheckpoint(); }, delay);
   };
 
@@ -1108,7 +1117,7 @@ function setupUI() {
 
   const populateCampaigns = (campaigns, preferredId = adminCampaign.value) => {
     adminCampaign.replaceChildren();
-    for (const campaign of ensureAdminCampaigns(campaigns)) {
+    for (const campaign of ensureAdminCampaigns(campaigns, false)) {
       const option = document.createElement("option");
       option.value = campaign.id;
       option.textContent = campaign.isDefault
@@ -1117,6 +1126,7 @@ function setupUI() {
       option.dataset.title = campaign.title ?? "首次合成谢礼";
       option.dataset.level = String(campaign.min_level ?? GIFT_LEVEL);
       option.dataset.kind = campaign.kind || 'level';
+      option.dataset.total = String(campaign.total || 0);
       adminCampaign.append(option);
     }
     const preferred = [...adminCampaign.options].find((option) => option.value === preferredId)
@@ -1127,7 +1137,12 @@ function setupUI() {
 
   const syncCampaignFields = () => {
     const option = adminCampaign.selectedOptions[0];
-    if (!option) return;
+    adminDeleteCampaign.disabled = !option || deletingCampaign;
+    if (!option) {
+      document.querySelector('#admin-campaign-title').value = '';
+      document.querySelector('#admin-min-level').value = '';
+      return;
+    }
     document.querySelector("#admin-campaign-title").value = option.dataset.title || "首次合成谢礼";
     const weekly = option.dataset.kind === 'weekly';
     document.querySelector('#admin-rule-label').textContent = weekly ? '发奖条件' : '解锁等级';
@@ -1137,8 +1152,8 @@ function setupUI() {
   const refreshAdminSelection = () => {
     const total = adminCandidateItems.size;
     const selected = [...adminCandidateItems.values()].filter(({ checkbox }) => checkbox.checked).length;
-    const busy = adminImporting || adminSearching || adminStockRemoving;
-    adminImport.disabled = !adminAllowed || busy || adminCreating || selected === 0;
+    const busy = adminImporting || adminSearching || adminStockRemoving || deletingCampaign;
+    adminImport.disabled = !adminAllowed || busy || adminCreating || selected === 0 || !adminCampaign.value;
     adminImport.textContent = adminImporting ? "正在导入……" : selected ? `导入所选奖品（${selected}）` : "导入所选奖品";
     adminSelectAll.disabled = !adminAllowed || busy || total === 0;
     adminSelectAll.checked = total > 0 && selected === total;
@@ -1148,6 +1163,11 @@ function setupUI() {
     document.querySelector('#admin-search-form button').disabled = busy;
     adminCampaign.disabled = adminImporting || adminStockRemoving;
     adminNewCampaignOpen.disabled = adminImporting || adminCreating || adminStockRemoving;
+    adminDeleteCampaign.disabled = !adminAllowed || busy || adminCreating || adminStockLoading || !adminCampaign.value;
+    if (deletingCampaign) {
+      adminCampaign.disabled = true;
+      adminNewCampaignOpen.disabled = true;
+    }
     document.querySelector('#admin-mode-import').disabled = adminImporting || adminStockRemoving;
     document.querySelector('#admin-mode-stock').disabled = adminImporting || adminStockRemoving;
     refreshAdminStockSelection();
@@ -1291,7 +1311,6 @@ function setupUI() {
       pendingMoves.push(move);
       if (body.variant) {
         markCheckpointNeeded();
-        void flushCheckpoint();
       } else scheduleCheckpoint();
       playTone(body.level);
       if (body.variant) sayEggToast(body.variant);
@@ -1346,6 +1365,45 @@ function setupUI() {
   document.querySelector("#show-easter-eggs").addEventListener("click", () => easterDialog.showModal());
   document.querySelector("#close-easter-eggs").addEventListener("click", () => easterDialog.close());
   document.querySelector("#admin-close").addEventListener("click", () => adminDialog.close());
+  adminDeleteCampaign.addEventListener('click', () => {
+    if (!adminAllowed || deletingCampaign || adminImporting || adminCreating || adminStockRemoving || adminSearching) return;
+    const option = adminCampaign.selectedOptions[0];
+    if (!option) return;
+    deleteTarget = { id: option.value, owner: account.id };
+    document.querySelector('#campaign-delete-copy').textContent = `删除“${option.dataset.title}”？该活动内共 ${option.dataset.total} 个码。未领取且未分配周奖的码会解除奖池分配；已发奖励和领取记录保留。New API 原码不受影响。`;
+    deleteConfirm.disabled = false;
+    deleteDialog.showModal();
+  });
+  document.querySelector('#campaign-delete-cancel').addEventListener('click', () => deleteDialog.close());
+  deleteConfirm.addEventListener('click', async () => {
+    if (!deleteTarget || deletingCampaign || !adminAllowed || account?.id !== deleteTarget.owner) return;
+    const target = deleteTarget;
+    deletingCampaign = true;
+    deleteConfirm.disabled = true;
+    refreshAdminSelection();
+    try {
+      const response = await onlineClient.deleteAdminCampaign(target.id);
+      if (!adminAllowed || account?.id !== target.owner) return;
+      adminStockRequest++;
+      adminStockLoading = false;
+      adminStockTotal = 0;
+      adminStockPage = 1;
+      renderAdminStock([]);
+      renderAdminCandidates([]);
+      populateCampaigns(response.campaigns);
+      adminStatus.textContent = `活动已删除，释放 ${response.removed_prizes} 个未发码，保留 ${response.retained_prizes} 个已发或已分配记录。`;
+      adminStockStatus.textContent = adminCampaign.value ? '请选择刷新列表查看当前活动。' : '暂无活动，请先新建活动。';
+      deleteDialog.close();
+      const state = await onlineClient.getMe();
+      if (state?.user?.id === target.owner && account?.id === target.owner) applyServerState(state);
+    } catch (error) {
+      if (account?.id === target.owner) document.querySelector('#campaign-delete-copy').textContent = error.message || '删除失败，请稍后重试。';
+    } finally {
+      deletingCampaign = false;
+      deleteConfirm.disabled = false;
+      refreshAdminSelection();
+    }
+  });
   adminOpen.addEventListener("click", async () => {
     if (!adminAllowed) return;
     adminDialog.showModal();
@@ -1524,6 +1582,7 @@ function setupUI() {
       return;
     }
     overlay.hidden = true;
+    companion.reset();
     canvas.focus({ preventScroll: true });
     await startOnlineRun();
   }
@@ -1531,6 +1590,7 @@ function setupUI() {
   document.addEventListener("visibilitychange", () => { lastTime = 0; accumulator = 0; });
 
   const frame = (time) => {
+    if (document.hidden) { lastTime = 0; accumulator = 0; requestAnimationFrame(frame); return; }
     if (!lastTime) lastTime = time;
     accumulator += Math.min(.05, (time - lastTime) / 1000);
     lastTime = time;
@@ -1542,8 +1602,8 @@ function setupUI() {
         changed = true;
         if (activeRun) {
           markCheckpointNeeded();
-          void flushCheckpoint();
         }
+        companion.observe(result.merged.map(() => ({ type: 'level' })));
         for (const body of result.merged) {
           if (time - lastMergeSound > 130) playTone(body.level);
           lastMergeSound = time;
@@ -1551,6 +1611,7 @@ function setupUI() {
         }
       }
       if (result.failed) {
+        companion.observe([{ type: 'end' }]);
         document.querySelector("#final-score").textContent = String(game.score);
         drawMini(gameoverCanvas, Math.max(...game.unlocked));
         overlay.hidden = false;

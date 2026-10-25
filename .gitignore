@@ -1,5 +1,6 @@
 node_modules/
 data/
+/data/art-prepared/
 .env
 .env.*
 !.env.example

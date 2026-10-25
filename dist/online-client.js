@@ -124,13 +124,13 @@ export function createOnlineClient({
     return parseResponse(response);
   }
 
-  async function requestBlob(path, { authorized = true, retryUnauthorized = authorized } = {}) {
+  async function requestBlob(path, { authorized = true, retryUnauthorized = authorized, runId } = {}) {
     const url = apiUrl(path);
     const send = () => fetchImpl(url, {
       method: "GET",
       credentials: "include",
-      cache: "no-store",
-      headers: authorized && accessToken ? { Authorization: `Bearer ${accessToken}` } : {},
+      cache: "no-cache",
+      headers: { ...(authorized && accessToken ? { Authorization: `Bearer ${accessToken}` } : {}), ...(runId ? { 'X-Game-Run': runId } : {}) },
     });
     let response = await send();
     if (response.status === 401 && retryUnauthorized) {
@@ -167,6 +167,12 @@ export function createOnlineClient({
     getAdminCandidates: (keyword) => request(`admin/candidates?keyword=${encodeURIComponent(keyword)}`),
     getAdminCampaigns: () => request('admin/campaigns'),
     createAdminCampaign: (payload) => request('admin/campaigns', { method: 'POST', body: payload }),
+    deleteAdminCampaign: (campaign_id) => request('admin/campaigns/delete', { method: 'POST', body: { campaign_id } }),
+    requestCompanion: async (endpoint, options = {}) => {
+      if (options.method !== 'POST') return fetchImpl(endpoint, options);
+      if (!accessToken && !(await refresh())) return Response.json({ success: false, message: '登录中转站后即可使用免费AI陪玩。' }, { status: 401 });
+      return fetchImpl(endpoint, { ...options, credentials: 'include', headers: { ...options.headers, Authorization: `Bearer ${accessToken}` } });
+    },
     getAdminPrizes: (campaign_id, page = 1) => request(`admin/prizes?campaign_id=${encodeURIComponent(campaign_id)}&page=${page}`),
     removeAdminPrizes: (payload) => request('admin/prizes/remove', { method: 'POST', body: payload }),
     importAdminCandidates: (payload) => request("admin/import", { method: "POST", body: payload }),
@@ -176,9 +182,9 @@ export function createOnlineClient({
       return requestBlob(`art?${query}`, { authorized: true, retryUnauthorized: true });
     },
     requestPlayingArt: ({ run_id, level, variant, guest = false } = {}) => {
-      const query = new URLSearchParams({ run_id: String(run_id), level: String(level) });
+      const query = new URLSearchParams({ level: String(level) });
       if (variant) query.set("variant", variant);
-      return requestBlob(`play/art?${query}`, { authorized: !guest, retryUnauthorized: !guest });
+      return requestBlob(`play/art?${query}`, { authorized: !guest, retryUnauthorized: !guest, runId: run_id });
     },
     onSessionChange(listener) { listeners.add(listener); return () => listeners.delete(listener); },
     clearLocalSession() { accessToken = null; user = null; },

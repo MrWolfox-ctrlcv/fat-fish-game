@@ -74,6 +74,15 @@
           <p class="leaderboard-rules">取每人本周单局最高分，同分先达到者优先。北京时间周一 00:00 结算，冠军获得一张专用奖池兑换码；缺货时保留资格，补货后补发。</p>
           <div id="weekly-rewards" class="weekly-rewards" hidden></div>
         </section>
+          <details id="companion" class="companion-panel">
+            <summary>AI 陪玩 <span>免费 · 登录后开启 · 不保留聊天上下文</span></summary>
+            <div class="companion-body">
+              <div class="companion-top"><label><input type="checkbox" data-companion-enable disabled> 开启 AI 陪玩</label><button type="button" data-companion-refresh>刷新服务状态</button></div>
+              <p data-companion-status role="status" aria-live="polite">正在读取陪玩服务配置…</p>
+              <p class="companion-output" data-companion-output aria-live="polite">AI 回复会显示在这里。</p>
+              <form data-companion-form><label class="sr-only" for="companion-input">给 AI 陪玩发消息</label><input id="companion-input" data-companion-input maxlength="160" autocomplete="off" placeholder="说句话，最多 160 字" disabled><button type="submit" disabled>发送</button></form>
+            </div>
+          </details>
       </aside>
     </section>
   </main>
@@ -95,7 +104,7 @@
   </dialog>
   <dialog class="admin-dialog" id="admin-dialog" aria-labelledby="admin-title">
     <div class="admin-dialog-head"><div><h2 id="admin-title">奖品管理</h2><p>按活动导入奖品，或移除尚未领取的兑换码。</p></div><button class="easter-close" id="admin-close" type="button" aria-label="关闭奖品管理">×</button></div>
-    <div class="admin-campaign-heading"><strong>选择奖品所属活动</strong><button id="admin-new-campaign-open" type="button">＋ 新建活动</button></div>
+    <div class="admin-campaign-heading"><strong>选择奖品所属活动</strong><div class="admin-campaign-actions"><button id="admin-delete-campaign" type="button" disabled>删除当前活动</button><button id="admin-new-campaign-open" type="button">＋ 新建活动</button></div></div>
     <form id="admin-new-campaign-form" class="admin-new-campaign" hidden>
       <label class="admin-kind-field">活动类型<select id="admin-new-kind"><option value="level">合成等级奖励</option><option value="weekly">每周榜一奖励</option></select></label>
       <label>活动名称<input id="admin-new-title" maxlength="80" placeholder="例如：周末合成谢礼" required></label>
@@ -121,6 +130,10 @@
       <div class="admin-stock-pages"><button id="admin-stock-prev" type="button" disabled>上一页</button><span id="admin-stock-page">第 1 / 1 页</span><button id="admin-stock-next" type="button" disabled>下一页</button><button id="admin-stock-refresh" type="button">刷新列表</button></div>
       <button id="admin-stock-remove" class="admin-remove" type="button" disabled>从活动移除所选</button>
     </section>
+  </dialog>
+  <dialog class="gift-dialog" id="campaign-delete-dialog" aria-labelledby="campaign-delete-title">
+    <h2 id="campaign-delete-title">删除活动</h2><p id="campaign-delete-copy"></p>
+    <div class="gift-dialog-actions"><button id="campaign-delete-cancel" type="button" autofocus>取消</button><button id="campaign-delete-confirm" type="button">确认删除活动</button></div>
   </dialog>
   <script type="module" src="./game.js"></script>
 </body>

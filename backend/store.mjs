@@ -15,7 +15,7 @@ export class GameStore {
       );
       CREATE TABLE IF NOT EXISTS campaigns (
         id TEXT PRIMARY KEY, title TEXT NOT NULL, min_level INTEGER NOT NULL, created_at INTEGER NOT NULL,
-        kind TEXT NOT NULL DEFAULT 'level'
+        kind TEXT NOT NULL DEFAULT 'level', deleted_at INTEGER NOT NULL DEFAULT 0
       );
       CREATE TABLE IF NOT EXISTS prizes (
         id INTEGER PRIMARY KEY, redemption_id INTEGER NOT NULL UNIQUE, code TEXT NOT NULL UNIQUE,
@@ -38,6 +38,7 @@ export class GameStore {
       }
     };
     addColumn('campaigns', 'kind', "TEXT NOT NULL DEFAULT 'level'");
+    addColumn('campaigns', 'deleted_at', 'INTEGER NOT NULL DEFAULT 0');
     const prizeColumns = this.db.prepare('PRAGMA table_info(prizes)').all();
     const hasCampaignKind = prizeColumns.some((column) => column.name === 'campaign_kind');
     if (!hasCampaignKind) {
@@ -89,7 +90,7 @@ export class GameStore {
     const profile = this.profile(userId);
     const max = Math.max(...profile.unlocked);
     const now = Math.floor(Date.now() / 1000);
-    return this.db.prepare("SELECT * FROM campaigns WHERE kind='level' ORDER BY created_at,id").all().map((campaign) => {
+    return this.db.prepare("SELECT * FROM campaigns WHERE kind='level' AND deleted_at=0 ORDER BY created_at,id").all().map((campaign) => {
       const mine = this.db.prepare('SELECT code,quota,expired_time FROM prizes WHERE campaign_id=? AND claimed_by=?')
         .get(campaign.id, userId);
       const available = this.db.prepare(`SELECT quota,expired_time FROM prizes WHERE campaign_id=?
@@ -105,7 +106,7 @@ export class GameStore {
   campaigns() {
     return this.db.prepare(`SELECT c.id,c.title,c.min_level,c.kind,COUNT(p.id) AS total,
       SUM(CASE WHEN p.id IS NOT NULL AND p.claimed_by IS NULL AND (p.expired_time=0 OR p.expired_time>?) THEN 1 ELSE 0 END) AS remaining
-      FROM campaigns c LEFT JOIN prizes p ON p.campaign_id=c.id GROUP BY c.id ORDER BY c.created_at DESC`)
+      FROM campaigns c LEFT JOIN prizes p ON p.campaign_id=c.id WHERE c.deleted_at=0 GROUP BY c.id ORDER BY c.created_at DESC`)
       .all(Math.floor(Date.now() / 1000));
   }
 
@@ -173,7 +174,7 @@ export class GameStore {
       }
       if (settlement.status === 'pending') {
         const prize = this.db.prepare(`SELECT p.id,p.campaign_id FROM prizes p JOIN campaigns c ON c.id=p.campaign_id
-          WHERE c.kind='weekly' AND p.campaign_kind='weekly' AND p.claimed_by IS NULL
+          WHERE c.kind='weekly' AND c.deleted_at=0 AND p.campaign_kind='weekly' AND p.claimed_by IS NULL
             AND (p.expired_time=0 OR p.expired_time>?) ORDER BY c.created_at,c.id,p.id LIMIT 1`)
           .get(Math.floor(timestamp / 1000));
         if (prize) {
@@ -219,6 +220,9 @@ export class GameStore {
   createCampaign(userId, campaign) {
     this.db.exec('BEGIN IMMEDIATE');
     try {
+      if (this.db.prepare('SELECT 1 FROM campaigns WHERE id=? AND deleted_at<>0').get(campaign.id)) {
+        throw Object.assign(new Error('该活动已删除，无法重新启用。'), { status: 409 });
+      }
       const kind = campaign.kind === 'weekly' ? 'weekly' : 'level';
       this.db.prepare('INSERT INTO campaigns(id,title,min_level,created_at,kind) VALUES(?,?,?,?,?)')
         .run(campaign.id, campaign.title, kind === 'weekly' ? 2 : campaign.min_level, Date.now(), kind);
@@ -230,6 +234,9 @@ export class GameStore {
   }
 
   campaignPrizes(campaignId, page = 1) {
+    if (!this.db.prepare('SELECT 1 FROM campaigns WHERE id=? AND deleted_at=0').get(campaignId)) {
+      throw Object.assign(new Error('该活动不存在。'), { status: 404 });
+    }
     const time = Math.floor(Date.now() / 1000);
     const total = this.db.prepare('SELECT COUNT(*) AS count FROM prizes WHERE campaign_id=?').get(campaignId).count;
     const rows = this.db.prepare(`SELECT redemption_id,name,quota,expired_time,claimed_by,claimed_at,
@@ -243,7 +250,7 @@ export class GameStore {
   removePrizes(userId, campaignId, ids) {
     this.db.exec('BEGIN IMMEDIATE');
     try {
-      if (!this.db.prepare('SELECT id FROM campaigns WHERE id=?').get(campaignId)) {
+      if (!this.db.prepare('SELECT id FROM campaigns WHERE id=? AND deleted_at=0').get(campaignId)) {
         throw Object.assign(new Error('该活动不存在，请刷新活动列表。'), { status: 404 });
       }
       const removedIds = [];
@@ -261,6 +268,7 @@ export class GameStore {
     this.db.exec('BEGIN IMMEDIATE');
     try {
       const old = this.db.prepare('SELECT * FROM campaigns WHERE id=?').get(campaign.id);
+      if (old?.deleted_at) throw Object.assign(new Error('该活动已删除，无法继续导入。'), { status: 409 });
       if (old && (old.min_level !== campaign.min_level || old.title !== campaign.title || (campaign.kind && old.kind !== campaign.kind))) {
         throw Object.assign(new Error('该奖池已存在，请保持原名称和解锁等级，或使用新的奖池标识。'), { status: 409 });
       }
@@ -283,7 +291,7 @@ export class GameStore {
   claim(userId, campaignId) {
     this.db.exec('BEGIN IMMEDIATE');
     try {
-      const campaign = this.db.prepare('SELECT * FROM campaigns WHERE id=?').get(campaignId);
+      const campaign = this.db.prepare('SELECT * FROM campaigns WHERE id=? AND deleted_at=0').get(campaignId);
       if (!campaign) throw Object.assign(new Error('谢礼尚未开放。'), { status: 404 });
       if (campaign.kind === 'weekly') throw Object.assign(new Error('周榜奖励会在结算后自动发放。'), { status: 403 });
       let prize = this.db.prepare('SELECT * FROM prizes WHERE campaign_id=? AND claimed_by=?').get(campaignId, userId);
@@ -302,6 +310,26 @@ export class GameStore {
       }
       this.db.exec('COMMIT');
       return { campaign_id: campaignId, title: campaign.title, code: prize.code, quota: prize.quota, expired_time: prize.expired_time };
+    } catch (error) { this.db.exec('ROLLBACK'); throw error; }
+  }
+
+  deleteCampaign(userId, campaignId) {
+    this.db.exec('BEGIN IMMEDIATE');
+    try {
+      const campaign = this.db.prepare('SELECT id,deleted_at FROM campaigns WHERE id=?').get(campaignId);
+      if (!campaign) throw Object.assign(new Error('该活动不存在。'), { status: 404 });
+      if (campaign.deleted_at) throw Object.assign(new Error('该活动已删除。'), { status: 409 });
+      const removed = this.db.prepare(`DELETE FROM prizes WHERE campaign_id=? AND claimed_by IS NULL
+        AND NOT EXISTS (SELECT 1 FROM weekly_awards a WHERE a.prize_id=prizes.id)
+        AND NOT EXISTS (SELECT 1 FROM weekly_settlements s WHERE s.prize_id=prizes.id)`).run(campaignId);
+      const removedPrizes = Number(removed.changes);
+      const retainedPrizes = Number(this.db.prepare('SELECT COUNT(*) AS count FROM prizes WHERE campaign_id=?').get(campaignId).count);
+      const deletedAt = Date.now();
+      this.db.prepare('UPDATE campaigns SET deleted_at=? WHERE id=? AND deleted_at=0').run(deletedAt, campaignId);
+      this.db.prepare('INSERT INTO audit(user_id,action,details,created_at) VALUES(?,?,?,?)')
+        .run(userId, 'campaign_delete', JSON.stringify({ campaign_id: campaignId, removed_prizes: removedPrizes, retained_prizes: retainedPrizes }), deletedAt);
+      this.db.exec('COMMIT');
+      return { removed_prizes: removedPrizes, retained_prizes: retainedPrizes, campaign_id: campaignId };
     } catch (error) { this.db.exec('ROLLBACK'); throw error; }
   }
 

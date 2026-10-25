@@ -1,10 +1,12 @@
 import { createServer } from 'node:http';
-import { readFile, readdir } from 'node:fs/promises';
+import { readdir } from 'node:fs/promises';
 import { randomBytes, randomUUID, createHash } from 'node:crypto';
-import { Worker } from 'node:worker_threads';
 import { GameStore } from './store.mjs';
 import { initialState } from './replay.mjs';
-import { prepareArt } from './art.mjs';
+import * as preparedArt from './art.mjs';
+import { createReplayVerifier } from './replay-verifier.mjs';
+import { createStaticAssets, sendPrivateArt } from './http-assets.mjs';
+import { createCompanion } from './companion.mjs';
 import { previousWeek, publicName, weekFor } from './weekly.mjs';
 import { PHYSICS_VERSION } from '../dist/physics-version.js';
 
@@ -23,17 +25,20 @@ export async function createGameServer(options = {}) {
   const upstream = options.upstream ?? process.env.NEWAPI_URL ?? 'http://127.0.0.1:3000';
   const origins = new Set(options.origins ?? (process.env.GAME_ORIGINS || 'http://127.0.0.1:4180,http://localhost:4180').split(','));
   const store = options.store ?? new GameStore(options.dbPath ?? process.env.GAME_DB ?? new URL('../data/game.sqlite', import.meta.url).pathname);
-  const art = options.art ?? await prepareArt();
+  const art = options.art ?? preparedArt;
+  if (!options.art && process.env.NODE_ENV === 'production') await preparedArt.validatePreparedArt();
   const fetcher = options.fetchImpl ?? fetch;
   const now = options.now ?? Date.now;
   const staticRoot = new URL('../dist/', import.meta.url);
   const staticFiles = new Set((await readdir(staticRoot)).filter((name) => /^[a-z0-9-]+\.(js|css|html)$/.test(name)));
+  const sendStatic = await createStaticAssets(staticRoot, staticFiles);
+  const verifier = createReplayVerifier();
+  const companion = createCompanion({ db: store.db, env: options.companionEnv ?? process.env, fetchImpl: options.companionFetch ?? fetch, now });
   const authCache = new Map();
   const runs = new Map();
   const currentRun = new Map();
   const guestRuns = new Map();
   const limits = new Map();
-  let workers = 0;
 
   function settleDueWeeks() {
     const current = weekFor(now());
@@ -117,7 +122,7 @@ export async function createGameServer(options = {}) {
     if (!Array.isArray(input.moves) || run.moves + input.moves.length > 2000) throw fail(422, '这局已达记录上限，请重新开始。');
     run.busy = true;
     try {
-      const result = await verify(run.state, input.moves, input.step);
+      const result = await verifier.verify(run.state, input.moves, input.step);
       const verifiedAt = now();
       if (!run.guest) {
         store.saveProgress(run.userId, result.summary);
@@ -127,21 +132,6 @@ export async function createGameServer(options = {}) {
       }
       run.state = result.state; run.hash = digest; run.summary = result.summary; run.moves += input.moves.length;
     } finally { run.busy = false; }
-  }
-
-  async function verify(state, moves, target) {
-    if (workers >= 2) throw fail(503, '正在核对其他对局，请稍后重试。');
-    workers++;
-    try {
-      return await new Promise((resolve, reject) => {
-        const worker = new Worker(new URL('./replay-worker.mjs', import.meta.url), {
-          workerData: { state, moves, target }, resourceLimits: { maxOldGenerationSizeMb: 64 },
-        });
-        const timer = setTimeout(() => { worker.terminate(); reject(fail(422, '对局记录过长，请重新开始。')); }, 7000);
-        worker.once('message', (result) => { clearTimeout(timer); worker.terminate(); result.ok ? resolve(result) : reject(fail(422, result.message, 'INVALID_REPLAY')); });
-        worker.once('error', () => { clearTimeout(timer); reject(fail(503, '对局核验暂时不可用，请重试。')); });
-      });
-    } finally { workers--; }
   }
 
   async function body(request) {
@@ -167,16 +157,13 @@ export async function createGameServer(options = {}) {
       if (!path.startsWith('api/')) {
         const name = path || 'index.html';
         if (!['GET', 'HEAD'].includes(request.method) || !staticFiles.has(name)) throw fail(404, '页面不存在。');
-        const data = await readFile(new URL(name, staticRoot));
-        const type = name.endsWith('.js') ? 'text/javascript' : name.endsWith('.css') ? 'text/css' : 'text/html';
-        response.writeHead(200, { ...headers, 'Content-Type': `${type}; charset=utf-8`, 'Content-Length': data.length,
-          'Content-Security-Policy': "default-src 'self'; img-src 'self' blob: data:; style-src 'self' 'unsafe-inline'; script-src 'self'; connect-src 'self'; object-src 'none'; base-uri 'self'; frame-ancestors 'self'" });
-        response.end(request.method === 'HEAD' ? undefined : data); return;
+        sendStatic(request, response, name, headers); return;
       }
       if (request.headers.origin && !origins.has(request.headers.origin)) throw fail(403, '来源校验失败。');
       if (path === 'api/health' && request.method === 'GET') { json(200, { success: true }); return; }
       const clientIP = request.headers['x-real-ip'] || request.socket.remoteAddress;
       rate(`ip:${clientIP}`, 600, 60000);
+      if (path === 'api/companion' && request.method === 'GET') { json(200, companion.status()); return; }
       if (path === 'api/leaderboard' && request.method === 'GET') {
         const period = url.searchParams.get('period') || 'current';
         if (!['current', 'previous'].includes(period)) throw fail(400, '榜单周期不合法。');
@@ -225,7 +212,7 @@ export async function createGameServer(options = {}) {
         json(200, { success: true, summary: run.summary, play: playPermission(run, input.run_id) }); return;
       }
       if (path === 'api/play/art' && request.method === 'GET') {
-        const id = url.searchParams.get('run_id');
+        const id = request.headers['x-game-run'] || url.searchParams.get('run_id');
         let run = runs.get(id);
         if (!run) throw fail(409, '这局记录已失效，请重新开始。', 'RUN_EXPIRED');
         if (run?.guest) run = getGuestRun(request, id);
@@ -235,12 +222,13 @@ export async function createGameServer(options = {}) {
         const permission = playPermission(run, id);
         const key = `${variant || 'maid'}:${level}`;
         if (!(variant ? permission.egg_stages.includes(key) : permission.levels.includes(level))) throw fail(403, '这局还没有遇见这个模样。');
-        const image = art.get(key);
-        if (!image) throw fail(404, '这个模样暂未收录。');
-        response.writeHead(200, { ...headers, 'Content-Type': 'image/png', 'Content-Length': image.length }); response.end(image); return;
+        await sendPrivateArt(request, response, art, key, headers); return;
       }
       const user = await authenticate(request);
       rate(`user:${user.id}`, 180, 60000);
+      if (path === 'api/companion' && request.method === 'POST') {
+        json(200, await companion.respond(`u:${user.id}`, await body(request))); return;
+      }
       if (path === 'api/me' && request.method === 'GET') { settleDueWeeks(); json(200, account(user)); return; }
       if (path === 'api/art' && request.method === 'GET') {
         const level = Number(url.searchParams.get('level'));
@@ -249,9 +237,7 @@ export async function createGameServer(options = {}) {
         const key = `${variant || 'maid'}:${level}`;
         const unlocked = variant ? profile.egg_stages.includes(key) : profile.unlocked.includes(level);
         if (!unlocked) throw fail(403, '遇见这个模样后才能解锁。');
-        const image = art.get(key);
-        if (!image) throw fail(404, '这个模样暂未收录。');
-        response.writeHead(200, { ...headers, 'Content-Type': 'image/png', 'Content-Length': image.length }); response.end(image); return;
+        await sendPrivateArt(request, response, art, key, headers); return;
       }
       if (path === 'api/run' && request.method === 'POST') {
         requireCurrentPhysics(await body(request));
@@ -315,6 +301,13 @@ export async function createGameServer(options = {}) {
           const campaign = store.createCampaign(user.id, { id: `fish-${randomUUID()}`, title, min_level: minLevel, kind });
           json(201, { success: true, campaign, campaigns: store.campaigns() }); return;
         }
+        if (path === 'api/admin/campaigns/delete' && request.method === 'POST') {
+          rate(`campaign-delete:${user.id}`, 10, 60000);
+          const input = await body(request);
+          if (typeof input.campaign_id !== 'string' || !/^[a-zA-Z0-9_-]{1,64}$/.test(input.campaign_id)) throw fail(400, '请选择要删除的活动。');
+          const result = store.deleteCampaign(user.id, input.campaign_id);
+          json(200, { success: true, ...result, campaigns: store.campaigns() }); return;
+        }
         if (path === 'api/admin/candidates' && request.method === 'GET') {
           const keyword = (url.searchParams.get('keyword') || '').slice(0, 100);
           const data = await api(`/api/redemption/search?keyword=${encodeURIComponent(keyword)}&status=1&p=1&page_size=100`, user.authorization);
@@ -362,7 +355,7 @@ export async function createGameServer(options = {}) {
     for (const [key, id] of guestRuns) if (!runs.has(id)) guestRuns.delete(key);
     try { settleDueWeeks(); } catch { /* retried on the next cleanup or read */ }
   }, 60000).unref();
-  server.on('close', () => clearInterval(cleanup));
+  server.on('close', () => { clearInterval(cleanup); void verifier.close(); });
   try { settleDueWeeks(); } catch { /* retried on the next cleanup or read */ }
   return { server, store };
 }

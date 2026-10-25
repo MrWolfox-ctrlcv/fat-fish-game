@@ -42,7 +42,7 @@ const wrapper = createServer(async (request, response) => {
   const chunks = [];
   for await (const chunk of request) chunks.push(chunk);
   const upstream = await fetch(`http://127.0.0.1:${backend.address().port}${request.url}`, {
-    method: request.method, headers: request.headers,
+    method: request.method, headers: { ...request.headers, 'accept-encoding': 'identity' },
     ...(['GET', 'HEAD'].includes(request.method) ? {} : { body: Buffer.concat(chunks) }),
   });
   response.writeHead(upstream.status, Object.fromEntries(upstream.headers.entries()));

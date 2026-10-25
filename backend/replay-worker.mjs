@@ -1,4 +1,12 @@
-import { parentPort, workerData } from 'node:worker_threads';
+import { parentPort } from 'node:worker_threads';
 import { replayCheckpoint } from './replay.mjs';
-try { parentPort.postMessage({ ok: true, ...replayCheckpoint(workerData.state, workerData.moves, workerData.target) }); }
-catch (error) { parentPort.postMessage({ ok: false, message: error.message }); }
+
+// Keep the worker alive and reuse it for successive checkpoint messages.
+parentPort.on('message', ({ id, state, moves, target }) => {
+  try {
+    const { state: nextState, summary } = replayCheckpoint(state, moves, target);
+    parentPort.postMessage({ id, ok: true, state: nextState, summary });
+  } catch (error) {
+    parentPort.postMessage({ id, ok: false, message: error?.message || '对局记录不合法。' });
+  }
+});
