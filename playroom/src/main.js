@@ -1,7 +1,7 @@
 import * as bumper from './modes/bumper.js';
 import * as kitchen from './modes/kitchen.js';
 import * as survival from './modes/survival.js';
-import { loadArt, drawAvatar } from './art.js';
+import { loadArt, ensureArt, drawAvatar } from './art.js';
 import { createAudio } from './audio.js';
 import { createCompanion } from './companion.js';
 import { makeBumperScene } from './companion-scene.js';
@@ -12,6 +12,10 @@ import { createWardrobe } from './wardrobe.js';
 import { createWardrobeClient } from './wardrobe-client.js';
 import { createPersonalCompanion } from './personal-companion.js';
 import { createCornerCompanion } from './companion-corner.js';
+import { createArenaRoomClient } from './arena-room-client.js';
+import { createArenaRoomUI } from './arena-room-ui.js';
+import { ROSTER } from './arena-roster.js';
+import { attributeRoomEvents, isRoomEntryIntent, shouldResetRoomGame } from './arena-room-state.js';
 
 const modes = { bumper, kitchen, survival };
 const ids = Object.keys(modes);
@@ -46,16 +50,30 @@ if (!localPreview) {
   document.querySelector('.tasting-card').hidden = true;
   const back = document.querySelector('.old-game');
   back.href = '/games/fat-fish/'; back.textContent = '合成大肥鱼 ↗';
+} else {
+  const hallURL = new URL('/games/', location.href);
+  hallURL.port = '4184';
+  $('hall-link').href = hallURL.href;
 }
 let mode = modes[id];
 let game = mode.createGame({ seed: 20261025 });
+let onlineRoom = null;
+let onlineSnapshot = null;
+let roomSnapshotPair = [];
+let onlineRoundEndSeen = false;
+let onlineEndEventSeen = false;
+let onlineNetworkStatus = 'idle';
+let mobileOnlineFocusApplied = false;
+let roomClient;
+let roomUI;
+let onlineInputPrimary = false;
 let running = false;
 let paused = false;
 let ready = false;
 let art;
 let equippedImage = null;
 const wardrobe = createWardrobe({ container: $('wardrobe-dialog'), client: wardrobeClient,
-  onOpen: () => { clearInput(); if (running && !paused) pause(); },
+  onOpen: () => { clearInput(); if (running && !paused && !onlineRoom) pause(); },
   onEquip: (image) => { equippedImage = image; applyEquipped(); dirty = true; },
 });
 wardrobeClient.onSessionChange(() => { equippedImage = null; applyEquipped(); dirty = true; });
@@ -95,12 +113,17 @@ function clearInput() {
   if (pointer && canvas.hasPointerCapture(pointer.id)) canvas.releasePointerCapture(pointer.id);
   pointer = null;
   accumulator = 0;
+  if (onlineRoom) roomClient?.neutral();
 }
 
 $('companion').addEventListener('pointerdown', clearInput);
 $('companion').addEventListener('focusin', clearInput);
 createCornerCompanion({ container: $('companion'), trigger: $('companion-toggle'), panel: $('companion-popover'),
-  onOpen: () => { clearInput(); if (running && !paused) pause(); },
+  onOpen: () => {
+    clearInput();
+    if (running && !paused && !onlineRoom) pause();
+    else if (onlineRoom) roomUI?.setStatus('联机中聊天不会暂停对局。');
+  },
 });
 $('wardrobe-open').addEventListener('click', () => { void wardrobe.open(); });
 
@@ -136,11 +159,18 @@ function consume(events = []) {
 
 function command(payload = { type: 'primary' }) {
   if (!running || paused || game.phase !== 'playing') return;
+  if (onlineRoom) {
+    if (payload.type !== 'primary') return;
+    roomClient.setInput({ ...getInput(), primary: true });
+    dirty = true;
+    return;
+  }
   consume(mode.performAction(game, { ...getInput(), ...payload }));
   dirty = true;
 }
 
 function reset() {
+  if (onlineRoom) { void roomClient.leave(); return; }
   if (pendingReload) { location.reload(); return; }
   saveScore();
   companion.reset();
@@ -159,6 +189,8 @@ function reset() {
 
 function chooseMode(next) {
   if (!modes[next]) return;
+  const preserveRoomAnchor = next === 'bumper' && isRoomEntryIntent(location.hash, location.search);
+  if (onlineRoom && next !== 'bumper') void roomClient.leave();
   saveScore();
   companion.reset();
   clearInput();
@@ -166,9 +198,12 @@ function chooseMode(next) {
   mode = modes[id];
   arenaControls.clear(true);
   lastStandings = '';
-  history.replaceState(null, '', `#${id}`);
+  history.replaceState(null, '', `${location.pathname}${location.search}${preserveRoomAnchor ? '#room-card' : `#${id}`}`);
   document.body.dataset.mode = id;
   $('standings-card').hidden = id !== 'bumper';
+  $('room-card').hidden = id !== 'bumper';
+  $('practice-mode').hidden = id !== 'bumper';
+  $('room-mode').hidden = id !== 'bumper';
   $('arena-ribbon').hidden = id !== 'bumper';
   text('page-heading', id === 'bumper' ? '保持 Q 弹，站稳擂台。' : '这次，换个玩法。');
   text('page-description', id === 'bumper' ? '找角度，抓空档。90 秒，把对手撞下去。' : '换个玩法，看看哪种快乐更适合你。');
@@ -197,11 +232,18 @@ function chooseMode(next) {
   aim = { x: 360, y: 120 };
   dirty = true;
   updateHud();
-  setFocusMode(id === 'bumper' && matchMedia('(max-width: 900px)').matches);
+  setFocusMode(id === 'bumper' && matchMedia('(max-width: 900px)').matches && !preserveRoomAnchor);
+  if (preserveRoomAnchor) requestAnimationFrame(() => $('room-card').scrollIntoView({ block: 'center', behavior: motion.matches ? 'instant' : 'smooth' }));
 }
 
 function start() {
   if (!ready) return;
+  if (onlineRoom) {
+    if (document.body.classList.contains('arena-focus')) setFocusMode(false);
+    $('room-card').scrollIntoView({ block: 'center', behavior: motion.matches ? 'instant' : 'smooth' });
+    roomUI.setStatus('联机对局由房间房主控制；可以在右侧房间卡片开始。');
+    return;
+  }
   if (pendingReload && !paused) { location.reload(); return; }
   if (game.phase !== 'playing') { companion.reset(); game = mode.createGame({ seed: 20261025 }); applyEquipped(); }
   running = true;
@@ -217,6 +259,7 @@ function start() {
 
 function pause() {
   if (!running || game.phase !== 'playing') return;
+  if (onlineRoom) { roomClient.neutral(); roomUI.setStatus('联机对局不会暂停，已松开操作。'); return; }
   paused = !paused;
   clearInput();
   dirty = true;
@@ -236,13 +279,16 @@ function updateHud() {
   text('stat2', hud.stat2);
   text('best', number(bestScore()));
   text('game-message', pendingReload ? '新版本已就绪，下一局自动更新。' : hud.message || mode.meta.tagline);
-  text('state-label', ended ? (game.phase === 'won' ? '这局拿下' : '下局再来') : paused ? '休息一下' : running ? '进行中' : '准备就绪');
+  text('state-label', ended ? (game.phase === 'won' ? '这局拿下' : '下局再来') : onlineRoom && !running
+    ? (onlineNetworkStatus === 'reconnecting' || onlineNetworkStatus === 'retry-exhausted' ? '恢复连接' : onlineRoom.phase === 'waiting' ? '等待房主' : '同步对局')
+    : paused ? '休息一下' : running ? '进行中' : '准备就绪');
   $('overlay').hidden = active;
   $('result-stats').hidden = !ended;
   $('next-mode').hidden = !ended;
-  $('start').disabled = !ready;
+  $('start').disabled = !ready || Boolean(onlineRoom && game.phase !== 'ended');
   $('pause').disabled = !running || ended;
-  $('pause').setAttribute('aria-label', paused ? '继续游戏' : '暂停游戏');
+  if (onlineRoom && !ended) $('pause').disabled = false;
+  $('pause').setAttribute('aria-label', onlineRoom ? '联机对局不能暂停' : paused ? '继续游戏' : '暂停游戏');
   $('pause').textContent = paused ? '▷' : 'Ⅱ';
   $('action').disabled = !active;
   $('touch-hints').hidden = id !== 'bumper' || !active;
@@ -275,7 +321,7 @@ function updateHud() {
     text('overlay-copy', game.result || (game.phase === 'won' ? '挑战完成。再来一局，或者换个口味。' : '歇一秒，试试另一种走法。'));
     text('result-score', number(game.score));
     text('result-best', number(bestScore()));
-    text('start', '再来一局 ↗');
+    text('start', onlineRoom ? '查看房间' : '再来一局 ↗');
   } else if (paused) {
     text('overlay-kicker', 'TAKE A LITTLE BREAK');
     text('overlay-title', '歇一小会儿');
@@ -284,14 +330,171 @@ function updateHud() {
   } else {
     text('overlay-kicker', id === 'bumper' ? '90 SECONDS · STAY BOUNCY' : 'ONE MINUTE, ONE MORE TRY');
     text('overlay-title', mode.meta.name);
-    text('overlay-copy', mode.meta.tagline);
-    text('start', ready ? '开始这一局 ↗' : '正在准备…');
+    text('overlay-copy', onlineRoom
+      ? onlineRoom.phase === 'waiting' ? '等待房主开始；空位会由人机补齐。' : onlineNetworkStatus === 'reconnecting' || onlineNetworkStatus === 'retry-exhausted' ? '联机连接中断，正在恢复对局状态。' : '正在同步服务器对局画面…'
+      : mode.meta.tagline);
+    text('start', onlineRoom ? onlineRoom.phase === 'waiting' ? '等待房主开始' : '正在同步对局…' : ready ? '开始这一局 ↗' : '正在准备…');
   }
   $('sound').setAttribute('aria-pressed', String(sound));
   $('sound').setAttribute('aria-label', sound ? '关闭声音' : '开启声音');
   text('sound-label', sound ? '声音开' : '声音关');
   dirty = false;
 }
+
+function applyRoomSnapshot(snapshot) {
+  if (!onlineRoom || id !== 'bumper' || !snapshot) return;
+  const arrivedAt = performance.now();
+  roomSnapshotPair.push({ snapshot, arrivedAt });
+  if (roomSnapshotPair.length > 2) roomSnapshotPair.shift();
+  onlineSnapshot = snapshot;
+  const selfId = Number(onlineRoom.self_id);
+  const byId = new Map((onlineRoom.seats || []).map((seat) => [Number(seat.id), seat]));
+  game.arenaRadius = snapshot.radius;
+  game.time = snapshot.time;
+  game.duration = 90;
+  game.phase = snapshot.phase === 'ended' ? 'ended' : 'playing';
+  game.fighters = snapshot.fighters.map((wire) => {
+    const fighter = game.fighters.find((item) => item.id === wire.id) || {};
+    const roster = ROSTER[wire.characterId] || ROSTER[0];
+    const seat = byId.get(wire.id);
+    Object.assign(fighter, wire, {
+      id: wire.id,
+      characterId: roster.id,
+      name: wire.id === selfId ? '你' : seat?.nickname || roster.name,
+      skin: wire.id === selfId ? 'playerSkin' : roster.skin,
+      r: 26,
+      isPlayer: wire.id === selfId,
+      isHuman: wire.isHuman,
+      invulnerable: wire.invulnerable ? 1 : 0,
+      dashX: Math.cos(wire.facing), dashY: Math.sin(wire.facing),
+      aimX: wire.x + Math.cos(wire.facing) * 100,
+      aimY: wire.y + Math.sin(wire.facing) * 100,
+    });
+    return fighter;
+  });
+  game.player = game.fighters.find((fighter) => fighter.id === selfId) || game.fighters[0];
+  if (game.player) { game.player.isPlayer = true; game.player.skin = 'playerSkin'; }
+  game.score = game.player?.kills || 0;
+  if (snapshot.phase === 'ended' && game.player) {
+    const standings = bumper.getStandings(game);
+    const row = standings.find((entry) => entry.isPlayer);
+    game.phase = row?.rank === 1 ? 'won' : 'lost';
+    game.result = `${row?.rank === 1 ? '第1名' : `第${row?.rank}名`} · ${game.score}次击飞`;
+    onlineRoundEndSeen = true;
+  }
+  running = snapshot.phase === 'playing';
+  onlineNetworkStatus = 'connected';
+  paused = false;
+  if (snapshot.phase === 'playing' && !mobileOnlineFocusApplied && matchMedia('(max-width: 900px)').matches) {
+    mobileOnlineFocusApplied = true;
+    if (!document.body.classList.contains('arena-focus')) setFocusMode(true);
+  }
+  dirty = true;
+  updateHud();
+}
+
+function applyOnlineEvents(events) {
+  if (!onlineRoom || !Array.isArray(events)) return;
+  const selfId = Number(onlineRoom.self_id);
+  const relevant = attributeRoomEvents(events, selfId);
+  const converted = relevant.flatMap((event) => {
+    if (event.type === 'end') {
+      if (onlineEndEventSeen) return [];
+      onlineEndEventSeen = true;
+      onlineRoundEndSeen = true;
+      const standings = bumper.getStandings(game);
+      const row = standings.find((entry) => entry.isPlayer);
+      game.phase = row?.rank === 1 ? 'won' : 'lost';
+      game.result = `${row?.rank === 1 ? '第1名' : `第${row?.rank}名`} · ${game.score || 0}次击飞`;
+      running = false;
+    }
+    return [{
+    ...event,
+    type: event.type === 'end' ? 'end' : event.type,
+    text: event.text || ({ kill: '+1', dash: '冲！', fall: '掉出台外' }[event.type] || ''),
+    ...(game.player ? { x: Number.isFinite(event.x) ? event.x : game.player.x, y: Number.isFinite(event.y) ? event.y : game.player.y } : {}),
+    }];
+  });
+  consume(converted);
+}
+
+function onRoomUpdate(room) {
+  const previousRoom = onlineRoom;
+  const wasOnline = Boolean(previousRoom);
+  const nextRoom = room || null;
+  if (!nextRoom) {
+    onlineRoom = null;
+    onlineNetworkStatus = 'idle';
+    onlineSnapshot = null;
+    roomSnapshotPair = [];
+    onlineRoundEndSeen = false;
+    onlineEndEventSeen = false;
+    mobileOnlineFocusApplied = false;
+  } else {
+    if (!wasOnline || String(previousRoom.code) !== String(nextRoom.code)) onlineNetworkStatus = 'joining';
+    if (id !== 'bumper') chooseMode('bumper');
+    const resetGame = shouldResetRoomGame(previousRoom, nextRoom, game.phase, onlineSnapshot?.phase);
+    onlineRoom = nextRoom;
+    const seats = nextRoom.seats || [];
+    const humanIds = seats.map((seat) => Number(seat.id)).filter(Number.isInteger);
+    if (resetGame) {
+      onlineSnapshot = null;
+      roomSnapshotPair = [];
+      onlineRoundEndSeen = false;
+      onlineEndEventSeen = false;
+      mobileOnlineFocusApplied = false;
+      game = bumper.createGame({ humanIds: humanIds.length ? humanIds : [Number(nextRoom.self_id) || 0] });
+      game.phase = 'playing';
+      game.score = 0;
+      game.result = '';
+      for (const fighter of game.fighters) {
+        const seat = seats.find((item) => Number(item.id) === fighter.id);
+        fighter.isPlayer = fighter.id === Number(nextRoom.self_id);
+        if (seat) fighter.name = fighter.isPlayer ? '你' : seat.nickname || fighter.name;
+        if (fighter.isPlayer) fighter.skin = 'playerSkin';
+      }
+      game.player = game.fighters.find((fighter) => fighter.isPlayer) || game.fighters[0];
+      applyEquipped();
+    } else {
+      // Metadata refreshes may change nicknames or connection flags; keep scores and the latest snapshots.
+      for (const fighter of game.fighters) {
+        const seat = seats.find((item) => Number(item.id) === fighter.id);
+        if (seat && fighter.id !== Number(nextRoom.self_id)) fighter.name = seat.nickname || fighter.name;
+      }
+    }
+    if (art) void ensureArt(art, game.fighters).then(() => { dirty = true; });
+    if (resetGame) { running = false; paused = false; clearInput(); }
+  }
+  if (!nextRoom && wasOnline) {
+    clearInput();
+    game = mode.createGame({ seed: 20261025 });
+    applyEquipped();
+    running = false;
+    paused = false;
+    effects = [];
+    dirty = true;
+  }
+  roomUI?.update(onlineRoom);
+  updateHud();
+}
+
+roomClient = createArenaRoomClient({
+  basePath: '/games/bumper',
+  onRoom: onRoomUpdate,
+  onEvents: applyOnlineEvents,
+  onSnapshot: applyRoomSnapshot,
+  onStatus: (status) => {
+    onlineNetworkStatus = status;
+    if (['reconnecting', 'retry-exhausted', 'error'].includes(status) && onlineRoom) {
+      running = false;
+      clearInput();
+    }
+    const labels = { joining: '正在连接房间…', connected: '房间连接稳定。', reconnecting: '连接中断，正在重连…', 'retry-exhausted': '暂时无法重连。可手动重试，或离开房间。', 'snapshot-error': '收到无效的对局数据，请重新连接。', error: '房间连接失败，请稍后重试。' };
+    if (onlineRoom && labels[status]) roomUI?.setStatus(labels[status], status === 'retry-exhausted' || status === 'error');
+    if (onlineRoom) { dirty = true; updateHud(); }
+  },
+});
+roomUI = createArenaRoomUI({ container: $('room-card'), client: roomClient });
 
 function toPoint(event) {
   const box = canvas.getBoundingClientRect();
@@ -364,16 +567,26 @@ document.addEventListener('keydown', (event) => {
   }
 });
 document.addEventListener('keyup', (event) => keys.delete(event.key.toLowerCase()));
-window.addEventListener('blur', () => { clearInput(); if (running && !paused) pause(); });
+window.addEventListener('blur', () => { clearInput(); if (running && !paused && !onlineRoom) pause(); });
 document.addEventListener('visibilitychange', () => {
   if (document.hidden) {
     clearInput();
-    if (running && !paused) pause();
+    if (running && !paused && !onlineRoom) pause();
     audio.setEnabled(false);
   } else { audio.setEnabled(sound); lastFrame = performance.now(); }
 });
 window.addEventListener('pagehide', saveScore);
 $('start').addEventListener('click', start);
+$('practice-mode').addEventListener('click', () => {
+  if (onlineRoom) { void roomClient.leave(); return; }
+  if (!running || game.phase !== 'playing') start();
+  else $('game-panel').scrollIntoView({ block: 'start', behavior: motion.matches ? 'instant' : 'smooth' });
+});
+$('room-mode').addEventListener('click', () => {
+  if (document.body.classList.contains('arena-focus')) setFocusMode(false);
+  $('room-card').scrollIntoView({ block: 'center', behavior: motion.matches ? 'instant' : 'smooth' });
+  $('room-card').querySelector('input[aria-label="6 位房间码"]')?.focus({ preventScroll: true });
+});
 $('pause').addEventListener('click', pause);
 $('restart').addEventListener('click', reset);
 $('action').addEventListener('click', () => command());
@@ -494,7 +707,10 @@ function frame(now) {
   lastFrame = now;
   if (!document.hidden) {
     viewTime += dt;
-    if (running && !paused && game.phase === 'playing') {
+    if (running && !paused && game.phase === 'playing' && onlineRoom) {
+      roomClient.setInput(getInput());
+      dirty = true;
+    } else if (running && !paused && game.phase === 'playing') {
       accumulator += dt;
       while (accumulator + 1e-12 >= 1 / 60 && running && game.phase === 'playing') {
         accumulator -= 1 / 60;
@@ -511,6 +727,21 @@ function frame(now) {
   lastPaint = now;
   resize();
   ctx.fillStyle = '#172a45'; ctx.fillRect(viewport.x, viewport.y, viewport.width, viewport.height);
+  if (onlineRoom && roomSnapshotPair.length === 2) {
+    const [previous, current] = roomSnapshotPair;
+    const duration = Math.max(1, current.arrivedAt - previous.arrivedAt);
+    const alpha = Math.max(0, Math.min(1, (now - 100 - previous.arrivedAt) / duration));
+    const previousById = new Map(previous.snapshot.fighters.map((fighter) => [fighter.id, fighter]));
+    const currentById = new Map(current.snapshot.fighters.map((fighter) => [fighter.id, fighter]));
+    for (const fighter of game.fighters) {
+      const before = previousById.get(fighter.id);
+      const after = currentById.get(fighter.id);
+      if (!before || !after) continue;
+      for (const key of ['x', 'y', 'vx', 'vy', 'facing', 'dashCooldown', 'dashTimer']) {
+        fighter[key] = before[key] + (after[key] - before[key]) * alpha;
+      }
+    }
+  }
   if (id === 'bumper') {
     floor ??= document.createElement('canvas');
     if (!floor.width || floor.width !== bumper.WIDTH) { floor.width = bumper.WIDTH; floor.height = bumper.HEIGHT; }

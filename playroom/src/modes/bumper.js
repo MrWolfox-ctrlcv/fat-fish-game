@@ -1,5 +1,7 @@
 import { drawAvatar } from "../art.js";
 import { drawArenaFloor } from "../arena-scene.js";
+import { ROSTER, getCharacter } from "../arena-roster.js";
+import { decideBotInput } from "../arena-bots.js";
 
 export const WIDTH = 1280;
 export const HEIGHT = 900;
@@ -7,14 +9,6 @@ const CX = WIDTH / 2,
   CY = HEIGHT / 2,
   TAU = Math.PI * 2,
   MAX_DT = 1 / 30;
-const SKINS = [
-  "deepseek",
-  "gptSilly",
-  "fakeClaude",
-  "gptSilly",
-  "fakeClaude",
-  "gptSilly",
-];
 export const meta = {
   id: "bumper",
   name: "碰碰擂台",
@@ -43,11 +37,15 @@ function unit(x, y, fx = 1, fy = 0) {
 function arenaRadius(t) {
   return t <= 70 ? 390 : 390 - (t - 70) * 3;
 }
-function fighter(id, player, x, y) {
+function fighter(id, isHuman, x, y, characterId) {
+  const character = getCharacter(characterId);
   return {
     id,
-    name: player ? "你" : ["泡泡", "团子", "小鱼", "橘子", "云朵"][id - 1],
-    isPlayer: player,
+    name: isHuman && id === 0 ? "你" : character.name,
+    isPlayer: id === 0,
+    isHuman,
+    characterId: character.id,
+    brain: character.brain,
     x,
     y,
     vx: 0,
@@ -64,8 +62,8 @@ function fighter(id, player, x, y) {
     dashHits: [],
     aimX: 0,
     aimY: 0,
-    skin: player ? "deepseek" : SKINS[id],
-    facing: player ? -Math.PI / 2 : 0,
+    skin: character.skin,
+    facing: isHuman ? -Math.PI / 2 : 0,
     alive: true,
     respawn: 0,
     invulnerable: 0,
@@ -74,10 +72,10 @@ function fighter(id, player, x, y) {
     kills: 0,
     falls: 0,
     knockoutTimer: 0,
-    botKind: ["aggressive", "flank", "steady", "scavenger", "steady"][id - 1],
+    botKind: character.id,
   };
 }
-export function createGame({ seed = 20261025 } = {}) {
+export function createGame({ seed = 20261025, humanIds = [0], humanCharacters = {}, botCharacters = {} } = {}) {
   let s = Number.isFinite(Number(seed)) ? Number(seed) >>> 0 : 0x51f15e;
   if (!s) s = 0x51f15e;
   const g = {
@@ -93,17 +91,33 @@ export function createGame({ seed = 20261025 } = {}) {
     fighters: [],
     impact: null,
     effects: [],
-    botState: { think: 0, targets: [] },
+    botState: { think: 0, inputs: [] },
+    humanIds: [...new Set(humanIds.map(Number))],
   };
-  g.fighters.push(fighter(0, true, CX, CY));
-  for (let i = 1; i < 6; i++) {
-    const a = (TAU * (i - 1)) / 5 + 0.3,
-      r = 125 + rng(g) * 80;
-    g.fighters.push(
-      fighter(i, false, CX + Math.cos(a) * r, CY + Math.sin(a) * r),
-    );
+  const ids = g.humanIds = g.humanIds.filter((id) => Number.isInteger(id) && id >= 0 && id < 6);
+  if (!ids.length) ids.push(0);
+  const used = new Set(ids.map((id) => getCharacter(humanCharacters[id] || (id === 0 ? "deepseek" : ROSTER[(id % (ROSTER.length - 1)) + 1].id)).id));
+  const shuffled = [...ROSTER];
+  for (let i = shuffled.length - 1; i > 0; i--) {
+    const j = Math.floor(rng(g) * (i + 1));
+    [shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]];
   }
-  g.player = g.fighters[0];
+  for (let id = 0; id < 6; id++) {
+    const isHuman = ids.includes(id);
+    let characterId = humanCharacters[id];
+    if (!isHuman) {
+      characterId = botCharacters[id];
+      if (!characterId || used.has(characterId)) characterId = shuffled.find((c) => !used.has(c.id))?.id;
+      if (!characterId) characterId = ROSTER.find((c) => !used.has(c.id))?.id || "deepseek";
+      used.add(characterId);
+    }
+    const slot = ids.indexOf(id);
+    const a = slot < 0 ? (TAU * (id + 0.5)) / 6 + 0.3 : (TAU * slot) / Math.max(1, ids.length) + 0.3;
+    const r = isHuman && id === 0 ? 0 : 125 + rng(g) * 80;
+    g.fighters.push(fighter(id, isHuman, CX + Math.cos(a) * r, CY + Math.sin(a) * r, characterId));
+  }
+  g.player = g.fighters.find((f) => f.id === 0) || g.fighters[0];
+  if (g.player) g.player.isPlayer = true;
   return g;
 }
 export function getStandings(g) {
@@ -119,6 +133,9 @@ export function getStandings(g) {
       id: f.id,
       name: f.name,
       isPlayer: f.isPlayer,
+      isHuman: f.isHuman,
+      characterId: f.characterId,
+      brain: f.brain,
       kills: f.kills,
       falls: f.falls,
       rank,
@@ -221,68 +238,6 @@ function move(f, input, dt) {
   f.dashTimer = Math.max(0, f.dashTimer - dt);
   f.dashCooldown = Math.max(0, f.dashCooldown - dt);
   f.invulnerable = Math.max(0, f.invulnerable - dt);
-}
-function botInput(g, f) {
-  if (!f.alive) return {};
-  const live = g.fighters.filter((x) => x !== f && x.alive);
-  if (!live.length) return {};
-  let target = live[0],
-    best = Infinity;
-  for (const x of live) {
-    const d = len(x.x - f.x, x.y - f.y);
-    if (d < best) {
-      best = d;
-      target = x;
-    }
-  }
-  const predictedX = f.x + f.vx * 0.35;
-  const predictedY = f.y + f.vy * 0.35;
-  let dx = target.x - f.x,
-    dy = target.y - f.y,
-    d = len(dx, dy) || 1,
-    edge = len(predictedX - CX, predictedY - CY),
-    rad = g.arenaRadius;
-  let mx = dx / d,
-    my = dy / d;
-  if (edge > rad - 95) {
-    const [rx, ry] = unit(CX - f.x, CY - f.y);
-    mx = mx * 0.25 + rx * 1.3;
-    my = my * 0.25 + ry * 1.3;
-  } else if (f.botKind === "flank") {
-    const oldX = mx;
-    mx += -my * 0.65;
-    my += oldX * 0.65;
-  } else if (f.botKind === "steady" && d < 100) {
-    mx = -mx;
-    my = -my;
-  }
-  const m = len(mx, my) || 1;
-  mx /= m;
-  my /= m;
-  const aimX = target.x + target.vx * 0.18;
-  const aimY = target.y + target.vy * 0.18;
-  const [dashX, dashY] = unit(aimX - f.x, aimY - f.y);
-  const dashEndX = f.x + dashX * f.dashSpeed * f.dashDuration;
-  const dashEndY = f.y + dashY * f.dashSpeed * f.dashDuration;
-  const riskyDash =
-    len(dashEndX - CX, dashEndY - CY) > g.arenaRadius - f.r * 0.15;
-  const primary =
-    f.dashCooldown <= 0 &&
-    d < 185 &&
-    d > 35 &&
-    (f.botKind === "aggressive" || !riskyDash) &&
-    ((f.botKind === "aggressive" && rng(g) < 0.035) ||
-      (f.botKind === "scavenger" &&
-        target.lastHitAt > g.time - 1 &&
-        rng(g) < 0.045) ||
-      rng(g) < 0.008);
-  return {
-    moveX: mx,
-    moveY: my,
-    aimX,
-    aimY,
-    primary,
-  };
 }
 function collide(g, a, b, events) {
   if (!a.alive || !b.alive || a.invulnerable > 0 || b.invulnerable > 0) return;
@@ -395,21 +350,29 @@ function falls(g, events) {
         owner.kills++;
         if (owner.isPlayer) {
           g.score = owner.kills;
-          events.push({
-            type: "kill",
-            attackerId: owner.id,
-            victimId: f.id,
-            playerKill: true,
-            x: f.x,
-            y: f.y,
-            text: "+1",
-          });
-        } else
+        }
+        events.push({
+          type: "kill",
+          id: owner.id,
+          attackerId: owner.id,
+          victimId: f.id,
+          playerKill: owner.isPlayer,
+          humanKill: owner.isHuman,
+          playerFall: f.isPlayer,
+          humanFall: f.isHuman,
+          fallCount: f.falls,
+          x: f.x,
+          y: f.y,
+          text: owner.isHuman ? "+1" : "击飞",
+        });
+        if (!owner.isPlayer)
           events.push({
             type: "fall",
             id: f.id,
             fallCount: f.falls,
             playerFall: f.isPlayer,
+            humanFall: f.isHuman,
+            attackerId: owner.id,
             x: f.x,
             y: f.y,
           });
@@ -419,6 +382,8 @@ function falls(g, events) {
           id: f.id,
           fallCount: f.falls,
           playerFall: f.isPlayer,
+          humanFall: f.isHuman,
+          victimId: f.id,
           x: f.x,
           y: f.y,
         });
@@ -428,27 +393,36 @@ function falls(g, events) {
   }
 }
 export function stepGame(g, input = {}, dt = 1 / 60) {
+  return stepArena(g, { [g.player?.id ?? 0]: input }, dt);
+}
+export function stepArena(g, inputsById = {}, dt = 1 / 60) {
   const events = [];
   if (g.phase !== "playing" || !Number.isFinite(dt) || dt <= 0) return events;
   dt = Math.min(dt, MAX_DT);
-  if (input?.primary) startDash(g, g.player, input, events);
   g.time = Math.min(g.duration, g.time + dt);
   g.arenaRadius = arenaRadius(g.time);
   if (g.impact) {
     g.impact.ttl -= dt;
     if (g.impact.ttl <= 0) g.impact = null;
   }
-  move(g.player, input, dt);
+  const commands = {};
+  for (const f of g.fighters) {
+    if (f.isHuman) commands[f.id] = inputsById?.[f.id] || {};
+    else commands[f.id] = g.botState.inputs?.[f.id] || {};
+  }
   if (g.botState.think <= 0) {
-    g.botState.think = 0.2;
-    g.botState.inputs = g.fighters.slice(1).map((f) => botInput(g, f));
-    for (let i = 1; i < g.fighters.length; i++) {
-      const command = g.botState.inputs[i - 1];
-      if (command.primary) startDash(g, g.fighters[i], command, events);
+    g.botState.think = 0.14;
+    for (const f of g.fighters) {
+      if (f.isHuman) continue;
+      commands[f.id] = g.botState.inputs[f.id] = decideBotInput(g, f, () => rng(g));
+      if (commands[f.id].primary) startDash(g, f, commands[f.id], events);
     }
   }
-  for (let i = 1; i < g.fighters.length; i++)
-    move(g.fighters[i], g.botState.inputs?.[i - 1] || {}, dt);
+  for (const f of g.fighters) {
+    const input = commands[f.id] || {};
+    if (f.isHuman && input.primary) startDash(g, f, input, events);
+    move(f, input, dt);
+  }
   for (let i = 0; i < g.fighters.length; i++)
     for (let j = i + 1; j < g.fighters.length; j++)
       collide(g, g.fighters[i], g.fighters[j], events);
@@ -541,6 +515,9 @@ export function renderGame(ctx, g, view = {}) {
     if (!f.alive) {
       continue;
     }
+    const avatarSkin = view.art?.[`portrait:${f.characterId}`]
+      ? `portrait:${f.characterId}`
+      : f.skin;
     shadow(ctx, f.x, f.y, f.r);
     if (f.invulnerable > 0) {
       ctx.beginPath();
@@ -554,7 +531,7 @@ export function renderGame(ctx, g, view = {}) {
       drawAvatar(
         ctx,
         view.art,
-        f.skin,
+        avatarSkin,
         f.x - f.dashX * 27,
         f.y - f.dashY * 27,
         72,
@@ -575,7 +552,7 @@ export function renderGame(ctx, g, view = {}) {
     drawAvatar(
       ctx,
       view.art,
-      f.skin,
+      avatarSkin,
       f.x,
       f.y,
       72,

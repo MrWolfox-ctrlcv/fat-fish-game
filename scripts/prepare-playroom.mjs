@@ -13,6 +13,20 @@ for (const name of names) {
   await mkdir(dirname(output), { recursive: true });
   await copyFile(resolve(source, name), output);
 }
+for (const [from, to] of [
+  ['public/scripts/prepare-arena-art.mjs', '../scripts/prepare-arena-art.mjs'],
+  ['dist/games-index.html', '../dist/games-index.html'],
+  ['dist/games-hub.css', '../dist/games-hub.css'],
+]) {
+  const output = resolve(target, to);
+  await mkdir(dirname(output), { recursive: true });
+  await copyFile(resolve(source, from), output);
+}
+const portraitRoot = resolve(target, 'portraits');
+await mkdir(portraitRoot, { recursive: true });
+for (const name of ['deepseek', 'gptNormal', 'claude', 'gemini', 'doubao', 'qwen', 'kimi', 'grok']) {
+  await copyFile(resolve(source, `public/portraits/${name}.png`), resolve(portraitRoot, `${name}.png`));
+}
 const testRoot = fileURLToPath(new URL('../tests/playroom/', import.meta.url));
 await mkdir(testRoot, { recursive: true });
 for (const name of await readdir(resolve(source, 'tests'))) {

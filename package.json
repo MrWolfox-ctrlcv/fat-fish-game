@@ -9,6 +9,7 @@
     "prepare:art": "node scripts/prepare-art.mjs"
   },
   "dependencies": {
-    "pngjs": "7.0.0"
+    "pngjs": "7.0.0",
+    "ws": "8.22.0"
   }
 }

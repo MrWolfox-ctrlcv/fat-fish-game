@@ -11,6 +11,21 @@ test('bumper publishes only public shell and modules, sharing the existing game 
   await new Promise((resolve) => server.listen(0, '127.0.0.1', resolve));
   const base = `http://127.0.0.1:${server.address().port}`;
   try {
+    const hallRedirect = await fetch(`${base}/games`, { redirect: 'manual' });
+    assert.equal(hallRedirect.status, 302);
+    assert.equal(hallRedirect.headers.get('location'), '/games/');
+    const hall = await fetch(`${base}/games/`);
+    assert.equal(hall.status, 200);
+    assert.match(await hall.text(), /href="\/games\/bumper\/#room-card"/);
+    assert.equal((await fetch(`${base}/games/fat-fish/games-hub.css`)).status, 200);
+    for (const id of ['deepseek', 'gptNormal', 'claude', 'gemini', 'doubao', 'qwen', 'kimi', 'grok']) {
+      const portrait = await fetch(`${base}/games/bumper/portraits/${id}.png`);
+      assert.equal(portrait.status, 200);
+      assert.equal(portrait.headers.get('content-type'), 'image/png');
+      assert.deepEqual(Buffer.from(await portrait.arrayBuffer()).subarray(0, 8), Buffer.from([137, 80, 78, 71, 13, 10, 26, 10]));
+    }
+    assert.equal((await fetch(`${base}/games/bumper/private/arena-portraits-atlas.png`)).status, 404);
+    assert.equal((await fetch(`${base}/games/bumper/portraits/unknown.png`)).status, 404);
     const redirect = await fetch(`${base}/games/bumper`, { redirect: 'manual' });
     assert.equal(redirect.status, 302);
     assert.equal(redirect.headers.get('location'), '/games/bumper/');

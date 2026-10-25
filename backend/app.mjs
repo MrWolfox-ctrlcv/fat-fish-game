@@ -10,6 +10,7 @@ import { createCompanion } from './companion.mjs';
 import { previousWeek, publicName, weekFor } from './weekly.mjs';
 import { PHYSICS_VERSION } from '../dist/physics-version.js';
 import { createWardrobe } from './wardrobe.mjs';
+import { createArenaRooms } from './arena-rooms.mjs';
 
 // These three already-visible starter/NPC portraits are shared by both games.
 // Seeing an NPC does not grant permission to equip its outfit.
@@ -40,12 +41,13 @@ export async function createGameServer(options = {}) {
   const playroomRoot = options.playroomRoot ?? new URL('../playroom/', import.meta.url);
   let sendPlayroom = null;
   try {
-    const names = (await readdir(playroomRoot, { recursive: true })).filter((name) => /^(index\.html|style\.css|wardrobe\.css|companion-account\.css|companion-corner\.css|src\/(?:modes\/)?[a-z-]+\.js)$/.test(name.replaceAll('\\', '/'))).map((name) => name.replaceAll('\\', '/'));
+    const names = (await readdir(playroomRoot, { recursive: true })).filter((name) => /^(index\.html|style\.css|wardrobe\.css|companion-account\.css|companion-corner\.css|src\/(?:modes\/)?[a-z-]+\.js|portraits\/(?:deepseek|gptNormal|claude|gemini|doubao|qwen|kimi|grok)\.png)$/.test(name.replaceAll('\\', '/'))).map((name) => name.replaceAll('\\', '/'));
     sendPlayroom = await createStaticAssets(playroomRoot, names);
   } catch (error) { if (error.code !== 'ENOENT') throw error; }
   const wardrobe = createWardrobe({ store });
   const verifier = createReplayVerifier();
   const companion = createCompanion({ db: store.db, env: options.companionEnv ?? process.env, fetchImpl: options.companionFetch ?? fetch, now });
+  const arenaRooms = createArenaRooms({ origins, production: process.env.NODE_ENV === 'production', now, maxRooms: options.arenaMaxRooms });
   const authCache = new Map();
   const runs = new Map();
   const currentRun = new Map();
@@ -163,6 +165,12 @@ export async function createGameServer(options = {}) {
     const json = (status, data) => { response.writeHead(status, { ...headers, 'Content-Type': 'application/json; charset=utf-8' }); response.end(JSON.stringify(data)); };
     try {
       const url = new URL(request.url, 'http://game.internal');
+      if (await arenaRooms.handleHttp(request, response, url)) return;
+      if (url.pathname === '/games') { response.writeHead(302, { Location: '/games/' }).end(); return; }
+      if (url.pathname === '/games/') {
+        if (!['GET', 'HEAD'].includes(request.method) || !staticFiles.has('games-index.html')) throw fail(404, '页面不存在。');
+        sendStatic(request, response, 'games-index.html', headers); return;
+      }
       if (url.pathname === '/games/bumper') { response.writeHead(302, { Location: '/games/bumper/' }).end(); return; }
       if (url.pathname.startsWith('/games/bumper/')) {
         const name = url.pathname.slice('/games/bumper/'.length) || 'index.html';
@@ -392,6 +400,7 @@ export async function createGameServer(options = {}) {
   });
   server.requestTimeout = 15000;
   server.headersTimeout = 10000;
+  arenaRooms.attach(server);
   const cleanup = setInterval(() => {
     for (const [key, value] of limits) if (now() - value.start > 3600000) limits.delete(key);
     for (const [key, value] of authCache) if (value.expires < now()) authCache.delete(key);
@@ -400,7 +409,7 @@ export async function createGameServer(options = {}) {
     for (const [key, id] of guestRuns) if (!runs.has(id)) guestRuns.delete(key);
     try { settleDueWeeks(); } catch { /* retried on the next cleanup or read */ }
   }, 60000).unref();
-  server.on('close', () => { clearInterval(cleanup); void verifier.close(); });
+  server.on('close', () => { clearInterval(cleanup); arenaRooms.close(); void verifier.close(); });
   try { settleDueWeeks(); } catch { /* retried on the next cleanup or read */ }
-  return { server, store };
+  return { server, store, arenaRooms };
 }

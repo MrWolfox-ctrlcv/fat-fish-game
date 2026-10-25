@@ -136,6 +136,26 @@ test("last effective attacker receives a point within three seconds; expired own
   stepGame(g, {}, F);
   assert.equal(other.kills, 0);
 });
+test("multiplayer kill events identify the human attacker without changing player-zero score", () => {
+  const g = createGame({ seed: 44, humanIds: [0, 1] });
+  clear(g);
+  g.time = 10;
+  const [playerZero, attacker, victim] = g.fighters;
+  Object.assign(attacker, { x: 500, y: 450 });
+  Object.assign(victim, {
+    alive: true, respawn: 0, x: 1135, y: 450, vx: 0, vy: 0,
+    lastHitBy: attacker.id, lastHitAt: g.time,
+  });
+  const events = stepGame(g, {}, F);
+  const kill = events.find((event) => event.type === "kill");
+  assert.equal(kill?.attackerId, attacker.id);
+  assert.equal(kill?.victimId, victim.id);
+  assert.equal(kill?.humanKill, true);
+  assert.equal(kill?.playerKill, false);
+  assert.equal(attacker.kills, 1);
+  assert.equal(playerZero.kills, 0);
+  assert.equal(g.score, 0);
+});
 test("player kill events fire when a single step crosses double and streak thresholds", () => {
   const g = createGame();
   clear(g);

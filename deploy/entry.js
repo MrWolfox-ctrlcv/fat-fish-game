@@ -10,6 +10,7 @@
   const MENU_ID = 'oua-game-launcher-menu';
   const STORAGE_KEY = 'oua-game-launcher-position-v1';
   const games = [
+    { href: '/games/', label: '小游戏大厅', icon: '🎮' },
     { href: '/games/fat-fish/', label: '合成大肥鱼', icon: '🐳' },
     { href: '/games/bumper/', label: '碰碰擂台', icon: '🛟' },
   ];

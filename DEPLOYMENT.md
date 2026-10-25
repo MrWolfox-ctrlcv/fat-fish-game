@@ -82,3 +82,11 @@ npm start
 生产仅向已登录账户提供 POST 调用。默认每账户每日20次、全站每日100次、20秒冷却、最多两路并发；可用环境变量调低每日次数。SQLite 的 `companion_daily` 预留调用次数和汇总 token 用量，不保存玩家消息或模型正文。错误尝试也计数，重启不清零。按次数与输出预算控制规模，不保证固定金额，须结合供应方实际计价观察。
 
 角色图片使用 `private, no-cache`，支持 ETag；所有304之前仍执行权限检查。不得为了提升命中率在代理层给这些接口强加 public 缓存，或绕过 Cookie/Bearer鉴权。公开脚本支持Brotli/gzip及条件缓存；账户、兑换码和陪玩响应保留no-store。
+
+## 8. 小游戏大厅与好友房间
+
+同一游戏进程提供 `/games/` 大厅和 `/games/bumper/` 擂台。部署时同时更新 `deploy/nginx-fish.conf`：精确路径 `/games/bumper/socket` 必须使用 HTTP/1.1 并转发 `Upgrade` 和 `Connection: upgrade`；普通游戏接口不使用该配置。只需平滑重载 Nginx 和更新独立游戏服务，无需重启 New API。
+
+运行依赖增加纯 JavaScript 的 `ws` 8.22.0；`pngjs` 用于开发阶段准备素材，运行时加载已导出的图片。大厅和擂台只公开 `playroom/portraits/` 的八张小图，不发布原始生成图集或游戏数据库。
+
+`ARENA_MAX_ROOMS` 默认 2，可设为 1～8；等待中的房间也计入上限，每间最多 6 名玩家。房间与会话只保存在内存中，游戏服务更新后需要重新创建房间。等待房间 10 分钟、结束房间 2 分钟、全员离线约 30 秒后回收；无人对局时停止物理步进。对外服务需要将实际站点 Origin 加入 `GAME_ORIGINS`。
