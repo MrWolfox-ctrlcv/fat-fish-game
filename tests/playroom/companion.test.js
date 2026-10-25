@@ -350,6 +350,18 @@ test("bumper scene snapshot has bounded world coordinates and excludes names", (
   assert.equal("name" in scene.opponents[0], false);
 });
 
+test('team companion scene preserves teammate identity and signed team scores without personal data', () => {
+  const game = bumper.createGame({ mode: 'teams', humanTeams: { 0: 0 } });
+  game.teamScores = [-2, 4];
+  const scene = makeBumperScene(game);
+  const payload = makeCompanionPayload('bumper', { type: 'end' }, { scene });
+  assert.equal(payload.scene.mode, 'teams');
+  assert.deepEqual(payload.scene.team_scores, [-2, 4]);
+  assert.equal(payload.scene.player.team_id, 0);
+  assert.equal(payload.scene.opponents.filter(other => other.team_id === 0).length, 2);
+  assert.ok(!JSON.stringify(payload.scene).includes('name'));
+});
+
 test("bumper identifies player falls and emits survivor after 30 seconds", () => {
   const game = bumper.createGame();
   game.time = 29.99;

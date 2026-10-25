@@ -81,6 +81,7 @@ export function makeCompanionPayload(payload = {}, messages = []) {
   })).filter((entry) => entry.content) : [];
   const safe = makeGamePayload(payload?.game, { event: payload?.event, detail: payload?.detail }, payload);
   const userData = { game: safe.game, event: payload?.event === 'chat' ? 'chat' : safe.event, score: safe.score, elapsed: safe.elapsed, scene: safe.scene, detail: safe.detail };
+  if (safe.scene?.mode === 'teams') userData.rules = 'team_id=0国模队、1美模队；opponents含其余所有选手，同team_id是队友。team_scores为队分，击飞敌方+1，友伤或自行落水己方-1，按队分判胜负。';
   return {
     model: MODEL,
     reasoning_effort: 'off',

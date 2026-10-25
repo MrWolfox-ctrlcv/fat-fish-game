@@ -3,8 +3,9 @@ import assert from 'node:assert/strict';
 import { createServer } from 'node:http';
 import { once } from 'node:events';
 import WebSocket from 'ws';
-import { createArenaRooms } from '../backend/arena-rooms.mjs';
-import { decodeArenaSnapshot } from '../playroom/src/arena-network.js';
+import { createArenaRooms, serializeArenaEvents } from '../backend/arena-rooms.mjs';
+import { decodeArenaSnapshot, encodeArenaSnapshot } from '../playroom/src/arena-network.js';
+import { createGame as createArenaGame, stepArena } from '../playroom/src/modes/bumper.js';
 
 const ORIGIN = 'http://localhost:4180';
 async function request(port, path, { method = 'GET', body, cookie, origin = ORIGIN } = {}) {
@@ -39,6 +40,7 @@ test('rooms authenticate by cookie and origin, enforce host start, and stream au
   const { port } = await fixture(t);
   const created = await request(port, '/games/bumper/api/rooms', { method: 'POST', body: { nickname: 'Guest <one>' } });
   assert.equal(created.response.status, 201);
+  assert.equal(created.data.room.mode, 'ffa');
   assert.match(created.cookie, /^arena_session=[a-f0-9]{64}$/);
   const code = created.data.room.code;
   assert.equal(created.data.room.seats[0].nickname, 'Guest one');
@@ -69,7 +71,10 @@ test('rooms authenticate by cookie and origin, enforce host start, and stream au
   assert.ok(packet, 'a binary snapshot should arrive');
   const snapshot = decodeArenaSnapshot(packet.data);
   assert.equal(snapshot.phase, 'playing');
+  assert.equal(snapshot.mode, 'ffa');
+  assert.deepEqual(snapshot.teamScores, [0, 0]);
   assert.equal(snapshot.fighters.length, 6);
+  assert.ok(snapshot.fighters.every((fighter) => fighter.teamId === null));
   assert.equal(snapshot.fighters.filter((fighter) => fighter.isHuman).length, 2);
   assert.ok(snapshot.fighters.every((fighter) => Number.isFinite(fighter.x) && Number.isFinite(fighter.y)));
   const self = snapshot.fighters.find((fighter) => fighter.id === 0);
@@ -104,6 +109,103 @@ test('room capacity, invalid codes, and attacker-chosen cookie values stay bound
   const invalid = await request(port, '/games/bumper/api/rooms/join', { method: 'POST', body: { code: '12x' } });
   assert.equal(invalid.response.status, 400);
   assert.equal(invalid.data.code, 'invalid_code');
+});
+
+test('team rooms cap each team at three and auto-balance joins', async (t) => {
+  const { port } = await fixture(t);
+  const host = await request(port, '/games/bumper/api/rooms', { method: 'POST', body: { mode: 'teams', teamId: 0, nickname: 'Host' } });
+  assert.equal(host.data.room.mode, 'teams');
+  assert.equal(host.data.room.seats[0].teamId, 0);
+  const code = host.data.room.code;
+  const join = async (teamId) => request(port, '/games/bumper/api/rooms/join', {
+    method: 'POST', body: { code, nickname: 'Guest', ...(teamId === undefined ? {} : { teamId }) },
+  });
+  const same1 = await join(0); const same2 = await join(0);
+  assert.equal(same1.data.room.seats.find((seat) => seat.id === 1).teamId, 0);
+  assert.equal(same2.data.room.seats.find((seat) => seat.id === 2).teamId, 0);
+  const full = await join(0);
+  assert.equal(full.response.status, 409);
+  assert.equal(full.data.code, 'team_full');
+  const balanced = await join();
+  assert.equal(balanced.data.room.seats.find((seat) => seat.id === 3).teamId, 1);
+});
+
+test('team creation validates the mode and requires a valid host team', async (t) => {
+  const { port } = await fixture(t);
+  const invalidMode = await request(port, '/games/bumper/api/rooms', { method: 'POST', body: { mode: 'solo' } });
+  assert.equal(invalidMode.response.status, 400);
+  assert.equal(invalidMode.data.code, 'invalid_mode');
+  const missingTeam = await request(port, '/games/bumper/api/rooms', { method: 'POST', body: { mode: 'teams' } });
+  assert.equal(missingTeam.response.status, 400);
+  assert.equal(missingTeam.data.code, 'invalid_team');
+});
+
+test('team backend starts with balanced bot rosters and emits team snapshots', async (t) => {
+  const { port } = await fixture(t);
+  const host = await request(port, '/games/bumper/api/rooms', { method: 'POST', body: { mode: 'teams', teamId: 1, nickname: 'Captain' } });
+  assert.equal(host.data.room.seats[0].characterId, 'gptNormal');
+  const guest = await request(port, '/games/bumper/api/rooms/join', { method: 'POST', body: { code: host.data.room.code, nickname: 'Guest', teamId: 1 } });
+  assert.equal(guest.data.room.seats.find((seat) => seat.id === 1).characterId, 'gptNormal');
+  await request(port, '/games/bumper/api/rooms/start', { method: 'POST', body: {}, cookie: host.cookie });
+  const game = createArenaGame({ mode: 'teams', humanIds: [0, 1], humanTeams: { 0: 1, 1: 1 }, seed: 12345 });
+  assert.deepEqual([0, 1].map((team) => game.fighters.filter((fighter) => fighter.teamId === team).length), [3, 3]);
+  assert.equal(game.fighters.find((fighter) => fighter.id === 0).teamId, 1);
+  const ws = new WebSocket(`ws://127.0.0.1:${port}/games/bumper/socket`, { headers: { Cookie: guest.cookie, Origin: ORIGIN } });
+  t.after(() => ws.terminate());
+  const snapshots = []; const events = [];
+  ws.on('message', (data, binary) => binary ? snapshots.push(decodeArenaSnapshot(data)) : events.push(JSON.parse(data.toString())));
+  await once(ws, 'open');
+  const deadline = Date.now() + 700;
+  while (!snapshots.length && Date.now() < deadline) await new Promise((resolve) => setTimeout(resolve, 20));
+  const snapshot = snapshots.at(-1);
+  assert.ok(snapshot);
+  assert.equal(snapshot.mode, 'teams');
+  assert.deepEqual(snapshot.teamScores, [0, 0]);
+  assert.equal(snapshot.fighters.filter((fighter) => fighter.teamId === 0).length, 3);
+  assert.equal(snapshot.fighters.filter((fighter) => fighter.teamId === 1).length, 3);
+  assert.equal(snapshot.fighters.filter((fighter) => fighter.isHuman).length, 2);
+  assert.equal(snapshot.fighters.find((fighter) => fighter.id === 1)?.teamId, 1);
+  assert.equal(snapshot.fighters.find((fighter) => fighter.id === 0)?.characterId, 1);
+  assert.equal(snapshot.fighters.find((fighter) => fighter.id === 1)?.characterId, 1);
+});
+
+test('team friendly fire and enemy falls score once and survive the snapshot codec', () => {
+  const simulateFall = (victimTeam) => {
+    const game = createArenaGame({ mode: 'teams', humanIds: [0, 1], humanTeams: { 0: 0, 1: victimTeam }, seed: 73 });
+    const victim = game.fighters.find((fighter) => fighter.id === 1);
+    victim.x = 1200; victim.y = 450; victim.vx = 0; victim.vy = 0;
+    victim.lastHitBy = 0; victim.lastHitAt = game.time;
+    const events = stepArena(game, {}, 1 / 60);
+    const packet = encodeArenaSnapshot({ tick: 1, time: game.time, phase: 'playing', radius: game.arenaRadius,
+      mode: game.mode, teamScores: game.teamScores, fighters: game.fighters });
+    return { game, events, snapshot: decodeArenaSnapshot(packet) };
+  };
+  const friendly = simulateFall(0);
+  assert.equal(friendly.game.teamScores[0], -1);
+  assert.equal(friendly.events.filter((event) => event.type === 'friendly-fire' && event.teamScoreDelta === -1).length, 1);
+  assert.equal(friendly.events.filter((event) => event.type === 'fall' && event.teamScoreDelta !== 0).length, 0);
+  assert.deepEqual(friendly.snapshot.teamScores, [-1, 0]);
+  assert.equal(friendly.snapshot.fighters.find((fighter) => fighter.id === 1).teamId, 0);
+
+  const enemy = simulateFall(1);
+  assert.equal(enemy.game.teamScores[0], 1);
+  assert.equal(enemy.events.filter((event) => event.type === 'kill' && event.teamScoreDelta === 1).length, 1);
+  assert.equal(enemy.events.filter((event) => event.type === 'fall' && event.teamScoreDelta !== 0).length, 0);
+  assert.deepEqual(enemy.snapshot.teamScores, [1, 0]);
+});
+
+test('room event serialization preserves friendly-fire attribution without duplicating fall scores', () => {
+  const events = serializeArenaEvents([
+    { type: 'friendly-fire', attackerId: 2, victimId: 4, teamId: 1, teamScoreDelta: -1 },
+    { type: 'fall', id: 4, victimId: 4, attackerId: 2, teamId: 1, teamScoreDelta: 0, suicide: false },
+    { type: 'kill', attackerId: 2, victimId: 4, teamId: 1, teamScoreDelta: 1 },
+    { type: 'private-internal' },
+  ]);
+  assert.deepEqual(events, [
+    { type: 'friendly-fire', id: 4, by: 2, teamId: 1, teamScoreDelta: -1 },
+    { type: 'fall', id: 4, by: 2, teamId: 1, teamScoreDelta: 0, suicide: false },
+    { type: 'kill', id: 4, by: 2, teamId: 1, teamScoreDelta: 1 },
+  ]);
 });
 
 test('multiple rooms advance the same number of fixed physics steps', async (t) => {

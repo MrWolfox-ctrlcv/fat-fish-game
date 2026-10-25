@@ -48,6 +48,35 @@ test('changed inputs are capped at 20Hz and a primary press is sent once', async
   h.client.dispose();
 });
 
+test('team create sends the host faction and team join sends only an explicit preference', async () => {
+  FakeSocket.instances = [];
+  const calls = [];
+  const h = harness(async (url, options) => {
+    calls.push({ url, body: options?.body ? JSON.parse(options.body) : null });
+    return response({ room: { code: '123456', self_id: 0, host_id: 0, phase: 'waiting', mode: 'teams', seats: [] } });
+  });
+  await h.client.create('房主', { mode: 'teams', teamId: 1 });
+  assert.deepEqual(calls[0].body, { nickname: '房主', mode: 'teams', teamId: 1 });
+  await h.client.join('123456', '队友');
+  assert.deepEqual(calls[1].body, { code: '123456', nickname: '队友' });
+  await h.client.join('123456', '选队', { teamId: 0 });
+  assert.deepEqual(calls[2].body, { code: '123456', nickname: '选队', teamId: 0 });
+  h.client.dispose();
+});
+
+test('invalid local mode or faction values cannot be sent as team requests', async () => {
+  FakeSocket.instances = [];
+  const calls = [];
+  const h = harness(async (_url, options) => {
+    calls.push(JSON.parse(options.body));
+    return response({ room: { code: '123456', self_id: 0, host_id: 0, phase: 'waiting', mode: 'ffa', seats: [] } });
+  });
+  await h.client.create('玩家', { mode: 'invalid', teamId: 8 });
+  await h.client.join('123456', '玩家', { teamId: 9 });
+  assert.deepEqual(calls, [{ nickname: '玩家', mode: 'ffa' }, { code: '123456', nickname: '玩家' }]);
+  h.client.dispose();
+});
+
 test('late room response cannot replace a newer room after disposal', async () => {
   FakeSocket.instances = [];
   let resolveCreate;

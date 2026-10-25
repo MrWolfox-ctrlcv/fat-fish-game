@@ -151,8 +151,15 @@ export function createArenaRoomClient({
   }
 
   return {
-    create: (nickname) => enter('', { nickname }),
-    join: (code, nickname) => enter('/join', { code: String(code).replace(/\D/g, '').slice(0, 6), nickname }),
+    create: (nickname, options = {}) => {
+      const mode = options.mode === 'teams' ? 'teams' : 'ffa';
+      const teamId = Number(options.teamId);
+      return enter('', { nickname, mode, ...(mode === 'teams' && (teamId === 0 || teamId === 1) ? { teamId } : {}) });
+    },
+    join: (code, nickname, options = {}) => {
+      const teamId = Number(options.teamId);
+      return enter('/join', { code: String(code).replace(/\D/g, '').slice(0, 6), nickname, ...(teamId === 0 || teamId === 1 ? { teamId } : {}) });
+    },
     restore: async () => {
       const mine = ++generation;
       disposed = false;

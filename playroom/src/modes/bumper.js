@@ -1,7 +1,14 @@
 import { drawAvatar } from "../art.js";
 import { drawArenaFloor } from "../arena-scene.js";
 import { ROSTER, getCharacter } from "../arena-roster.js";
-import { decideBotInput } from "../arena-bots.js";
+import { decideBotInput, getBotThinkInterval } from "../arena-bots.js";
+import {
+  TEAM_IDS,
+  TEAM_LABELS,
+  balanceHumanTeams,
+  getCharacterFaction,
+  getTeamLabel,
+} from "../arena-teams.js";
 
 export const WIDTH = 1280;
 export const HEIGHT = 900;
@@ -37,13 +44,15 @@ function unit(x, y, fx = 1, fy = 0) {
 function arenaRadius(t) {
   return t <= 70 ? 390 : 390 - (t - 70) * 3;
 }
-function fighter(id, isHuman, x, y, characterId) {
+function fighter(id, isHuman, x, y, characterId, teamId = null) {
   const character = getCharacter(characterId);
   return {
     id,
     name: isHuman && id === 0 ? "你" : character.name,
     isPlayer: id === 0,
     isHuman,
+    teamId,
+    friendlyKills: 0,
     characterId: character.id,
     brain: character.brain,
     x,
@@ -75,12 +84,15 @@ function fighter(id, isHuman, x, y, characterId) {
     botKind: character.id,
   };
 }
-export function createGame({ seed = 20261025, humanIds = [0], humanCharacters = {}, botCharacters = {} } = {}) {
+export function createGame({ seed = 20261025, mode = "ffa", humanIds = [0], humanTeams = {}, teamId, humanCharacters = {}, botCharacters = {} } = {}) {
   let s = Number.isFinite(Number(seed)) ? Number(seed) >>> 0 : 0x51f15e;
   if (!s) s = 0x51f15e;
   const g = {
+    mode: mode === "teams" ? "teams" : "ffa",
     phase: "playing",
     score: 0,
+    teamScores: [0, 0],
+    teamWinnerId: null,
     time: 0,
     duration: 90,
     result: "",
@@ -91,12 +103,27 @@ export function createGame({ seed = 20261025, humanIds = [0], humanCharacters = 
     fighters: [],
     impact: null,
     effects: [],
-    botState: { think: 0, inputs: [] },
+    botState: { think: 0, inputs: [], timers: [] },
     humanIds: [...new Set(humanIds.map(Number))],
   };
   const ids = g.humanIds = g.humanIds.filter((id) => Number.isInteger(id) && id >= 0 && id < 6);
   if (!ids.length) ids.push(0);
-  const used = new Set(ids.map((id) => getCharacter(humanCharacters[id] || (id === 0 ? "deepseek" : ROSTER[(id % (ROSTER.length - 1)) + 1].id)).id));
+  const requestedTeams = { ...(humanTeams || {}) };
+  if (g.mode === "teams" && TEAM_IDS.includes(teamId) && requestedTeams[0] === undefined)
+    requestedTeams[0] = teamId;
+  const humanTeamById = g.mode === "teams" ? balanceHumanTeams(ids, requestedTeams) : {};
+  const teamCounts = [0, 0];
+  for (const id of ids) if (g.mode === "teams") teamCounts[humanTeamById[id]]++;
+  const defaultCharacter = (id, assignedTeam) => g.mode === "teams"
+    ? assignedTeam === 1 ? "gptNormal" : "deepseek"
+    : id === 0 ? "deepseek" : ROSTER[(id % (ROSTER.length - 1)) + 1].id;
+  const humanCharacter = (id) => {
+    const requested = getCharacter(humanCharacters[id] || defaultCharacter(id, humanTeamById[id])).id;
+    return g.mode !== "teams" || getCharacterFaction(requested) === humanTeamById[id]
+      ? requested
+      : defaultCharacter(id, humanTeamById[id]);
+  };
+  const used = new Set(ids.map(humanCharacter));
   const shuffled = [...ROSTER];
   for (let i = shuffled.length - 1; i > 0; i--) {
     const j = Math.floor(rng(g) * (i + 1));
@@ -104,17 +131,29 @@ export function createGame({ seed = 20261025, humanIds = [0], humanCharacters = 
   }
   for (let id = 0; id < 6; id++) {
     const isHuman = ids.includes(id);
-    let characterId = humanCharacters[id];
+    let fighterTeam = g.mode === "teams" ? humanTeamById[id] : null;
+    let characterId = isHuman ? humanCharacter(id) : null;
     if (!isHuman) {
-      characterId = botCharacters[id];
-      if (!characterId || used.has(characterId)) characterId = shuffled.find((c) => !used.has(c.id))?.id;
-      if (!characterId) characterId = ROSTER.find((c) => !used.has(c.id))?.id || "deepseek";
+      if (g.mode === "teams") {
+        fighterTeam = TEAM_IDS.filter((value) => teamCounts[value] < 3)
+          .sort((a, b) => teamCounts[a] - teamCounts[b] || a - b)[0];
+        teamCounts[fighterTeam]++;
+        const requested = getCharacter(botCharacters[id]);
+        const requestedIsUsable = botCharacters[id] && !used.has(requested.id) && getCharacterFaction(requested.id) === fighterTeam;
+        characterId = requestedIsUsable
+          ? requested.id
+          : shuffled.find((c) => !used.has(c.id) && getCharacterFaction(c.id) === fighterTeam)?.id;
+      } else {
+        characterId = botCharacters[id];
+        if (!characterId || used.has(characterId)) characterId = shuffled.find((c) => !used.has(c.id))?.id;
+      }
+      if (!characterId) characterId = ROSTER.find((c) => !used.has(c.id) && (g.mode !== "teams" || getCharacterFaction(c.id) === fighterTeam))?.id || "deepseek";
       used.add(characterId);
     }
     const slot = ids.indexOf(id);
     const a = slot < 0 ? (TAU * (id + 0.5)) / 6 + 0.3 : (TAU * slot) / Math.max(1, ids.length) + 0.3;
     const r = isHuman && id === 0 ? 0 : 125 + rng(g) * 80;
-    g.fighters.push(fighter(id, isHuman, CX + Math.cos(a) * r, CY + Math.sin(a) * r, characterId));
+    g.fighters.push(fighter(id, isHuman, CX + Math.cos(a) * r, CY + Math.sin(a) * r, characterId, fighterTeam));
   }
   g.player = g.fighters.find((f) => f.id === 0) || g.fighters[0];
   if (g.player) g.player.isPlayer = true;
@@ -134,6 +173,7 @@ export function getStandings(g) {
       name: f.name,
       isPlayer: f.isPlayer,
       isHuman: f.isHuman,
+      teamId: f.teamId,
       characterId: f.characterId,
       brain: f.brain,
       kills: f.kills,
@@ -142,8 +182,39 @@ export function getStandings(g) {
     };
   });
 }
+export function getTeamStandings(g) {
+  if (g.mode !== "teams") return [];
+  const scores = TEAM_IDS.map((teamId) => Number.isFinite(g.teamScores?.[teamId]) ? g.teamScores[teamId] : 0);
+  const tied = scores[0] === scores[1];
+  return TEAM_IDS.map((teamId) => ({
+    teamId,
+    name: getTeamLabel(teamId),
+    score: scores[teamId],
+    rank: tied ? 1 : scores[teamId] > scores[1 - teamId] ? 1 : 2,
+  }));
+}
 function endGame(g, events) {
   if (g.phase !== "playing") return;
+  if (g.mode === "teams") {
+    const standings = getTeamStandings(g);
+    const tied = standings[0].score === standings[1].score;
+    g.teamWinnerId = tied ? null : standings.find((row) => row.rank === 1).teamId;
+    g.phase = tied ? "draw" : g.player?.teamId === g.teamWinnerId ? "won" : "lost";
+    g.result = tied
+      ? `平局 · ${standings[0].score}:${standings[1].score}`
+      : `${getTeamLabel(g.teamWinnerId)}获胜 · ${standings[0].score}:${standings[1].score}`;
+    events.push({
+      type: "end",
+      x: g.player?.x ?? CX,
+      y: g.player?.y ?? CY,
+      text: g.result,
+      won: g.phase === "won",
+      draw: tied,
+      teamWinnerId: g.teamWinnerId,
+      teamScores: [...g.teamScores],
+    });
+    return;
+  }
   const row = getStandings(g).find((x) => x.isPlayer);
   const tied = getStandings(g).filter((x) => x.rank === 1).length > 1;
   g.phase = row.rank === 1 ? "won" : "lost";
@@ -346,7 +417,65 @@ function falls(g, events) {
       f.falls++;
       f.respawn = 3;
       const owner = g.fighters.find((x) => x.id === f.lastHitBy);
-      if (owner && g.time - f.lastHitAt <= 3) {
+      if (g.mode === "teams") {
+        const credited = owner && owner.id !== f.id && g.time - f.lastHitAt <= 3;
+        if (credited && owner.teamId === f.teamId) {
+          owner.friendlyKills++;
+          g.teamScores[owner.teamId] -= 1;
+          events.push({
+            type: "friendly-fire",
+            id: owner.id,
+            attackerId: owner.id,
+            victimId: f.id,
+            teamId: owner.teamId,
+            teamScoreDelta: -1,
+            playerKill: false,
+            humanKill: owner.isHuman,
+            playerFall: f.isPlayer,
+            humanFall: f.isHuman,
+            fallCount: f.falls,
+            x: f.x,
+            y: f.y,
+            text: "乌龙！",
+          });
+        } else if (credited) {
+          owner.kills++;
+          g.teamScores[owner.teamId] += 1;
+          if (owner.isPlayer) g.score = owner.kills;
+          events.push({
+            type: "kill",
+            id: owner.id,
+            attackerId: owner.id,
+            victimId: f.id,
+            teamId: owner.teamId,
+            teamScoreDelta: 1,
+            playerKill: owner.isPlayer,
+            humanKill: owner.isHuman,
+            playerFall: f.isPlayer,
+            humanFall: f.isHuman,
+            fallCount: f.falls,
+            x: f.x,
+            y: f.y,
+            text: owner.isHuman ? "+1" : "击飞",
+          });
+        } else if (TEAM_IDS.includes(f.teamId)) {
+          g.teamScores[f.teamId] -= 1;
+        }
+        events.push({
+          type: "fall",
+          id: f.id,
+          victimId: f.id,
+          fallCount: f.falls,
+          playerFall: f.isPlayer,
+          humanFall: f.isHuman,
+          attackerId: credited ? owner.id : null,
+          teamId: f.teamId,
+          teamScoreDelta: credited ? 0 : -1,
+          suicide: !credited,
+          x: f.x,
+          y: f.y,
+        });
+      } else if (owner && g.time - f.lastHitAt <= 3) {
         owner.kills++;
         if (owner.isPlayer) {
           g.score = owner.kills;
@@ -410,12 +539,19 @@ export function stepArena(g, inputsById = {}, dt = 1 / 60) {
     if (f.isHuman) commands[f.id] = inputsById?.[f.id] || {};
     else commands[f.id] = g.botState.inputs?.[f.id] || {};
   }
-  if (g.botState.think <= 0) {
-    g.botState.think = 0.14;
+  if (g.botState.think > 0) {
+    g.botState.think = Math.max(0, g.botState.think - dt);
+  } else {
     for (const f of g.fighters) {
       if (f.isHuman) continue;
-      commands[f.id] = g.botState.inputs[f.id] = decideBotInput(g, f, () => rng(g));
-      if (commands[f.id].primary) startDash(g, f, commands[f.id], events);
+      const remaining = (g.botState.timers[f.id] || 0) - dt;
+      if (remaining <= 0) {
+        commands[f.id] = g.botState.inputs[f.id] = decideBotInput(g, f, () => rng(g));
+        g.botState.timers[f.id] = getBotThinkInterval(f.characterId);
+      } else {
+        g.botState.timers[f.id] = remaining;
+      }
+      if (commands[f.id]?.primary && remaining <= 0) startDash(g, f, commands[f.id], events);
     }
   }
   for (const f of g.fighters) {
@@ -426,7 +562,6 @@ export function stepArena(g, inputsById = {}, dt = 1 / 60) {
   for (let i = 0; i < g.fighters.length; i++)
     for (let j = i + 1; j < g.fighters.length; j++)
       collide(g, g.fighters[i], g.fighters[j], events);
-  g.botState.think -= dt;
   for (const f of g.fighters) {
     if (!Number.isFinite(f.x) || !Number.isFinite(f.y)) {
       f.x = CX;
@@ -490,7 +625,7 @@ export function stepArena(g, inputsById = {}, dt = 1 / 60) {
 }
 export function getHud(g) {
   const row = getStandings(g).find((x) => x.isPlayer);
-  return {
+  const hud = {
     score: g.score,
     time: g.time,
     stat1: `第${row.rank}名`,
@@ -500,6 +635,16 @@ export function getHud(g) {
         : "就绪",
     message: g.phase === "playing" ? "击飞得分 · 落水3秒后复活" : g.result,
   };
+  if (g.mode === "teams") {
+    const standings = getTeamStandings(g);
+    hud.teamScore = g.teamScores[g.player.teamId] ?? 0;
+    hud.teamRank = standings.find((item) => item.teamId === g.player.teamId)?.rank ?? 1;
+    hud.teamName = getTeamLabel(g.player.teamId);
+    hud.teamScores = [...g.teamScores];
+    hud.stat1 = `${hud.teamName} ${hud.teamScore}分`;
+    hud.stat2 = g.player.dashCooldown > 0 ? `${g.player.dashCooldown.toFixed(1)}s` : "就绪";
+  }
+  return hud;
 }
 function shadow(ctx, x, y, r, a = 0.2) {
   ctx.beginPath();
@@ -519,6 +664,13 @@ export function renderGame(ctx, g, view = {}) {
       ? `portrait:${f.characterId}`
       : f.skin;
     shadow(ctx, f.x, f.y, f.r);
+    if (g.mode === "teams") {
+      ctx.beginPath();
+      ctx.arc(f.x, f.y, 39, 0, TAU);
+      ctx.strokeStyle = f.teamId === 0 ? "rgba(45,145,227,.88)" : "rgba(241,91,88,.88)";
+      ctx.lineWidth = 4;
+      ctx.stroke();
+    }
     if (f.invulnerable > 0) {
       ctx.beginPath();
       ctx.arc(f.x, f.y, 37, 0, TAU);
@@ -567,13 +719,34 @@ export function renderGame(ctx, g, view = {}) {
     ctx.lineTo(43, -6);
     ctx.lineTo(43, 6);
     ctx.closePath();
-    ctx.fillStyle = f.isPlayer ? "#efad68" : "#568d87";
+    ctx.fillStyle = g.mode === "teams" ? (f.teamId === 0 ? "#3287d7" : "#df514d") : f.isPlayer ? "#efad68" : "#568d87";
     ctx.fill();
     ctx.restore();
     ctx.font = "bold 18px system-ui";
     ctx.textAlign = "center";
     ctx.fillStyle = "#31556a";
     ctx.fillText(f.name, f.x, f.y + 53);
+    if (g.mode === "teams") {
+      ctx.font = "bold 12px system-ui";
+      ctx.fillStyle = f.teamId === 0 ? "#246cb1" : "#b63c3c";
+      ctx.fillText(getTeamLabel(f.teamId), f.x, f.y + 69);
+      if (f.characterId === "astra" || f.characterId === "claude") {
+        ctx.fillStyle = "#ba8b20";
+        ctx.fillText("★", f.x + 31, f.y - 27);
+      }
+    }
+  }
+  if (g.mode === "teams") {
+    ctx.fillStyle = "rgba(255,255,255,.88)";
+    ctx.strokeStyle = "rgba(55,83,103,.24)";
+    ctx.lineWidth = 1;
+    ctx.beginPath(); ctx.roundRect(18, 16, 250, 48, 12); ctx.fill(); ctx.stroke();
+    ctx.font = "bold 18px system-ui";
+    ctx.textAlign = "left";
+    ctx.fillStyle = "#246cb1";
+    ctx.fillText(`${getTeamLabel(0)} ${g.teamScores[0]}`, 32, 47);
+    ctx.fillStyle = "#b63c3c";
+    ctx.fillText(`${getTeamLabel(1)} ${g.teamScores[1]}`, 154, 47);
   }
   if (g.impact) {
     let t = 1 - g.impact.ttl / g.impact.max;

@@ -6,6 +6,17 @@ import { createCompanion, normalizeCompanionInput } from '../backend/companion.m
 const input = { game: 'bumper', event: 'chat', score: 30, level: 1, elapsed: 20, message: '这局怎么打？', api_key: 'must-not-leave', history: ['must-not-leave'] };
 const env = { COMPANION_ENABLED: '1', COMPANION_API_URL: 'http://local.test/v1/chat/completions', COMPANION_API_KEY: 'private-test-only', COMPANION_MODEL: 'fixture', COMPANION_GLOBAL_DAILY: '2' };
 
+test('team summaries preserve bounded scores and friend identity, rejecting forged shapes', () => {
+  const scene = { mode: 'teams', team_scores: [-2, 4], player: { x: 640, y: 450, alive: true, dash_ready: true, edge_distance: 300, kills: 2, falls: 1, rank: 2, team_id: 0 },
+    opponents: [{ x: 500, y: 400, alive: true, team_id: 0 }, { x: 700, y: 500, alive: true, team_id: 1 }], arena_radius: 390, remaining: 50, private_note: 'drop' };
+  const clean = normalizeCompanionInput({ ...input, scene }).scene;
+  assert.deepEqual(clean.team_scores, [-2, 4]);
+  assert.equal(clean.opponents[0].team_id, clean.player.team_id);
+  assert.equal(clean.private_note, undefined);
+  assert.throws(() => normalizeCompanionInput({ ...input, scene: { ...scene, team_scores: [1, 2, 3] } }), { code: 'AI_INPUT' });
+  assert.throws(() => normalizeCompanionInput({ ...input, scene: { ...scene, player: { ...scene.player, team_id: '0' } } }), { code: 'AI_INPUT' });
+});
+
 test('短摘要只包含白名单；关闭和非法输入不会调用上游', async () => {
   const db = new DatabaseSync(':memory:'); let calls = 0;
   const companion = createCompanion({ db, env: {}, fetchImpl: async () => { calls++; } });

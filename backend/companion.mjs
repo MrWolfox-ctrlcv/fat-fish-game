@@ -29,6 +29,14 @@ function normalizeScene(game, scene) {
       return { x: boundedInt(o.x, -1280, 2560, 'x')[1], y: boundedInt(o.y, -900, 1800, 'y')[1], alive: o.alive };
     });
     clean = { player, opponents, arena_radius: boundedInt(scene.arena_radius, 1, 2000, 'arena_radius')[1], remaining: boundedInt(scene.remaining, 0, 86400, 'remaining')[1] };
+    if (scene.mode !== undefined && !['ffa', 'teams'].includes(scene.mode)) return badInput();
+    if (scene.mode === 'teams') {
+      if (!Array.isArray(scene.team_scores) || scene.team_scores.length !== 2 || scene.team_scores.some(score => !integer(score, -1000, 1000)) ||
+          !integer(p.team_id, 0, 1) || scene.opponents.some(other => !integer(other.team_id, 0, 1))) return badInput();
+      clean.mode = 'teams'; clean.team_scores = [...scene.team_scores];
+      player.team_id = p.team_id;
+      opponents.forEach((other, index) => { other.team_id = scene.opponents[index].team_id; });
+    }
   } else if (game === 'fat-fish') {
     if (!Array.isArray(scene.balls) || scene.balls.length > 12 || typeof scene.danger !== 'boolean') return badInput();
     const balls = scene.balls.map((b) => {
@@ -124,7 +132,7 @@ export function createCompanion({ db, env = process.env, fetchImpl = fetch, now 
         headers: { Authorization: `Bearer ${env.COMPANION_API_KEY}`, 'Content-Type': 'application/json' },
         body: JSON.stringify({ model: env.COMPANION_MODEL, stream: false, max_tokens: maxTokens,
           reasoning_effort: 'off',
-          messages: [{ role: 'system', content: SYSTEM }, { role: 'user', content: summary + (input.message ? `\n玩家说：${JSON.stringify(input.message)}` : '') }] }),
+          messages: [{ role: 'system', content: SYSTEM + (input.scene?.mode === 'teams' ? '组队时team_id为0是国模队、1是美模队；相同team_id是队友，opponents包含其余所有选手。team_scores是两队总分，击飞敌方加1，友伤或自行落水扣己方1；按队分判胜负。' : '') }, { role: 'user', content: summary + (input.message ? `\n玩家说：${JSON.stringify(input.message)}` : '') }] }),
       });
       if (!response.ok) throw new Error('Upstream unavailable');
       // Bound response memory as well as requested output. Never relay raw upstream errors or credentials.

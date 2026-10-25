@@ -128,12 +128,17 @@ function normalizeScene(game, scene) {
     };
   }
   if (game !== "bumper") return undefined;
+  const teams = scene.mode === 'teams';
+  if (teams && (!Array.isArray(scene.team_scores) || scene.team_scores.length !== 2 ||
+    scene.team_scores.some(score => !Number.isSafeInteger(score)) || ![0, 1].includes(scene.player?.team_id) || !Array.isArray(scene.opponents) ||
+    scene.opponents.slice(0, 5).some(other => ![0, 1].includes(other?.team_id)))) return undefined;
   const point = (p) =>
     p && typeof p === "object"
       ? {
           x: boundedInt(p.x, 0, 1280),
           y: boundedInt(p.y, 0, 900),
           alive: Boolean(p.alive),
+          ...(teams ? { team_id: p.team_id } : {}),
         }
       : undefined;
   const player = point(scene.player);
@@ -155,6 +160,7 @@ function normalizeScene(game, scene) {
       .filter(Boolean),
     arena_radius: boundedInt(scene.arena_radius, 0, 1000),
     remaining: boundedInt(scene.remaining, 0, 3600),
+    ...(teams ? { mode: 'teams', team_scores: scene.team_scores.map(score => boundedInt(score, -1000, 1000)) } : {}),
   };
 }
 

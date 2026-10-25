@@ -15,7 +15,8 @@ import { createCornerCompanion } from './companion-corner.js';
 import { createArenaRoomClient } from './arena-room-client.js';
 import { createArenaRoomUI } from './arena-room-ui.js';
 import { ROSTER } from './arena-roster.js';
-import { attributeRoomEvents, isRoomEntryIntent, shouldResetRoomGame } from './arena-room-state.js';
+import { getTeamLabel } from './arena-teams.js';
+import { attributeRoomEvents, getTeamEventText, isRoomEntryIntent, shouldResetRoomGame, teamOutcome } from './arena-room-state.js';
 
 const modes = { bumper, kitchen, survival };
 const ids = Object.keys(modes);
@@ -56,7 +57,14 @@ if (!localPreview) {
   $('hall-link').href = hallURL.href;
 }
 let mode = modes[id];
-let game = mode.createGame({ seed: 20261025 });
+let practiceRule = read('wolfox.arena.practiceRule') === 'teams' ? 'teams' : 'ffa';
+let practiceTeamId = Number(read('wolfox.arena.practiceTeam')) === 1 ? 1 : 0;
+function createCurrentGame() {
+  return id === 'bumper'
+    ? bumper.createGame({ seed: 20261025, mode: practiceRule, teamId: practiceTeamId })
+    : mode.createGame({ seed: 20261025 });
+}
+let game = createCurrentGame();
 let onlineRoom = null;
 let onlineSnapshot = null;
 let roomSnapshotPair = [];
@@ -139,10 +147,13 @@ function getInput() {
 
 function consume(events = []) {
   for (const event of events) {
-    const soundType = { kill: 'break', dash: 'launch', order: 'return', serve: 'round', level: 'party' }[event.type] || event.type;
+    const soundType = { kill: 'break', 'friendly-fire': 'hit', dash: 'launch', order: 'return', serve: 'round', level: 'party' }[event.type] || event.type;
     audio.play({ ...event, type: soundType });
-    if (event.text && Number.isFinite(event.x) && Number.isFinite(event.y)) {
-      effects.push({ ...event, age: 0, life: event.type === 'level' ? 1.5 : 0.9 });
+    const notice = event.type === 'friendly-fire'
+      ? getTeamEventText(event, game.player?.id)
+      : event.text || getTeamEventText(event, game.player?.id);
+    if (notice && Number.isFinite(event.x) && Number.isFinite(event.y)) {
+      effects.push({ ...event, text: notice, age: 0, life: event.type === 'level' ? 1.5 : 0.9 });
       if (effects.length > 35) effects.shift();
     }
     if (event.type === 'end') {
@@ -176,7 +187,7 @@ function reset() {
   companion.reset();
   clearInput();
   arenaControls.clear(true);
-  game = mode.createGame({ seed: 20261025 });
+  game = createCurrentGame();
   applyEquipped();
   running = false;
   paused = false;
@@ -224,7 +235,7 @@ function chooseMode(next) {
   $('kitchen-controls').hidden = id !== 'kitchen';
   $('action').classList.toggle('compact', id === 'kitchen');
   text('input-hint', id === 'kitchen' ? '点工作台：开做 / 出餐 · 1 / 2 / 3 快捷操作 · 空格救急' : id === 'bumper' ? 'WASD 移动 · 鼠标瞄准 · 点击 / 空格冲刺 ｜ 触屏：左手移动，右手瞄准后松手冲刺' : 'WASD / 方向键移动 · 空格 / E 冲刺 · 触屏按住拖动');
-  game = mode.createGame({ seed: 20261025 });
+  game = createCurrentGame();
   applyEquipped();
   running = false;
   paused = false;
@@ -245,7 +256,7 @@ function start() {
     return;
   }
   if (pendingReload && !paused) { location.reload(); return; }
-  if (game.phase !== 'playing') { companion.reset(); game = mode.createGame({ seed: 20261025 }); applyEquipped(); }
+  if (game.phase !== 'playing') { companion.reset(); game = createCurrentGame(); applyEquipped(); }
   running = true;
   paused = false;
   clearInput();
@@ -268,6 +279,8 @@ function pause() {
 
 function updateHud() {
   const hud = mode.getHud(game);
+  const teamMatch = id === 'bumper' && game.mode === 'teams';
+  const teamRank = teamMatch ? bumper.getTeamStandings?.(game).find((row) => row.teamId === game.player?.teamId)?.rank : null;
   const ended = game.phase !== 'playing';
   const active = running && !paused && !ended;
   text('score', number(hud.score));
@@ -275,17 +288,17 @@ function updateHud() {
   if ($('timer').textContent !== `${remaining} 秒`) {
     $('timer').replaceChildren(document.createTextNode(String(remaining)), Object.assign(document.createElement('small'), { textContent: ' 秒' }));
   }
-  text('stat1', hud.stat1);
+  text('stat1', teamMatch ? `${hud.teamName || getTeamLabel(game.player?.teamId)} · 第${teamRank || hud.teamRank || 1}名` : hud.stat1);
   text('stat2', hud.stat2);
   text('best', number(bestScore()));
   text('game-message', pendingReload ? '新版本已就绪，下一局自动更新。' : hud.message || mode.meta.tagline);
-  text('state-label', ended ? (game.phase === 'won' ? '这局拿下' : '下局再来') : onlineRoom && !running
+  text('state-label', ended ? (game.phase === 'draw' || game.result === '阵营平局' ? '这局平手' : game.phase === 'won' ? '这局拿下' : '下局再来') : onlineRoom && !running
     ? (onlineNetworkStatus === 'reconnecting' || onlineNetworkStatus === 'retry-exhausted' ? '恢复连接' : onlineRoom.phase === 'waiting' ? '等待房主' : '同步对局')
     : paused ? '休息一下' : running ? '进行中' : '准备就绪');
   $('overlay').hidden = active;
   $('result-stats').hidden = !ended;
   $('next-mode').hidden = !ended;
-  $('start').disabled = !ready || Boolean(onlineRoom && game.phase !== 'ended');
+  $('start').disabled = !ready || Boolean(onlineRoom && !ended);
   $('pause').disabled = !running || ended;
   if (onlineRoom && !ended) $('pause').disabled = false;
   $('pause').setAttribute('aria-label', onlineRoom ? '联机对局不能暂停' : paused ? '继续游戏' : '暂停游戏');
@@ -294,15 +307,23 @@ function updateHud() {
   $('touch-hints').hidden = id !== 'bumper' || !active;
   if (id === 'bumper') {
     const standings = bumper.getStandings(game);
-    const signature = JSON.stringify(standings);
+    const teams = teamMatch
+      ? bumper.getTeamStandings?.(game) || [0, 1].map((teamId) => ({ teamId, name: getTeamLabel(teamId), score: game.teamScores?.[teamId] || 0,
+        rank: Number(game.teamScores?.[teamId] || 0) >= Number(game.teamScores?.[teamId === 0 ? 1 : 0] || 0) ? 1 : 2 }))
+      : [];
+    const signature = JSON.stringify({ standings, teams, mode: game.mode });
     if (signature !== lastStandings) {
       lastStandings = signature;
       $('standings').replaceChildren(...standings.map((fighter) => {
         const row = document.createElement('li');
         if (fighter.isPlayer) row.className = 'is-player';
-        for (const value of [fighter.rank, fighter.isPlayer ? '你（玩家）' : fighter.name, `${fighter.kills} / ${fighter.falls}`]) {
+        const name = teamMatch && (fighter.teamId === 0 || fighter.teamId === 1)
+          ? `${getTeamLabel(fighter.teamId)} · ${fighter.isPlayer ? '你（玩家）' : fighter.name}`
+          : fighter.isPlayer ? '你（玩家）' : fighter.name;
+        for (const value of [fighter.rank, name, `${fighter.kills} / ${fighter.falls}`]) {
           const span = document.createElement('span'); span.textContent = value; row.append(span);
         }
+        if (teamMatch && (fighter.teamId === 0 || fighter.teamId === 1)) row.classList.add(`team-${fighter.teamId}`);
         return row;
       }));
       $('arena-ribbon').replaceChildren(...standings.map((fighter) => {
@@ -311,15 +332,29 @@ function updateHud() {
         badge.title = `第${fighter.rank}名 · ${fighter.falls}次落水`;
         return badge;
       }));
+      $('team-standings').hidden = !teamMatch;
+      $('team-standings').replaceChildren(...teams.map((team) => {
+        const card = document.createElement('div'); card.className = `team-${team.teamId}`;
+        const name = document.createElement('span'); name.textContent = team.name || getTeamLabel(team.teamId);
+        const score = document.createElement('strong'); score.textContent = `${number(team.score || 0)} 分 · 第${team.rank || 1}名`;
+        card.append(name, score); return card;
+      }));
+      $('standings-note').textContent = teamMatch
+        ? '击飞对手为己方加分；击飞队友会扣分。阵营分相同时并列第一。'
+        : '同分时，落水更少者领先。练习对手均为脚本人机。';
     }
-    text('score-label', '本局击飞');
+    text('score-label', teamMatch ? '个人击飞' : '本局击飞');
   } else text('score-label', '这局得分');
+  $('practice-team-card').hidden = Boolean(onlineRoom);
+  const lockPracticeRule = Boolean(onlineRoom) || (running && game.phase === 'playing');
+  practiceRuleSelect.disabled = lockPracticeRule;
+  practiceTeamSelect.disabled = lockPracticeRule;
   document.querySelectorAll('[data-station]').forEach((button) => { button.disabled = !active; });
   if (ended) {
-    text('overlay-kicker', game.phase === 'won' ? 'ONE MORE ROUND?' : 'A NEW TRY, A NEW STORY');
+    text('overlay-kicker', game.phase === 'draw' ? 'A TEAM DRAW' : game.phase === 'won' ? 'ONE MORE ROUND?' : 'A NEW TRY, A NEW STORY');
     text('overlay-title', id === 'bumper' ? game.result : game.phase === 'won' ? '这局，有点意思！' : '刚刚那下，差一点。');
     text('overlay-copy', game.result || (game.phase === 'won' ? '挑战完成。再来一局，或者换个口味。' : '歇一秒，试试另一种走法。'));
-    text('result-score', number(game.score));
+    text('result-score', number(teamMatch ? game.teamScores?.[game.player?.teamId] || 0 : game.score));
     text('result-best', number(bestScore()));
     text('start', onlineRoom ? '查看房间' : '再来一局 ↗');
   } else if (paused) {
@@ -341,6 +376,22 @@ function updateHud() {
   dirty = false;
 }
 
+function finishArenaRound() {
+  if (game.mode === 'teams') {
+    const outcome = teamOutcome(game.teamScores, game.player?.teamId);
+    const ownScore = game.teamScores?.[game.player?.teamId] ?? 0;
+    game.phase = outcome === 'lost' ? 'lost' : outcome === 'draw' ? 'draw' : 'won';
+    game.result = outcome === 'draw'
+      ? '阵营平局'
+      : `${getTeamLabel(game.player?.teamId)}${outcome === 'won' ? '获胜' : '落败'} · ${ownScore}分`;
+    return;
+  }
+  const standings = bumper.getStandings(game);
+  const row = standings.find((entry) => entry.isPlayer);
+  game.phase = row?.rank === 1 ? 'won' : 'lost';
+  game.result = `${row?.rank === 1 ? '第1名' : `第${row?.rank}名`} · ${game.score || 0}次击飞`;
+}
+
 function applyRoomSnapshot(snapshot) {
   if (!onlineRoom || id !== 'bumper' || !snapshot) return;
   const arrivedAt = performance.now();
@@ -351,6 +402,8 @@ function applyRoomSnapshot(snapshot) {
   const byId = new Map((onlineRoom.seats || []).map((seat) => [Number(seat.id), seat]));
   game.arenaRadius = snapshot.radius;
   game.time = snapshot.time;
+  game.mode = snapshot.mode || onlineRoom.mode || 'ffa';
+  game.teamScores = snapshot.teamScores || [0, 0];
   game.duration = 90;
   game.phase = snapshot.phase === 'ended' ? 'ended' : 'playing';
   game.fighters = snapshot.fighters.map((wire) => {
@@ -362,6 +415,7 @@ function applyRoomSnapshot(snapshot) {
       characterId: roster.id,
       name: wire.id === selfId ? '你' : seat?.nickname || roster.name,
       skin: wire.id === selfId ? 'playerSkin' : roster.skin,
+      teamId: wire.teamId ?? seat?.teamId ?? null,
       r: 26,
       isPlayer: wire.id === selfId,
       isHuman: wire.isHuman,
@@ -376,10 +430,7 @@ function applyRoomSnapshot(snapshot) {
   if (game.player) { game.player.isPlayer = true; game.player.skin = 'playerSkin'; }
   game.score = game.player?.kills || 0;
   if (snapshot.phase === 'ended' && game.player) {
-    const standings = bumper.getStandings(game);
-    const row = standings.find((entry) => entry.isPlayer);
-    game.phase = row?.rank === 1 ? 'won' : 'lost';
-    game.result = `${row?.rank === 1 ? '第1名' : `第${row?.rank}名`} · ${game.score}次击飞`;
+    finishArenaRound();
     onlineRoundEndSeen = true;
   }
   running = snapshot.phase === 'playing';
@@ -402,16 +453,13 @@ function applyOnlineEvents(events) {
       if (onlineEndEventSeen) return [];
       onlineEndEventSeen = true;
       onlineRoundEndSeen = true;
-      const standings = bumper.getStandings(game);
-      const row = standings.find((entry) => entry.isPlayer);
-      game.phase = row?.rank === 1 ? 'won' : 'lost';
-      game.result = `${row?.rank === 1 ? '第1名' : `第${row?.rank}名`} · ${game.score || 0}次击飞`;
+      finishArenaRound();
       running = false;
     }
     return [{
     ...event,
     type: event.type === 'end' ? 'end' : event.type,
-    text: event.text || ({ kill: '+1', dash: '冲！', fall: '掉出台外' }[event.type] || ''),
+    text: event.text || getTeamEventText(event, selfId) || ({ dash: '冲！', fall: '掉出台外' }[event.type] || ''),
     ...(game.player ? { x: Number.isFinite(event.x) ? event.x : game.player.x, y: Number.isFinite(event.y) ? event.y : game.player.y } : {}),
     }];
   });
@@ -443,7 +491,8 @@ function onRoomUpdate(room) {
       onlineRoundEndSeen = false;
       onlineEndEventSeen = false;
       mobileOnlineFocusApplied = false;
-      game = bumper.createGame({ humanIds: humanIds.length ? humanIds : [Number(nextRoom.self_id) || 0] });
+      const humanTeams = Object.fromEntries(seats.filter((seat) => seat.teamId === 0 || seat.teamId === 1).map((seat) => [Number(seat.id), seat.teamId]));
+      game = bumper.createGame({ humanIds: humanIds.length ? humanIds : [Number(nextRoom.self_id) || 0], mode: nextRoom.mode || 'ffa', humanTeams });
       game.phase = 'playing';
       game.score = 0;
       game.result = '';
@@ -495,6 +544,36 @@ roomClient = createArenaRoomClient({
   },
 });
 roomUI = createArenaRoomUI({ container: $('room-card'), client: roomClient });
+
+const practiceRuleSelect = $('practice-rule');
+const practiceTeamSelect = $('practice-team');
+practiceRuleSelect.value = practiceRule;
+practiceTeamSelect.value = String(practiceTeamId);
+$('practice-team-field').hidden = practiceRule !== 'teams';
+practiceRuleSelect.addEventListener('change', () => {
+  if (running || onlineRoom) return;
+  practiceRule = practiceRuleSelect.value === 'teams' ? 'teams' : 'ffa';
+  store('wolfox.arena.practiceRule', practiceRule);
+  $('practice-team-field').hidden = practiceRule !== 'teams';
+  game = createCurrentGame();
+  applyEquipped();
+  effects = [];
+  lastStandings = '';
+  dirty = true;
+  updateHud();
+});
+practiceTeamSelect.addEventListener('change', () => {
+  if (running || onlineRoom) return;
+  practiceTeamId = Number(practiceTeamSelect.value) === 1 ? 1 : 0;
+  store('wolfox.arena.practiceTeam', practiceTeamId);
+  if (practiceRule !== 'teams') return;
+  game = createCurrentGame();
+  applyEquipped();
+  effects = [];
+  lastStandings = '';
+  dirty = true;
+  updateHud();
+});
 
 function toPoint(event) {
   const box = canvas.getBoundingClientRect();

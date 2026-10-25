@@ -54,11 +54,40 @@ test("counter, patient, orbital, aggressive and distracted brains react differen
   const qwen = decide("qwen");
   const grok = decide("grok");
   const doubao = decide("doubao");
-  assert.ok(claude.moveX < 0 && claude.primary, "Claude backs off and counters the incoming dash");
+  assert.ok(Math.abs(claude.moveY) > 0.9 && claude.primary, "Claude steps off the incoming dash line and counters");
   assert.ok(kimi.moveY > 0.6 && kimi.primary, "Kimi circles, then counters patiently");
   assert.ok(qwen.moveY > kimi.moveY, "Qwen takes a stronger perpendicular line");
   assert.ok(grok.moveX > 0.98 && grok.primary, "Grok leads the chase and attacks eagerly");
   assert.ok(Math.hypot(doubao.moveX, doubao.moveY) < 0.2, "Doubao sometimes hesitates with a weak input");
+});
+
+test("Claude closes on a rival in dash recovery and can initiate a counter", () => {
+  const g = createGame({ seed: 24, humanIds: [0], humanCharacters: { 0: "gptNormal" }, botCharacters: { 1: "claude" } });
+  const bot = g.fighters[1], rival = g.fighters[0];
+  for (const other of g.fighters.slice(2)) other.alive = false;
+  Object.assign(bot, { x: 500, y: 450, dashCooldown: 0 });
+  Object.assign(rival, { x: 660, y: 450, vx: 0, vy: 0, dashTimer: 0, dashCooldown: 0.8 });
+  const input = decideBotInput(g, bot, () => 0);
+  assert.ok(input.moveX > 0.6, "Claude approaches during the opponent's recovery");
+  assert.ok(input.primary, "Claude is willing to start its own dash in range");
+});
+
+test("both expert brains outscore weak brains across six fixed FFA seeds", () => {
+  const scoreSix = (characterId) => {
+    let total = 0;
+    for (let seed = 1; seed <= 6; seed++) {
+      const g = createGame({ seed, humanIds: [0], botCharacters: { 1: characterId } });
+      for (let frame = 0; frame < 5400 && g.phase === "playing"; frame++) stepArena(g, {}, 1 / 60);
+      total += g.fighters.find((f) => f.characterId === characterId).kills;
+    }
+    return total / 6;
+  };
+  const expertMean = scoreSix("astra");
+  const claudeMean = scoreSix("claude");
+  const weakMean = scoreSix("gptSilly");
+  const doubaoMean = scoreSix("doubao");
+  assert.ok(expertMean > weakMean && claudeMean > weakMean && claudeMean > doubaoMean,
+    `Astra ${expertMean.toFixed(2)}, Claude ${claudeMean.toFixed(2)} vs GPT Silly ${weakMean.toFixed(2)}, Doubao ${doubaoMean.toFixed(2)} average credited KOs`);
 });
 
 test("arena portrait keys stay separate from canonical wardrobe skins", () => {
