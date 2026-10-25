@@ -11,6 +11,7 @@ import { arenaViewport, worldPoint } from './arena-view.js';
 import { createWardrobe } from './wardrobe.js';
 import { createWardrobeClient } from './wardrobe-client.js';
 import { createPersonalCompanion } from './personal-companion.js';
+import { createCornerCompanion } from './companion-corner.js';
 
 const modes = { bumper, kitchen, survival };
 const ids = Object.keys(modes);
@@ -97,6 +98,9 @@ function clearInput() {
 
 $('companion').addEventListener('pointerdown', clearInput);
 $('companion').addEventListener('focusin', clearInput);
+createCornerCompanion({ container: $('companion'), trigger: $('companion-toggle'), panel: $('companion-popover'),
+  onOpen: () => { clearInput(); if (running && !paused) pause(); },
+});
 $('wardrobe-open').addEventListener('click', () => { void wardrobe.open(); });
 
 function getInput() {
@@ -149,6 +153,7 @@ function reset() {
   aim = { x: 360, y: 120 };
   dirty = true;
   updateHud();
+  setFocusMode(id === 'bumper');
 }
 
 function chooseMode(next) {
@@ -191,6 +196,7 @@ function chooseMode(next) {
   aim = { x: 360, y: 120 };
   dirty = true;
   updateHud();
+  setFocusMode(id === 'bumper');
 }
 
 function start() {
@@ -206,7 +212,7 @@ function start() {
   dirty = true;
   updateHud();
   canvas.focus({ preventScroll: true });
-  $('game-panel').scrollIntoView({ block: 'start', behavior: motion.matches ? 'instant' : 'smooth' });
+  if (!document.body.classList.contains('arena-focus')) $('game-panel').scrollIntoView({ block: 'start', behavior: motion.matches ? 'instant' : 'smooth' });
 }
 
 function pause() {
@@ -523,7 +529,6 @@ renderFavorites();
 try {
   art = await loadArt();
   applyEquipped();
-  drawAvatar($('companion-avatar').getContext('2d'), art, 'deepseek', 100, 100, 192);
   drawAvatar($('brand-art').getContext('2d'), art, 'deepseek', 32, 32, 60);
   audio.setEnabled(sound);
   ready = true;

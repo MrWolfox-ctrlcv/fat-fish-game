@@ -35,7 +35,7 @@ export async function createGameServer(options = {}) {
   const fetcher = options.fetchImpl ?? fetch;
   const now = options.now ?? Date.now;
   const staticRoot = new URL('../dist/', import.meta.url);
-  const staticFiles = new Set((await readdir(staticRoot)).filter((name) => /^[a-z0-9-]+\.(js|css|html)$/.test(name)));
+  const staticFiles = new Set((await readdir(staticRoot)).filter((name) => /^[a-z0-9-]+\.(js|css|html)$/.test(name) || name === 'companion-portrait.png'));
   const sendStatic = await createStaticAssets(staticRoot, staticFiles);
   const playroomRoot = options.playroomRoot ?? new URL('../playroom/', import.meta.url);
   let sendPlayroom = null;

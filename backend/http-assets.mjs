@@ -17,18 +17,19 @@ export async function createStaticAssets(root, names) {
   const entries = new Map();
   for (const name of names) {
     const data = await readFile(new URL(name, root));
-    entries.set(name, { data, tag: contentTag(data), gzip: gzipSync(data),
-      br: brotliCompressSync(data, { params: { [constants.BROTLI_PARAM_QUALITY]: 5 } }) });
+    const compressible = !name.endsWith('.png');
+    entries.set(name, { data, tag: contentTag(data),
+      ...(compressible ? { gzip: gzipSync(data), br: brotliCompressSync(data, { params: { [constants.BROTLI_PARAM_QUALITY]: 5 } }) } : {}) });
   }
   return (request, response, name, headers) => {
     const entry = entries.get(name);
     if (!entry) return false;
-    const encoding = accepts(request.headers['accept-encoding'], 'br') ? 'br' : accepts(request.headers['accept-encoding'], 'gzip') ? 'gzip' : null;
+    const encoding = entry.br && accepts(request.headers['accept-encoding'], 'br') ? 'br' : entry.gzip && accepts(request.headers['accept-encoding'], 'gzip') ? 'gzip' : null;
     const data = encoding ? entry[encoding] : entry.data;
     const tag = encoding ? entry.tag.slice(0, -1) + `-${encoding}"` : entry.tag;
-    const type = name.endsWith('.js') ? 'text/javascript' : name.endsWith('.css') ? 'text/css' : 'text/html';
-    const cacheHeaders = { ...headers, 'Cache-Control': 'public, no-cache', ETag: tag, Vary: 'Accept-Encoding',
-      'Content-Type': `${type}; charset=utf-8`,
+    const type = name.endsWith('.js') ? 'text/javascript' : name.endsWith('.css') ? 'text/css' : name.endsWith('.png') ? 'image/png' : 'text/html';
+    const cacheHeaders = { ...headers, 'Cache-Control': 'public, no-cache', ETag: tag, ...(entry.br ? { Vary: 'Accept-Encoding' } : {}),
+      'Content-Type': type === 'image/png' ? type : `${type}; charset=utf-8`,
       'Content-Security-Policy': "default-src 'self'; img-src 'self' blob: data:; style-src 'self' 'unsafe-inline'; script-src 'self'; connect-src 'self'; object-src 'none'; base-uri 'self'; frame-ancestors 'self'" };
     if (encoding) cacheHeaders['Content-Encoding'] = encoding;
     if (matchesTag(request.headers['if-none-match'], tag)) { response.writeHead(304, cacheHeaders).end(); return true; }

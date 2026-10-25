@@ -32,10 +32,16 @@
             <div id="arena-ribbon" class="arena-ribbon" aria-label="本局选手击飞数"></div>
             <div class="stage-overlay" id="overlay"><div class="overlay-card"><p class="eyebrow" id="overlay-kicker">ONE MINUTE, ONE MORE TRY</p><h2 id="overlay-title">肥鱼正在集合…</h2><p id="overlay-copy">三种玩法，三种快乐。</p><div class="result-stats" id="result-stats" hidden><span>本局得分<strong id="result-score">0</strong></span><span>本机最佳<strong id="result-best">0</strong></span></div><button id="start" class="primary" type="button" disabled>正在准备…</button><button id="next-mode" class="quiet-button" type="button" hidden>换个口味 →</button><a class="overlay-site" href="https://oua.wolfoxlabs.xyz:8443/" target="_blank" rel="noopener">Wolfox Labs · 访问中转站 ↗</a></div></div>
           </div>
-          <section id="companion" class="companion-dock" aria-label="小鲸 AI 陪玩">
-            <div class="companion-character"><div class="speech-wrap"><span class="speech-label">小鲸 · AI 陪玩</span><p class="companion-output" data-companion-output aria-live="polite"></p></div><canvas id="companion-avatar" width="200" height="200" aria-hidden="true"></canvas></div>
-            <details class="companion-tools"><summary>陪玩设置 / 聊一句</summary><div class="companion-body"><div class="companion-top"><label><input type="checkbox" data-companion-enable disabled> 开启 AI 陪玩</label><button type="button" data-companion-refresh>刷新</button></div><form data-companion-form><label class="sr-only" for="companion-input">给 AI 陪玩发消息</label><input id="companion-input" data-companion-input maxlength="160" autocomplete="off" placeholder="说句话，最多 160 字" disabled><button type="submit" disabled>发送</button></form></div></details>
-            <p data-companion-status role="status" aria-live="polite">正在读取陪玩服务配置…</p>
+          <section id="companion" class="companion-corner" aria-label="小鲸 AI 陪玩">
+            <button id="companion-toggle" class="companion-trigger" type="button" aria-expanded="false" aria-controls="companion-popover" aria-label="打开小鲸陪玩">
+              <span class="speech-wrap" id="speech-wrap"><span class="speech-label">小鲸 · AI 陪玩</span><span class="companion-output" data-companion-output aria-live="polite"></span></span>
+              <img id="companion-avatar" src="/games/fat-fish/companion-portrait.png" width="128" height="128" alt="小鲸" draggable="false">
+            </button>
+            <section id="companion-popover" class="companion-popover" aria-label="陪玩设置与聊天" hidden>
+              <div class="companion-popover-heading"><strong>小鲸 · 陪玩</strong><button class="companion-close" type="button" aria-label="关闭陪玩面板">×</button></div>
+              <details class="companion-tools" open><summary>陪玩设置 / 聊一句</summary><div class="companion-body"><div class="companion-top"><label><input type="checkbox" data-companion-enable disabled> 开启 AI 陪玩</label><button type="button" data-companion-refresh>刷新</button></div><form data-companion-form><label class="sr-only" for="companion-input">给 AI 陪玩发消息</label><input id="companion-input" data-companion-input maxlength="160" autocomplete="off" placeholder="说句话，最多 160 字" disabled><button type="submit" disabled>发送</button></form></div></details>
+              <p data-companion-status role="status" aria-live="polite">正在读取陪玩服务配置…</p>
+            </section>
           </section>
           </div>
           <div class="controls"><button id="pause" type="button" class="square-button" aria-label="暂停游戏" disabled>Ⅱ</button><button id="action" type="button" class="action-button" disabled>冲撞 <span>SPACE</span></button><div id="kitchen-controls" hidden><button type="button" data-station="0">寿司 <kbd>1</kbd></button><button type="button" data-station="1">甜点 <kbd>2</kbd></button><button type="button" data-station="2">咖啡 <kbd>3</kbd></button></div><button id="restart" type="button" class="square-button" aria-label="重新开始">↻</button></div>
