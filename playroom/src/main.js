@@ -10,16 +10,19 @@ import { drawArenaFloor } from './arena-scene.js';
 import { arenaViewport, worldPoint } from './arena-view.js';
 import { createWardrobe } from './wardrobe.js';
 import { createWardrobeClient } from './wardrobe-client.js';
+import { createPersonalCompanion } from './personal-companion.js';
 
 const modes = { bumper, kitchen, survival };
 const ids = Object.keys(modes);
 const $ = (id) => document.getElementById(id);
 const canvas = $('game-canvas');
 const wardrobeClient = createWardrobeClient();
+const personalCompanion = createPersonalCompanion({ client: wardrobeClient });
 const localPreview = location.pathname === '/';
 const companion = createCompanion({
   container: $('companion'),
   gameId: () => id,
+  personalClient: personalCompanion,
   getSnapshot: () => ({ score: game.score, level: game.level ?? 1, elapsed: game.time, scene: id === 'bumper' ? makeBumperScene(game) : undefined }),
   endpoint: new URL(localPreview ? '/api/companion' : '/games/fat-fish/api/companion', location.origin),
   fetchImpl: (url, options = {}) => options.method === 'POST' && !localPreview
@@ -165,7 +168,7 @@ function chooseMode(next) {
   text('page-description', id === 'bumper' ? '找角度，抓空档。90 秒，把对手撞下去。' : '换个玩法，看看哪种快乐更适合你。');
   text('match-tag', id === 'bumper' ? '单人练习 · 6 人混战 · 90 秒' : '单人 · 60 秒');
   $('game-panel').setAttribute('aria-labelledby', `tab-${id}`);
-  document.querySelectorAll('[data-mode]').forEach((button) => {
+  document.querySelectorAll('.mode-tabs [data-mode]').forEach((button) => {
     const selected = button.dataset.mode === id;
     button.setAttribute('aria-selected', String(selected));
     button.tabIndex = selected ? 0 : -1;
@@ -379,7 +382,7 @@ function setFocusMode(enabled) {
 }
 $('expand').addEventListener('click', () => setFocusMode(!document.body.classList.contains('arena-focus')));
 document.querySelectorAll('[data-station]').forEach((button) => button.addEventListener('click', () => command({ type: 'station', id: Number(button.dataset.station) })));
-document.querySelectorAll('[data-mode]').forEach((button) => {
+document.querySelectorAll('.mode-tabs [data-mode]').forEach((button) => {
   button.addEventListener('click', () => chooseMode(button.dataset.mode));
   button.addEventListener('keydown', (event) => {
     if (!['ArrowLeft', 'ArrowRight'].includes(event.key)) return;

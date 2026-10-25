@@ -33,7 +33,31 @@ const mockFetch = async (url, options) => {
 };
 const { server: backend } = await createGameServer({ store, fetchImpl: mockFetch, origins: ['http://127.0.0.1:4182'] });
 await new Promise((resolve) => backend.listen(0, '127.0.0.1', resolve));
+let personalToken = null;
+const personalStats = { created: 0, chats: 0, disabled: 0 };
 const wrapper = createServer(async (request, response) => {
+  const qaUrl = new URL(request.url, 'http://127.0.0.1:4182');
+  const sendQa = (data) => response.writeHead(200, { 'Content-Type': 'application/json', 'Cache-Control': 'no-store' }).end(JSON.stringify(data));
+  const readQa = async () => { const chunks = []; for await (const chunk of request) chunks.push(chunk); return JSON.parse(Buffer.concat(chunks).toString() || '{}'); };
+  if (qaUrl.pathname === '/__qa/personal-stats') { sendQa(personalStats); return; }
+  if (qaUrl.pathname === '/api/user/self/groups') { sendQa({ success: true, data: { default: { ratio: 1, desc: '隔离测试分组' }, flash: { ratio: 0.5, desc: '隔离测试低倍率' } } }); return; }
+  if (qaUrl.pathname === '/api/pricing') { sendQa({ success: true, data: [{ model_name: 'deepseek/deepseek-v4.1-flash', enable_groups: ['default', 'flash'] }] }); return; }
+  if (qaUrl.pathname === '/api/token/' && request.method === 'POST') {
+    personalToken = { ...await readQa(), id: 7001, user_id: 901, status: 1, used_quota: 0 };
+    personalStats.created++; sendQa({ success: true }); return;
+  }
+  if (qaUrl.pathname === '/api/token/search') { sendQa({ success: true, data: { items: personalToken ? [personalToken] : [] } }); return; }
+  if (qaUrl.pathname === '/api/token/7001') { sendQa({ success: true, data: personalToken }); return; }
+  if (qaUrl.pathname === '/api/token/7001/key') { sendQa({ success: true, data: { key: 'sk-fixture-only-never-a-real-key' } }); return; }
+  if (qaUrl.pathname === '/api/token/' && request.method === 'PUT') {
+    const patch = await readQa(); personalToken = { ...personalToken, ...patch };
+    if (patch.status === 2) personalStats.disabled++;
+    sendQa({ success: true, data: personalToken }); return;
+  }
+  if (qaUrl.pathname === '/v1/chat/completions') {
+    await readQa(); personalStats.chats++;
+    sendQa({ choices: [{ message: { content: '【隔离测试回复】已验证专用 Key 聊天通路，本测试未调用真实模型或扣费。' } }] }); return;
+  }
   if (request.url === '/api/user/auth/refresh') {
     response.writeHead(200, { 'Content-Type': 'application/json' });
     response.end(JSON.stringify({ success: true, data: { access_token: 'fixture-administrator-token', user, session: { sid: 'qa-only' }, access_expires_at: Date.now() / 1000 + 1800 } }));

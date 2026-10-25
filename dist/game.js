@@ -4,6 +4,8 @@ import { seededRandom } from "./seeded-random.js";
 import { setupLeaderboard } from './leaderboard.js';
 import { createCompanion } from './companion.js';
 import { createFishDiscoveryTracker, fatFishSnapshot } from './companion-scene.js';
+import { createWardrobeClient } from './wardrobe-client.js';
+import { createPersonalCompanion } from './personal-companion.js';
 
 export const MAX_LEVEL = 11;
 export const GIFT_LEVEL = 6;
@@ -582,7 +584,10 @@ function setupUI() {
   let lastCheckpointAt = 0;
   const leaderboard = setupLeaderboard({ client: onlineClient, onReward: (details) => showRewardDialog(details) });
   const discoveries = createFishDiscoveryTracker();
+  const companionAccount = createWardrobeClient();
+  const personalCompanion = createPersonalCompanion({ client: companionAccount });
   const companion = createCompanion({ container: document.querySelector('#companion'), gameId: 'fat-fish',
+    personalClient: personalCompanion,
     getSnapshot: () => fatFishSnapshot(game),
     fetchImpl: (url, options) => onlineClient.requestCompanion(url, options) });
 

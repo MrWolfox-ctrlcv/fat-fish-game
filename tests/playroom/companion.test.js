@@ -11,6 +11,7 @@ import {
 import { makeBumperScene } from "../../playroom/src/companion-scene.js";
 import * as bumper from "../../playroom/src/modes/bumper.js";
 import { normalizeCompanionInput } from "../../backend/companion.mjs";
+import { mountCompanionAccountUI } from "../../playroom/src/companion-account-ui.js";
 
 class ElementStub {
   listeners = new Map();
@@ -182,6 +183,106 @@ test("manual and automatic requests share a 20 second cooldown and in-flight loc
   assert.equal(rate.begin(140_000), false);
   rate.finish(next);
   assert.equal(rate.canAttempt(140_000), true);
+});
+
+test("personal companion limiter permits five-second cooldown while free default stays twenty", () => {
+  const personal = createCompanionRateLimit(5);
+  const first = personal.begin(100_000);
+  personal.finish(first);
+  assert.equal(personal.canAttempt(104_999, 5), false);
+  assert.equal(personal.remainingSeconds(104_999, 5), 1);
+  assert.equal(personal.canAttempt(105_000, 5), true);
+  const free = createCompanionRateLimit();
+  const freeFirst = free.begin(100_000);
+  free.finish(freeFirst);
+  assert.equal(free.canAttempt(119_999), false);
+  assert.equal(free.canAttempt(120_000), true);
+});
+
+test("personal account panel mounts before the form inside its nested parent", () => {
+  const originalDocument = globalThis.document;
+  const makeControl = (dataset = {}) => Object.assign(new ElementStub(), {
+    dataset, setAttribute() {}, replaceChildren() {}, append() {}, remove() {},
+  });
+  const modes = [makeControl({ mode: "personal" }), makeControl({ mode: "free" })];
+  const selectorMap = new Map([
+    ["[data-load]", makeControl()], ["[data-group]", makeControl()],
+    ["[data-budget]", makeControl()], ["[data-consent]", makeControl()],
+    ["[data-connect]", makeControl()], ["[data-manage]", makeControl()],
+    ["[data-record]", makeControl()], ["[data-change-group]", makeControl()],
+    ["[data-change]", makeControl()], ["[data-disable]", makeControl()],
+    ["[data-account-status]", makeControl()],
+  ]);
+  const root = makeControl();
+  root.querySelector = (selector) => selectorMap.get(selector);
+  root.querySelectorAll = () => modes;
+  globalThis.document = { createElement: () => root };
+  const nestedParent = { insertedBefore: null, insertBefore(node, before) { this.insertedBefore = { node, before }; } };
+  const form = { parentElement: nestedParent };
+  const container = {
+    querySelector: (selector) => selector === "[data-companion-form]" ? form : null,
+    insertBefore() { throw new Error("form is not a direct child of the companion container"); },
+  };
+  try {
+    const ui = mountCompanionAccountUI({ container, client: {} });
+    assert.deepEqual(nestedParent.insertedBefore, { node: root, before: form });
+    assert.equal(ui.mode, "personal");
+    ui.destroy();
+  } finally {
+    globalThis.document = originalDocument;
+  }
+});
+
+test("group change submits the selected group even when busy rendering resets the select", async () => {
+  const originalDocument = globalThis.document;
+  const makeControl = (dataset = {}) => Object.assign(new ElementStub(), {
+    dataset,
+    hidden: false,
+    setAttribute() {},
+    remove() {},
+    replaceChildren(...items) {
+      this.options = [...items];
+      this.value = items[0]?.value || "";
+    },
+    append(item) {
+      this.options ||= [];
+      this.options.push(item);
+      if (!this.value) this.value = item.value;
+    },
+  });
+  const modes = [makeControl({ mode: "personal" }), makeControl({ mode: "free" })];
+  const selectors = ["[data-load]", "[data-group]", "[data-budget]", "[data-consent]", "[data-connect]", "[data-manage]", "[data-record]", "[data-change-group]", "[data-change]", "[data-disable]", "[data-account-status]"];
+  const controls = new Map(selectors.map((selector) => [selector, makeControl()]));
+  const root = makeControl();
+  root.querySelector = (selector) => controls.get(selector);
+  root.querySelectorAll = () => modes;
+  globalThis.document = {
+    createElement(tag) {
+      return tag === "section" ? root : { value: "", textContent: "" };
+    },
+  };
+  const parent = { insertBefore() {} };
+  const form = { parentElement: parent };
+  const container = { querySelector: () => form };
+  let record = { id: "7", name: "Wolfox陪玩-1-key", group: "default", connected: true, remaining_quota: 400000, used_quota: 100000, expired_time: 1_900_000_000 };
+  let changedTo = null;
+  const client = {
+    onSessionChange: () => () => {},
+    catalog: async () => ({ groups: [{ id: "default", ratio: 1 }, { id: "flash", ratio: 0.5 }] }),
+    status: async () => record,
+    async changeGroup(group) { changedTo = group; return (record = { ...record, group }); },
+  };
+  try {
+    mountCompanionAccountUI({ container, client });
+    await controls.get("[data-load]").listeners.get("click")[0]();
+    assert.equal(controls.get("[data-change-group]").value, "default");
+    controls.get("[data-change-group]").value = "flash";
+    await controls.get("[data-change]").listeners.get("click")[0]();
+    assert.equal(changedTo, "flash");
+    assert.match(controls.get("[data-record]").textContent, /分组 flash/);
+  } finally {
+    globalThis.document = originalDocument;
+  }
 });
 
 test("disabled configuration gates usage and payload contains only approved summary fields", () => {

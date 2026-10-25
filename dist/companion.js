@@ -1,3 +1,5 @@
+import { mountCompanionAccountUI } from "./companion-account-ui.js";
+
 const ALLOWED_GAMES = new Set(["bumper", "survival", "kitchen", "fat-fish"]);
 const MAX_AUTO_PER_GAME = 3;
 const EVENT_TYPES = new Set([
@@ -47,21 +49,21 @@ export function createRequestGuard() {
     },
   };
 }
-export function createCompanionRateLimit() {
+export function createCompanionRateLimit(minimumCooldownSeconds = 20) {
   let lastAttemptAt = -Infinity,
     inFlight = false,
     activeId = 0;
   return {
     canAttempt(now, cooldownSeconds = 20) {
       return (
-        !inFlight && now - lastAttemptAt >= Math.max(20, cooldownSeconds) * 1000
+        !inFlight && now - lastAttemptAt >= Math.max(minimumCooldownSeconds, cooldownSeconds) * 1000
       );
     },
     remainingSeconds(now, cooldownSeconds = 20) {
       return Math.max(
         0,
         Math.ceil(
-          (lastAttemptAt + Math.max(20, cooldownSeconds) * 1000 - now) / 1000,
+          (lastAttemptAt + Math.max(minimumCooldownSeconds, cooldownSeconds) * 1000 - now) / 1000,
         ),
       );
     },
@@ -367,9 +369,10 @@ export function createCompanion({
   getSnapshot,
   endpoint = new URL("./api/companion", document.baseURI),
   fetchImpl = globalThis.fetch.bind(globalThis),
+  personalClient = null,
 }) {
   const policy = makeCompanionPolicy(),
-    rateLimit = createCompanionRateLimit();
+    rateLimit = createCompanionRateLimit(personalClient ? 5 : 20);
   const $ = (selector) => container.querySelector(selector),
     status = $("[data-companion-status]"),
     output = $("[data-companion-output]"),
@@ -383,6 +386,31 @@ export function createCompanion({
     controller = null,
     activeRateId = null,
     locallyEnabled = false;
+  const accountUI = personalClient
+    ? mountCompanionAccountUI({ container, client: personalClient, onStateChange: () => {
+        if (mode() === "personal" && locallyEnabled && !accountUI?.connected) {
+          locallyEnabled = false;
+          enable.checked = false;
+          abortPending();
+          policy.clearPending();
+          output.textContent = "";
+          sayStatus("个人额度专用 Key 已不可用，陪玩已关闭。");
+        }
+        updateSendAvailability();
+      }, onModeChange: () => {
+        abortPending();
+        policy.clearPending();
+        locallyEnabled = false;
+        enable.checked = false;
+        output.textContent = "";
+        updateSendAvailability();
+        sayStatus("已切换陪玩模式；请确认开启陪玩后再发送。");
+      } })
+    : null;
+  const mode = () => accountUI?.mode || "free";
+  const activeReady = () => mode() === "personal"
+    ? Boolean(personalClient && accountUI?.connected && locallyEnabled)
+    : canUseCompanion(config, locallyEnabled);
   const requestGuard = createRequestGuard(),
     configGuard = createRequestGuard();
   const sayStatus = (message) => {
@@ -390,8 +418,16 @@ export function createCompanion({
     },
     currentGame = () => (typeof gameId === "function" ? gameId() : gameId);
   const updateSendAvailability = () => {
-    sendButton.disabled =
-      !canUseCompanion(config, locallyEnabled) || rateLimit.busy;
+    input.maxLength = mode() === "personal" ? 320 : 160;
+    input.placeholder = mode() === "personal" ? "聊聊本局，最多 320 字" : "说句话，最多 160 字";
+    if (typeof accountUI !== "undefined") {
+      const ready = mode() === "personal"
+        ? Boolean(personalClient && accountUI?.connected)
+        : Boolean(config?.enabled);
+      enable.disabled = !ready;
+      input.disabled = !ready || !locallyEnabled;
+      sendButton.disabled = !ready || !locallyEnabled || rateLimit.busy;
+    } else sendButton.disabled = !canUseCompanion(config, locallyEnabled) || rateLimit.busy;
   };
   const abortPending = () => {
     requestGuard.invalidate();
@@ -425,43 +461,44 @@ export function createCompanion({
         global_daily: boundedInt(limits.global_daily, 0, 100000, 0),
         max_message: boundedInt(limits.max_message, 1, 160, 160),
       };
-      enable.disabled = !config.enabled;
-      if (!config.enabled) {
+      enable.disabled = !config.enabled && mode() === "free";
+      if (!config.enabled && mode() === "free") {
         locallyEnabled = false;
         enable.checked = false;
         policy.clearPending();
       }
-      input.disabled = !canUseCompanion(config, locallyEnabled);
       updateSendAvailability();
-      sayStatus(
-        !config.enabled
-          ? "AI 陪玩当前由服务端关闭。"
-          : `服务可用 · 每人每日 ${config.limits.daily_per_user} 次`,
-      );
+      sayStatus(mode() === "personal"
+        ? "个人额度陪玩按实际用量计费 · 每局最多 3 条关键事件"
+        : !config.enabled
+          ? "限量免费旁白当前由服务端关闭。"
+          : `免费旁白服务可用 · 每人每日 ${config.limits.daily_per_user} 次`);
     } catch (error) {
       if (disposed || !configGuard.isCurrent(token)) return;
       config = null;
-      enable.disabled = true;
-      input.disabled = true;
+      enable.disabled = mode() === "free";
       updateSendAvailability();
-      locallyEnabled = false;
-      enable.checked = false;
-      policy.clearPending();
-      sayStatus(
-        `陪玩服务暂不可用：${error.message || "连接失败"}。游戏仍可继续。`,
-      );
+      if (mode() === "free") {
+        locallyEnabled = false;
+        enable.checked = false;
+        policy.clearPending();
+      }
+      sayStatus(mode() === "personal"
+        ? "免费旁白服务暂不可用；个人额度陪玩仍可单独使用。"
+        : `陪玩服务暂不可用：${error.message || "连接失败"}。游戏仍可继续。`);
     }
   };
   const send = async (payload, { automatic = false } = {}) => {
-    if (disposed || !canUseCompanion(config, locallyEnabled)) return false;
+    if (disposed || !activeReady()) return false;
     if (automatic && !policy.canSendAuto()) return false;
+    const cooldown = mode() === "personal" ? 5 : config?.limits?.cooldown_seconds || 20;
     const now = Date.now();
-    if (!rateLimit.canAttempt(now, config.limits.cooldown_seconds)) {
+    if (!rateLimit.canAttempt(now, cooldown)) {
       if (!automatic)
         sayStatus(
           rateLimit.busy
             ? "AI 正在回复，请稍候再发。"
-            : `发送过快，请 ${rateLimit.remainingSeconds(now, config.limits.cooldown_seconds)} 秒后再试。`,
+            : `发送过快，请 ${rateLimit.remainingSeconds(now, cooldown)} 秒后再试。`,
         );
       return false;
     }
@@ -475,6 +512,11 @@ export function createCompanion({
     updateSendAvailability();
     sayStatus("正在等待 AI 回应…");
     try {
+      let data;
+      if (mode() === "personal") {
+        data = await personalClient.chat(payload, { signal: activeController.signal });
+        if (typeof data === "string") data = { success: true, text: data };
+      } else {
       const response = await fetchImpl(endpoint, {
         method: "POST",
         headers: {
@@ -494,7 +536,8 @@ export function createCompanion({
         } catch {}
         throw new Error(detail);
       }
-      const data = await response.json();
+      data = await response.json();
+      }
       if (disposed || !requestGuard.isCurrent(token) || !locallyEnabled)
         return false;
       if (data?.success !== true)
@@ -507,12 +550,12 @@ export function createCompanion({
           ).slice(0, 160),
         );
       if (typeof data.text !== "string") throw new Error("服务响应格式不正确");
-      output.textContent = data.text.slice(0, config.limits.max_message);
-      sayStatus(
-        Number.isFinite(data.remaining)
+      output.textContent = data.text.slice(0, mode() === "personal" ? 320 : config.limits.max_message);
+      sayStatus(mode() === "personal"
+        ? "AI 已回复 · 从本人账户按实际用量计费"
+        : Number.isFinite(data.remaining)
           ? `AI 已回复 · 今日还可用 ${Math.max(0, Math.floor(data.remaining))} 次`
-          : "AI 已回复",
-      );
+          : "AI 已回复");
       return true;
     } catch (error) {
       if (
@@ -534,12 +577,13 @@ export function createCompanion({
   };
   const observe = (events = []) => {
     const now = Date.now(),
+      cooldown = mode() === "personal" ? 5 : config?.limits?.cooldown_seconds || 20,
       available =
-        rateLimit.canAttempt(now, config?.limits?.cooldown_seconds || 20) &&
-        canUseCompanion(config, locallyEnabled) &&
+        rateLimit.canAttempt(now, cooldown) &&
+        activeReady() &&
         policy.canSendAuto();
     const canQueue =
-      canUseCompanion(config, locallyEnabled) && policy.canSendAuto();
+      activeReady() && policy.canSendAuto();
     const selected = policy.choose(events, now, available, canQueue);
     if (!selected || !available) return;
     const snap = getSnapshot?.() || {},
@@ -550,15 +594,14 @@ export function createCompanion({
     });
   };
   enable.addEventListener("change", () => {
-    locallyEnabled = enable.checked && Boolean(config?.enabled);
-    input.disabled = !canUseCompanion(config, locallyEnabled);
+    locallyEnabled = enable.checked && (mode() === "personal" ? Boolean(accountUI?.connected) : Boolean(config?.enabled));
     updateSendAvailability();
     policy.clearPending();
     if (!locallyEnabled) {
       abortPending();
       output.textContent = "";
       sayStatus(config?.enabled ? "AI 陪玩已关闭。" : "AI 陪玩当前不可用。");
-    } else sayStatus("AI 陪玩已开启 · 每局最多 3 条关键事件");
+    } else sayStatus(mode() === "personal" ? "AI 陪玩已开启 · 从本人账户按实际用量计费" : "AI 陪玩已开启 · 每局最多 3 条关键事件");
   });
   refresh.addEventListener("click", () => {
     void loadConfig();
@@ -566,13 +609,16 @@ export function createCompanion({
   form.addEventListener("submit", (event) => {
     event.preventDefault();
     const message = input.value.trim();
-    if (!message || !locallyEnabled || !config?.enabled) return;
+    if (!message || !activeReady()) return;
+    const maxMessage = mode() === "personal" ? 320 : config.limits.max_message;
+    if (!locallyEnabled) return;
     const now = Date.now();
-    if (!rateLimit.canAttempt(now, config.limits.cooldown_seconds)) {
+    const cooldown = mode() === "personal" ? 5 : config.limits.cooldown_seconds;
+    if (!rateLimit.canAttempt(now, cooldown)) {
       sayStatus(
         rateLimit.busy
           ? "AI 正在回复，请稍候再发。"
-          : `发送过快，请 ${rateLimit.remainingSeconds(now, config.limits.cooldown_seconds)} 秒后再试。`,
+          : `发送过快，请 ${rateLimit.remainingSeconds(now, cooldown)} 秒后再试。`,
       );
       return;
     }
@@ -585,7 +631,7 @@ export function createCompanion({
         level: game === "survival" || game === "fat-fish" ? snapshot.level : 1,
       }),
       event: "chat",
-      message: message.slice(0, config.limits.max_message),
+      message: message.slice(0, maxMessage),
     });
   });
   container.addEventListener("keydown", (event) => event.stopPropagation());
@@ -602,6 +648,7 @@ export function createCompanion({
       disposed = true;
       abortPending();
       policy.clearPending();
+      accountUI?.destroy();
     },
   };
 }
