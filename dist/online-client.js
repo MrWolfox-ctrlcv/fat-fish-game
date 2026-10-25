@@ -179,12 +179,12 @@ export function createOnlineClient({
     requestArt: ({ level, variant } = {}) => {
       const query = new URLSearchParams({ level: String(level) });
       if (variant) query.set("variant", variant);
-      return requestBlob(`art?${query}`, { authorized: true, retryUnauthorized: true });
+      return requestBlob(`sprites?${query}`, { authorized: true, retryUnauthorized: true });
     },
     requestPlayingArt: ({ run_id, level, variant, guest = false } = {}) => {
       const query = new URLSearchParams({ level: String(level) });
       if (variant) query.set("variant", variant);
-      return requestBlob(`play/art?${query}`, { authorized: !guest, retryUnauthorized: !guest, runId: run_id });
+      return requestBlob(`sprites?${query}`, { authorized: !guest, retryUnauthorized: !guest, runId: run_id });
     },
     onSessionChange(listener) { listeners.add(listener); return () => listeners.delete(listener); },
     clearLocalSession() { accessToken = null; user = null; },

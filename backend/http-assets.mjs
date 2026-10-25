@@ -38,13 +38,14 @@ export async function createStaticAssets(root, names) {
   };
 }
 
-export async function sendPrivateArt(request, response, art, key, headers) {
+export async function sendPrivateArt(request, response, art, key, headers, publicAsset = false) {
   // Caller MUST check account/run permission before this function, including 304 responses.
   let image;
   image = await art.get(key);
   if (!image) throw Object.assign(new Error('这个模样暂未收录。'), { status: 404 });
   const tag = contentTag(image);
-  const privateHeaders = { ...headers, 'Cache-Control': 'private, no-cache', Vary: 'Authorization, Cookie', ETag: tag, 'Content-Type': 'image/png' };
+  const privateHeaders = { ...headers, 'Cache-Control': publicAsset ? 'public, no-cache' : 'private, no-cache',
+    ...(publicAsset ? {} : { Vary: 'Authorization, Cookie' }), ETag: tag, 'Content-Type': 'image/png' };
   if (matchesTag(request.headers['if-none-match'], tag)) { response.writeHead(304, privateHeaders).end(); return; }
   image ??= await art.get(key);
   response.writeHead(200, { ...privateHeaders, 'Content-Length': image.length });

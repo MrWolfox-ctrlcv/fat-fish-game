@@ -9,6 +9,11 @@ import { createStaticAssets, sendPrivateArt } from './http-assets.mjs';
 import { createCompanion } from './companion.mjs';
 import { previousWeek, publicName, weekFor } from './weekly.mjs';
 import { PHYSICS_VERSION } from '../dist/physics-version.js';
+import { createWardrobe } from './wardrobe.mjs';
+
+// These three already-visible starter/NPC portraits are shared by both games.
+// Seeing an NPC does not grant permission to equip its outfit.
+const STARTER_SPRITES = new Set(['maid:1', 'gpt-silly:2', 'deepseek-claude:5']);
 
 const fail = (status, message, code) => Object.assign(new Error(message), { status, code });
 const sha = (value) => createHash('sha256').update(value).digest('hex');
@@ -32,6 +37,13 @@ export async function createGameServer(options = {}) {
   const staticRoot = new URL('../dist/', import.meta.url);
   const staticFiles = new Set((await readdir(staticRoot)).filter((name) => /^[a-z0-9-]+\.(js|css|html)$/.test(name)));
   const sendStatic = await createStaticAssets(staticRoot, staticFiles);
+  const playroomRoot = options.playroomRoot ?? new URL('../playroom/', import.meta.url);
+  let sendPlayroom = null;
+  try {
+    const names = (await readdir(playroomRoot, { recursive: true })).filter((name) => /^(index\.html|style\.css|wardrobe\.css|src\/(?:modes\/)?[a-z-]+\.js)$/.test(name.replaceAll('\\', '/'))).map((name) => name.replaceAll('\\', '/'));
+    sendPlayroom = await createStaticAssets(playroomRoot, names);
+  } catch (error) { if (error.code !== 'ENOENT') throw error; }
+  const wardrobe = createWardrobe({ store });
   const verifier = createReplayVerifier();
   const companion = createCompanion({ db: store.db, env: options.companionEnv ?? process.env, fetchImpl: options.companionFetch ?? fetch, now });
   const authCache = new Map();
@@ -151,6 +163,12 @@ export async function createGameServer(options = {}) {
     const json = (status, data) => { response.writeHead(status, { ...headers, 'Content-Type': 'application/json; charset=utf-8' }); response.end(JSON.stringify(data)); };
     try {
       const url = new URL(request.url, 'http://game.internal');
+      if (url.pathname === '/games/bumper') { response.writeHead(302, { Location: '/games/bumper/' }).end(); return; }
+      if (url.pathname.startsWith('/games/bumper/')) {
+        const name = url.pathname.slice('/games/bumper/'.length) || 'index.html';
+        if (!['GET', 'HEAD'].includes(request.method) || !sendPlayroom || !sendPlayroom(request, response, name, headers)) throw fail(404, '页面不存在。');
+        return;
+      }
       if (url.pathname === base.slice(0, -1)) { response.writeHead(302, { Location: base }); response.end(); return; }
       if (!url.pathname.startsWith(base)) throw fail(404, '页面不存在。');
       const path = url.pathname.slice(base.length);
@@ -164,6 +182,26 @@ export async function createGameServer(options = {}) {
       const clientIP = request.headers['x-real-ip'] || request.socket.remoteAddress;
       rate(`ip:${clientIP}`, 600, 60000);
       if (path === 'api/companion' && request.method === 'GET') { json(200, companion.status()); return; }
+      if (path === 'api/sprites' && request.method === 'GET') {
+        const level = Number(url.searchParams.get('level'));
+        const variant = url.searchParams.get('variant');
+        const key = `${variant || 'maid'}:${level}`;
+        if (!Number.isInteger(level) || level < 1 || level > 11 || (variant && !/^[a-z-]{1,32}$/.test(variant))) throw fail(400, '造型编号不正确。');
+        if (!STARTER_SPRITES.has(key)) {
+          const runId = request.headers['x-game-run'];
+          if (runId) {
+            const candidate = runs.get(runId);
+            const run = candidate?.guest ? getGuestRun(request, runId) : getRun(await authenticate(request), runId);
+            const permission = playPermission(run, runId);
+            if (!(variant ? permission.egg_stages.includes(key) : permission.levels.includes(level))) throw fail(403, '这局还没有遇见这个模样。');
+          } else {
+            const owner = await authenticate(request);
+            const profile = store.profile(owner.id);
+            if (!(variant ? profile.egg_stages.includes(key) : profile.unlocked.includes(level))) throw fail(403, '合成大肥鱼中解锁后即可使用。');
+          }
+        }
+        await sendPrivateArt(request, response, art, key, headers, STARTER_SPRITES.has(key)); return;
+      }
       if (path === 'api/leaderboard' && request.method === 'GET') {
         const period = url.searchParams.get('period') || 'current';
         if (!['current', 'previous'].includes(period)) throw fail(400, '榜单周期不合法。');
@@ -226,6 +264,13 @@ export async function createGameServer(options = {}) {
       }
       const user = await authenticate(request);
       rate(`user:${user.id}`, 180, 60000);
+      if (path === 'api/wardrobe' && request.method === 'GET') { json(200, { success: true, ...wardrobe.get(user.id) }); return; }
+      if (path === 'api/wardrobe/equip' && request.method === 'POST') {
+        rate(`equip:${user.id}`, 30, 60000);
+        const input = await body(request);
+        wardrobe.equip(user.id, input.skin_id);
+        json(200, { success: true, ...wardrobe.get(user.id) }); return;
+      }
       if (path === 'api/companion' && request.method === 'POST') {
         json(200, await companion.respond(`u:${user.id}`, await body(request))); return;
       }

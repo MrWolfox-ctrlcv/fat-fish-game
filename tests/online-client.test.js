@@ -101,14 +101,14 @@ test("角色图片只通过带账户令牌的相对 API 路径读取", async () 
       if (String(url).endsWith("/api/user/auth/refresh")) {
         return jsonResponse(200, { success: true, data: { access_token: "art-token", user: { id: 4 } } });
       }
-      if (String(url).includes("/api/art?") && !options.headers.Authorization) return jsonResponse(401, {});
-      if (String(url).includes("/api/art?")) return { status: 200, ok: true, blob: async () => image };
+      if (String(url).includes("/api/sprites?") && !options.headers.Authorization) return jsonResponse(401, {});
+      if (String(url).includes("/api/sprites?")) return { status: 200, ok: true, blob: async () => image };
       return jsonResponse(401, {});
     },
   });
   const result = await client.requestArt({ level: 6, variant: "gpt-normal" });
   assert.equal(result, image);
-  assert.equal(calls[2].url, "https://example.test/games/fat-fish/api/art?level=6&variant=gpt-normal");
+  assert.equal(calls[2].url, "https://example.test/games/fat-fish/api/sprites?level=6&variant=gpt-normal");
   assert.equal(calls[2].options.headers.Authorization, "Bearer art-token");
   client.close();
 });
@@ -127,8 +127,8 @@ test("访客使用独立 play API 和 cookie，401 不触发 new-api 刷新", as
       if (path.endsWith("/api/user/auth/refresh")) return jsonResponse(200, { success: true, data: { access_token: "account-token", user: { id: 8 } } });
       if (path.endsWith("/api/play/run")) return jsonResponse(200, { success: true, run: { id: "guest-run", seed: 13, variant_seed: 17, guest: true }, play: { run_id: "guest-run", levels: [1, 2, 3], egg_stages: [] } });
       if (path.endsWith("/api/play/checkpoint")) return jsonResponse(401, { success: false, message: "访客记录已失效" });
-      if (path.includes("/api/play/art?") && path.includes("level=2")) return jsonResponse(401, { success: false, message: "访客素材已失效" });
-      if (path.includes("/api/play/art?")) return { status: 200, ok: true, blob: async () => image };
+      if (path.includes("/api/sprites?") && path.includes("level=2")) return jsonResponse(401, { success: false, message: "访客素材已失效" });
+      if (path.includes("/api/sprites?")) return { status: 200, ok: true, blob: async () => image };
       return jsonResponse(404, { success: false });
     },
   });
@@ -148,7 +148,7 @@ test("访客使用独立 play API 和 cookie，401 不触发 new-api 刷新", as
   const art = await client.requestPlayingArt({ run_id: "guest-run", level: 1, guest: true });
   assert.equal(art, image);
   const artCall = calls.at(-1);
-  assert.match(artCall.path, /\/api\/play\/art\?level=1$/);
+  assert.match(artCall.path, /\/api\/sprites\?level=1$/);
   assert.equal(artCall.options.headers['X-Game-Run'], 'guest-run');
   assert.equal(artCall.options.cache, 'no-cache');
   assert.equal(artCall.options.credentials, "include");
@@ -171,14 +171,14 @@ test("登录账户的 play/art 使用 Bearer 并只在 401 时刷新后重试", 
       if (path.endsWith("/api/me") && !options.headers.Authorization) return jsonResponse(401, {});
       if (path.endsWith("/api/user/auth/refresh")) return jsonResponse(200, { success: true, data: { access_token: "account-token", user: { id: 8 } } });
       if (path.endsWith("/api/me")) return jsonResponse(200, { success: true, user: { id: 8 }, profile: {}, rewards: [], admin: false });
-      if (path.includes("/api/play/art?") && artAttempts++ === 0) return jsonResponse(401, {});
-      if (path.includes("/api/play/art?")) return { status: 200, ok: true, blob: async () => image };
+      if (path.includes("/api/sprites?") && artAttempts++ === 0) return jsonResponse(401, {});
+      if (path.includes("/api/sprites?")) return { status: 200, ok: true, blob: async () => image };
       return jsonResponse(404, { success: false });
     },
   });
   await client.getMe();
   assert.equal(await client.requestPlayingArt({ run_id: "account-run", level: 4, variant: "gpt-normal" }), image);
-  const artCalls = calls.filter((call) => call.path.includes("/api/play/art?"));
+  const artCalls = calls.filter((call) => call.path.includes("/api/sprites?"));
   assert.equal(artCalls.length, 2);
   assert.match(artCalls[0].path, /level=4&variant=gpt-normal$/);
   assert.equal(artCalls[0].options.headers['X-Game-Run'], 'account-run');

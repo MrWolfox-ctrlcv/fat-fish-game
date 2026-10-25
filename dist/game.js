@@ -3,6 +3,7 @@ import { onlineClient, OnlineApiError } from "./online-client.js";
 import { seededRandom } from "./seeded-random.js";
 import { setupLeaderboard } from './leaderboard.js';
 import { createCompanion } from './companion.js';
+import { createFishDiscoveryTracker, fatFishSnapshot } from './companion-scene.js';
 
 export const MAX_LEVEL = 11;
 export const GIFT_LEVEL = 6;
@@ -580,8 +581,9 @@ function setupUI() {
   let retryCheckpointPayload = null;
   let lastCheckpointAt = 0;
   const leaderboard = setupLeaderboard({ client: onlineClient, onReward: (details) => showRewardDialog(details) });
+  const discoveries = createFishDiscoveryTracker();
   const companion = createCompanion({ container: document.querySelector('#companion'), gameId: 'fat-fish',
-    getSnapshot: () => ({ score: game.score, level: Math.max(...game.unlocked), elapsed: Math.floor(game.stepIndex / 60) }),
+    getSnapshot: () => fatFishSnapshot(game),
     fetchImpl: (url, options) => onlineClient.requestCompanion(url, options) });
 
   const renderGallery = () => {
@@ -801,6 +803,7 @@ function setupUI() {
     };
     if (Array.isArray(payload.rewards)) rewards = payload.rewards;
     if (payload.user) account = payload.user;
+    discoveries.sync(profile, account?.id ?? null);
     leaderboard.setAccount(account, payload.weekly_rewards);
     if (payload.user) accountState = "signed_in";
     adminAllowed = Number(account?.role) >= 10;
@@ -826,6 +829,8 @@ function setupUI() {
     checkpointTimer = null;
     checkpointFlight = null;
     account = null; profile = null; rewards = []; adminAllowed = false;
+    discoveries.sync(null, null);
+    companion.reset();
     leaderboard.setAccount(null);
     if (giftDialog.open) giftDialog.close();
     rewardCode.value = '';
@@ -926,6 +931,7 @@ function setupUI() {
   };
 
   const startOnlineRun = async (generation = sessionGeneration) => {
+    companion.reset();
     const guest = !account;
     activeRun = null;
     activePlay = null;
@@ -1308,6 +1314,7 @@ function setupUI() {
     const move = { step: game.stepIndex, x: game.aimX };
     const body = dropBody(game, game.aimX);
     if (body) {
+      companion.observe(discoveries.observe(game));
       pendingMoves.push(move);
       if (body.variant) {
         markCheckpointNeeded();
@@ -1603,7 +1610,7 @@ function setupUI() {
         if (activeRun) {
           markCheckpointNeeded();
         }
-        companion.observe(result.merged.map(() => ({ type: 'level' })));
+        companion.observe(discoveries.observe(game));
         for (const body of result.merged) {
           if (time - lastMergeSound > 130) playTone(body.level);
           lastMergeSound = time;
@@ -1620,6 +1627,7 @@ function setupUI() {
       accumulator -= fixedStep;
     }
     drawGame(ctx, game, { width: FIELD_WIDTH, height: game.height });
+    companion.observe([]);
     if (changed) updateHud();
     requestAnimationFrame(frame);
   };

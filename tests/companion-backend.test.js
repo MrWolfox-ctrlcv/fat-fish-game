@@ -15,6 +15,16 @@ test('短摘要只包含白名单；关闭和非法输入不会调用上游', as
     assert.equal(calls, 0);
     assert.equal(normalizeCompanionInput(input).api_key, undefined);
     assert.throws(() => normalizeCompanionInput({ ...input, message: 'a'.repeat(161) }), { code: 'AI_INPUT' });
+    assert.throws(() => normalizeCompanionInput({ ...input, scene: { balls: Array.from({ length: 13 }, () => ({ level: 1, x: 1, y: 1, variant: null })) } }), { code: 'AI_INPUT' });
+    assert.throws(() => normalizeCompanionInput({ ...input, scene: { balls: [{ level: 1, x: '1', y: 1, variant: null }], ball_count: 1, stack_height: 2, danger: false, highest_level: 1 } }), { code: 'AI_INPUT' });
+    const noImage = normalizeCompanionInput({ ...input, game: 'fat-fish', scene: { balls: [], ball_count: 1, stack_height: 2, danger: false, highest_level: 1, image: 'screenshot' } });
+    assert.equal(JSON.stringify(noImage).includes('screenshot'), false);
+    assert.throws(() => normalizeCompanionInput({ ...input, event: 'new_easter', detail: { level: 2, variant: 'unknown' } }), { code: 'AI_INPUT' });
+    const clean = normalizeCompanionInput({ ...input, game: 'fat-fish', scene: { balls: [], ball_count: 2, stack_height: 4, danger: false, highest_level: 3, username: 'secret' } });
+    assert.deepEqual(clean.scene, { balls: [], ball_count: 2, stack_height: 4, danger: false, highest_level: 3 });
+    assert.equal(JSON.stringify(clean).includes('secret'), false);
+    const arena = normalizeCompanionInput({ ...input, scene: { player: { x: 400, y: 450, alive: true, edge_distance: 90, dash_ready: false, kills: 2, falls: 1, rank: 3, nickname: 'secret' }, opponents: [{ x: 600, y: 450, alive: true, history: ['secret'] }], arena_radius: 500, remaining: 40, screenshot: 'secret' } });
+    assert.deepEqual(arena.scene, { player: { x: 400, y: 450, edge_distance: 90, kills: 2, falls: 1, rank: 3, alive: true, dash_ready: false }, opponents: [{ x: 600, y: 450, alive: true }], arena_radius: 500, remaining: 40 });
   } finally { db.close(); }
 });
 
@@ -37,6 +47,25 @@ test('预算重启后保持且跨用户共享；无历史上下文和固定输�
     assert.ok(payloads[0].max_tokens <= 192);
     assert.ok(!JSON.stringify(payloads).includes('must-not-leave'));
     assert.equal(db.prepare("SELECT calls,input_tokens FROM companion_daily WHERE owner='*'").get().input_tokens, 200);
+  } finally { db.close(); }
+});
+
+test('白名单场景与客户端事件详情准确传给上游，无任意附加字段', async () => {
+  const db = new DatabaseSync(':memory:'); const payloads = [];
+  const fetchImpl = async (_url, options) => {
+    payloads.push(JSON.parse(options.body));
+    return Response.json({ choices: [{ message: { content: '看准时机！' } }] });
+  };
+  const scene = { balls: [{ level: 4, x: 80, y: 500, variant: 'gpt-normal', secret: 'drop' }], ball_count: 8, stack_height: 400, danger: true, highest_level: 5, screenshot: 'drop' };
+  try {
+    const companion = createCompanion({ db, env, fetchImpl, now: () => 1792886400000 });
+    await companion.respond('u:1', { game: 'fat-fish', event: 'new_easter', score: 100, level: 5, elapsed: 30, detail: { level: 4, variant: 'gpt-normal', api_key: 'drop' }, scene, api_key: 'drop', history: ['drop'] });
+    const content = payloads[0].messages[1].content;
+    assert.ok(content.includes('"balls":[{"level":4,"x":80,"y":500,"variant":"gpt-normal"}]'));
+    assert.ok(content.includes('"level":4,"variant":"gpt-normal"'));
+    assert.equal(content.includes('drop'), false);
+    assert.ok(content.includes('当前场景='));
+    assert.equal(db.prepare("SELECT calls FROM companion_daily WHERE owner='*'").get().calls, 1);
   } finally { db.close(); }
 });
 
