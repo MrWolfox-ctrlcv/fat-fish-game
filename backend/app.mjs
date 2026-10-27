@@ -13,6 +13,8 @@ import { createWardrobe } from './wardrobe.mjs';
 import { createArenaRooms } from './arena-rooms.mjs';
 import { applyProp, propInputFingerprint, PROP_PRICE_QUOTA, PROP_PRICE_USD, validatePropInput, validatePropBodies } from './props.mjs';
 import { createPropWallet } from './prop-wallet.mjs';
+import { FREE_TTL, PAID_TTL, SAVE_EXTENSION, SAVE_LIMITS, SAVE_MAX_BYTES, SAVE_MAX_RETENTION, SAVE_PRICE_QUOTA, SAVE_PRICE_USD,
+  compactSnapshot, isValidSnapshot, saveFingerprint, validateSaveExtension, validateSaveLoad, validateSaveRequest } from './saves.mjs';
 
 // These three already-visible starter/NPC portraits are shared by both games.
 // Seeing an NPC does not grant permission to equip its outfit.
@@ -39,7 +41,7 @@ export async function createGameServer(options = {}) {
   const propWallet = options.propWallet ?? createPropWallet({ fetchImpl: fetcher });
   const now = options.now ?? Date.now;
   const staticRoot = new URL('../dist/', import.meta.url);
-  const staticFiles = new Set((await readdir(staticRoot)).filter((name) => /^[a-z0-9-]+\.(js|css|html)$/.test(name) || name === 'companion-portrait.png'));
+  const staticFiles = new Set((await readdir(staticRoot)).filter((name) => /^[a-z0-9-]+\.(js|css|html)$/.test(name) || ['companion-portrait.png', 'prop-icons.png'].includes(name)));
   const sendStatic = await createStaticAssets(staticRoot, staticFiles);
   const playroomRoot = options.playroomRoot ?? new URL('../playroom/', import.meta.url);
   let sendPlayroom = null;
@@ -48,7 +50,7 @@ export async function createGameServer(options = {}) {
     sendPlayroom = await createStaticAssets(playroomRoot, names);
   } catch (error) { if (error.code !== 'ENOENT') throw error; }
   const wardrobe = createWardrobe({ store });
-  const verifier = createReplayVerifier();
+  const verifier = options.verifier ?? createReplayVerifier();
   const companion = createCompanion({ db: store.db, env: options.companionEnv ?? process.env, fetchImpl: options.companionFetch ?? fetch, now });
   const arenaRooms = createArenaRooms({ origins, production: process.env.NODE_ENV === 'production', now, maxRooms: options.arenaMaxRooms });
   const authCache = new Map();
@@ -119,7 +121,7 @@ export async function createGameServer(options = {}) {
     if (run.propRevision !== receipt.prop_revision - 1 || run.state.stepIndex !== receipt.step || run.moves !== receipt.move_count) return 'stale';
     run.state = receipt.state; run.summary = receipt.summary; run.usedProps = true;
     run.propRevision = receipt.prop_revision; run.propReceiptId = receipt.receipt_id; run.hash = null;
-    run.propCount = Math.max(run.propCount || 0, receipt.prop_revision);
+    run.propCount = Math.max(run.propCount || 0, store.lineagePropCount(user.id, run.lineageId || run.id));
     return 'restored';
   }
 
@@ -148,7 +150,7 @@ export async function createGameServer(options = {}) {
     const digest = sha(JSON.stringify({ step: input.step, moves: input.moves, propRevision: run.propRevision || 0 }));
     if (run.hash === digest) return;
     if (!held && run.busy) throw fail(409, '这局正在同步，请稍后再试。', 'RUN_BUSY');
-    if (!Number.isSafeInteger(input.step) || input.step > Math.floor((now() - run.created) * 60 / 1000) + 180) throw fail(422, '对局时间不合法。', 'INVALID_REPLAY');
+    if (!Number.isSafeInteger(input.step) || input.step - (run.stepBase || 0) > Math.floor((now() - run.created) * 60 / 1000) + 180) throw fail(422, '对局时间不合法。', 'INVALID_REPLAY');
     if (!Array.isArray(input.moves) || run.moves + input.moves.length > 2000) throw fail(422, '这局已达记录上限，请重新开始。');
     if (!held) run.busy = true;
     try {
@@ -158,7 +160,7 @@ export async function createGameServer(options = {}) {
         store.saveProgress(run.userId, result.summary);
         if (run.weekId === weekFor(verifiedAt).id) store.recordWeeklyScore({ weekId: run.weekId, userId: run.userId,
           name: run.username, score: result.summary.score, maxLevel: result.summary.max_level,
-          runId: run.id || '', attainedAt: verifiedAt, usedProps: Boolean(run.usedProps) });
+          runId: run.lineageId || run.id || '', attainedAt: verifiedAt, usedProps: Boolean(run.usedProps) });
       }
       run.state = result.state; run.hash = digest; run.summary = result.summary; run.moves += input.moves.length;
     } finally { if (!held) run.busy = false; }
@@ -296,6 +298,152 @@ export async function createGameServer(options = {}) {
       }
       const user = await authenticate(request);
       rate(`user:${user.id}`, 180, 60000);
+      if (path === 'api/saves' && request.method === 'GET') {
+        json(200, { success: true, saves: store.saveListing(user.id, now()), price_usd: SAVE_PRICE_USD,
+          price_quota: SAVE_PRICE_QUOTA, limits: SAVE_LIMITS, billing_enabled: propsEnabled }); return;
+      }
+      if (path === 'api/saves/write' && request.method === 'POST') {
+        rate(`save-write:${user.id}`, 20, 60000);
+        const input = await body(request);
+        requireCurrentPhysics(input);
+        validateSaveRequest(input, PHYSICS_VERSION);
+        const fingerprint = saveFingerprint(input);
+        const existing = store.saveOrder(input.request_id);
+        if (existing) {
+          if (existing.user_id !== user.id || existing.fingerprint !== fingerprint) throw fail(409, '请求编号已用于其他存档操作。', 'SAVE_REQUEST_CONFLICT');
+          if (existing.status === 'committed') { json(200, { success: true, saves: store.saveListing(user.id, now()), receipt: existing.result }); return; }
+          if (existing.status === 'pending' && existing.quota === 0 && existing.operation === 'write') {
+            const committed = store.commitSaveOrder(input.request_id, now());
+            json(200, { success: true, saves: store.saveListing(user.id, now()),
+              receipt: { id: committed.operation_id, ...committed.result, quota: 0, paid: false } }); return;
+          }
+          if (existing.status === 'pending') { json(202, { success: true, pending: true,
+            receipt: { id: existing.operation_id, slot: existing.slot, quota: existing.quota, paid: existing.quota > 0 } }); return; }
+          throw fail(409, '这次存档请求已结束，请重新保存。', 'SAVE_REQUEST_FAILED');
+        }
+        if (store.propReceipt(input.request_id)) throw fail(409, '请求编号已用于其他操作。', 'SAVE_REQUEST_CONFLICT');
+        const activeBefore = store.activeSave(user.id, input.slot, now());
+        if (input.slot > 1 && input.confirm_quota !== SAVE_PRICE_QUOTA && !activeBefore) {
+          throw fail(422, '创建付费存档需要确认额度。', 'SAVE_CONFIRM_REQUIRED');
+        }
+        const pendingProp = store.pendingPropReceipt(user.id);
+        if (pendingProp) { json(202, { success: true, pending: true,
+          receipt: { id: pendingProp.receipt_id, quota: pendingProp.quota, used_props: true } }); return; }
+        const pendingSave = store.pendingSaveOrder(user.id);
+        if (pendingSave) { json(202, { success: true, pending: true,
+          receipt: { id: pendingSave.operation_id, slot: pendingSave.slot, quota: pendingSave.quota, paid: pendingSave.slot > 1 } }); return; }
+        const run = getRun(user, input.run_id);
+        if (run.busy) throw fail(409, '这局正在同步，请稍后再试。', 'RUN_BUSY');
+        if (store.hasPendingPayment(user.id)) throw fail(409, '上一笔付费订单仍在确认，请先确认订单再继续。', 'PAYMENT_PENDING');
+        run.busy = true;
+        try {
+          await checkpoint(run, { step: input.step, moves: input.moves }, true);
+          const savedState = compactSnapshot(run.state);
+          if (Buffer.byteLength(JSON.stringify(savedState), 'utf8') > SAVE_MAX_BYTES) throw fail(422, '存档数据过大，未写入也未扣款。', 'SAVE_TOO_LARGE');
+          if (!isValidSnapshot(savedState)) throw fail(422, '存档内容超出安全范围。', 'INVALID_SAVE');
+          const at = now();
+          const active = store.activeSave(user.id, input.slot, at);
+          const expiry = input.slot === 1 ? Math.max(active?.expires_at || 0, at + FREE_TTL)
+            : active ? active.expires_at : at + PAID_TTL;
+          if (input.slot > 1 && !active && !propsEnabled) throw fail(503, '存档付费功能暂不可用。', 'PROPS_DISABLED');
+          const operationId = randomUUID();
+          const prepared = store.createSaveOrder({ requestId: input.request_id, userId: user.id, slot: input.slot,
+            fingerprint, operationId, operation: 'write', now: at, payload: { allow_payment: input.confirm_quota === SAVE_PRICE_QUOTA, save: { state: savedState,
+              summary: run.summary || { score: run.state.score, max_level: Math.max(...run.state.unlocked), over: run.state.over,
+                unlocked: run.state.unlocked, egg_stages: run.state.seenEggStages }, lineage_id: run.lineageId || run.id,
+              week_id: run.weekId, physics_version: PHYSICS_VERSION, expires_at: expiry } } });
+          if (!prepared.created) {
+            if (prepared.fingerprint !== fingerprint || prepared.user_id !== user.id) throw fail(409, '请求编号已用于其他存档操作。', 'SAVE_REQUEST_CONFLICT');
+            if (prepared.status === 'committed') { json(200, { success: true, saves: store.saveListing(user.id, now()), receipt: prepared.result }); return; }
+            json(202, { success: true, pending: true,
+              receipt: { id: prepared.operation_id, slot: prepared.slot, quota: prepared.quota, paid: prepared.slot > 1 } }); return;
+          }
+          if (prepared.requiresPayment) {
+            try { await propWallet.debit({ userId: user.id, quota: SAVE_PRICE_QUOTA, operationId: prepared.operation_id }); }
+            catch (error) {
+              if (error?.code === 'PAYMENT_PENDING') { json(202, { success: true, pending: true,
+                receipt: { id: prepared.operation_id, slot: prepared.slot, quota: prepared.quota, paid: true } }); return; }
+              store.failSaveOrder(input.request_id, now());
+              throw fail(402, error?.code === 'INSUFFICIENT_QUOTA' ? '账户额度不足 $0.01，存档没有写入。' : '账户额度扣减未完成，存档没有写入。', error?.code || 'PAYMENT_REFUSED');
+            }
+          }
+          const committed = store.commitSaveOrder(input.request_id, now());
+          json(200, { success: true, saves: store.saveListing(user.id, now()),
+            receipt: { id: committed.operation_id, ...committed.result, quota: committed.quota, paid: prepared.requiresPayment } }); return;
+        } finally { run.busy = false; }
+      }
+      if (path === 'api/saves/extend' && request.method === 'POST') {
+        rate(`save-extend:${user.id}`, 12, 60000);
+        const input = validateSaveExtension(await body(request));
+        const fingerprint = saveFingerprint(input, 'extend');
+        const existing = store.saveOrder(input.request_id);
+        if (existing) {
+          if (existing.user_id !== user.id || existing.fingerprint !== fingerprint) throw fail(409, '请求编号已用于其他存档操作。', 'SAVE_REQUEST_CONFLICT');
+          if (existing.status === 'committed') { json(200, { success: true, saves: store.saveListing(user.id, now()), receipt: existing.result }); return; }
+          if (existing.status === 'pending') { json(202, { success: true, pending: true,
+            receipt: { id: existing.operation_id, slot: existing.slot, quota: existing.quota, paid: true } }); return; }
+          throw fail(409, '这次存档请求已结束，请重新延长。', 'SAVE_REQUEST_FAILED');
+        }
+        if (store.propReceipt(input.request_id)) throw fail(409, '请求编号已用于其他操作。', 'SAVE_REQUEST_CONFLICT');
+        const pendingProp = store.pendingPropReceipt(user.id);
+        if (pendingProp) { json(202, { success: true, pending: true,
+          receipt: { id: pendingProp.receipt_id, quota: pendingProp.quota, used_props: true } }); return; }
+        const pendingSave = store.pendingSaveOrder(user.id);
+        if (pendingSave) { json(202, { success: true, pending: true,
+          receipt: { id: pendingSave.operation_id, slot: pendingSave.slot, quota: pendingSave.quota, paid: true } }); return; }
+        if (!propsEnabled) throw fail(503, '存档付费功能暂不可用。', 'PROPS_DISABLED');
+        const at = now();
+        const save = store.activeSave(user.id, input.slot, at);
+        if (!save) throw fail(409, '这个存档已过期或不存在。', 'SAVE_EXPIRED');
+        const expiry = Math.max(save.expires_at, at) + SAVE_EXTENSION;
+        if (expiry > at + SAVE_MAX_RETENTION) throw fail(409, '存档有效期不能超过30天。', 'SAVE_RETENTION_LIMIT');
+        const operationId = randomUUID();
+        const prepared = store.createSaveOrder({ requestId: input.request_id, userId: user.id, slot: input.slot,
+          fingerprint, operationId, operation: 'extend', now: at, payload: { allow_payment: true, expires_at: expiry,
+            save: { kind: save.kind, state: compactSnapshot(save.state), summary: save.summary, lineage_id: save.lineage_id,
+              week_id: save.week_id, physics_version: save.physics_version } } });
+        if (!prepared.created) {
+          if (prepared.fingerprint !== fingerprint || prepared.user_id !== user.id) throw fail(409, '请求编号已用于其他存档操作。', 'SAVE_REQUEST_CONFLICT');
+          if (prepared.status === 'committed') { json(200, { success: true, saves: store.saveListing(user.id, now()), receipt: prepared.result }); return; }
+          json(202, { success: true, pending: true,
+            receipt: { id: prepared.operation_id, slot: prepared.slot, quota: prepared.quota, paid: true } }); return;
+        }
+        try { await propWallet.debit({ userId: user.id, quota: SAVE_PRICE_QUOTA, operationId: prepared.operation_id }); }
+        catch (error) {
+          if (error?.code === 'PAYMENT_PENDING') { json(202, { success: true, pending: true,
+            receipt: { id: prepared.operation_id, slot: prepared.slot, quota: prepared.quota, paid: true } }); return; }
+          store.failSaveOrder(input.request_id, now());
+          throw fail(402, error?.code === 'INSUFFICIENT_QUOTA' ? '账户额度不足 $0.01，存档没有延长。' : '账户额度扣减未完成，存档没有延长。', error?.code || 'PAYMENT_REFUSED');
+        }
+        const committed = store.commitSaveOrder(input.request_id, now());
+        json(200, { success: true, saves: store.saveListing(user.id, now()),
+          receipt: { id: committed.operation_id, ...committed.result, quota: committed.quota, paid: true } }); return;
+      }
+      if (path === 'api/saves/load' && request.method === 'POST') {
+        rate(`save-load:${user.id}`, 20, 60000);
+        const input = validateSaveLoad(await body(request), PHYSICS_VERSION);
+        if (store.hasPendingPayment(user.id)) throw fail(409, '付费订单仍在确认，请先确认订单再读档。', 'PAYMENT_PENDING');
+        const saved = store.activeSave(user.id, input.slot, now());
+        if (!saved) throw fail(404, '这个存档已过期或不存在。', 'SAVE_EXPIRED');
+        if (saved.physics_version !== PHYSICS_VERSION) throw fail(409, '游戏已更新，当前存档与此版本不兼容。', 'GAME_UPDATED');
+        if (!isValidSnapshot(saved.state)) throw fail(409, '存档数据无法读取。', 'INVALID_SAVE');
+        const oldId = currentRun.get(user.id);
+        if (oldId) runs.delete(oldId);
+        const id = randomUUID();
+        const startedAt = now();
+        const lineageId = saved.lineage_id;
+        const usedProps = store.lineageUsedProps(user.id, lineageId);
+        const propCount = store.lineagePropCount(user.id, lineageId);
+        const run = { id, userId: user.id, username: user.username, lineageId, weekId: saved.week_id,
+          created: startedAt, stepBase: saved.state.stepIndex, state: saved.state, hash: null,
+          propRevision: propCount, propCount, usedProps, summary: saved.summary, busy: false, moves: 0 };
+        runs.set(id, run); currentRun.set(user.id, id);
+        json(200, { success: true, run: { id, seed: saved.state.randomState, variant_seed: saved.state.variantState,
+          width: 480, height: 620, resumed: true }, state: saved.state, summary: saved.summary,
+          play: playPermission(run, id), profile: { ...store.profile(user.id), user_id: user.id },
+          rewards: store.rewards(user.id), receipt: { slot: input.slot, lineage_id: lineageId,
+            week_id: saved.week_id, used_props: usedProps } }); return;
+      }
       if (path === 'api/wardrobe' && request.method === 'GET') { json(200, { success: true, ...wardrobe.get(user.id) }); return; }
       if (path === 'api/wardrobe/equip' && request.method === 'POST') {
         rate(`equip:${user.id}`, 30, 60000);
@@ -327,15 +475,17 @@ export async function createGameServer(options = {}) {
         const randomSeed = seed();
         const variantSeed = seed();
         const startedAt = now();
-        runs.set(id, { id, userId: user.id, username: user.username, weekId: weekFor(startedAt).id, created: startedAt, state: initialState(randomSeed, variantSeed), hash: null, propRevision: 0, usedProps: false, summary: null, busy: false, moves: 0 });
+        runs.set(id, { id, userId: user.id, username: user.username, lineageId: id, weekId: weekFor(startedAt).id,
+          created: startedAt, stepBase: 0, state: initialState(randomSeed, variantSeed), hash: null, propRevision: 0,
+          usedProps: false, summary: null, busy: false, moves: 0 });
         currentRun.set(user.id, id);
         json(200, { success: true, run: { id, seed: randomSeed, variant_seed: variantSeed, width: 480, height: 620 }, play: playPermission(runs.get(id), id) }); return;
       }
       if (path === 'api/run/checkpoint' && request.method === 'POST') {
         const input = await body(request);
         const run = getRun(user, input.run_id);
-        if (store.pendingPropReceipt(user.id)?.run_id === run.id) {
-          throw fail(409, '这局的道具扣款仍在确认，请先确认订单再继续。', 'PAYMENT_PENDING');
+        if (store.pendingPropReceipt(user.id)?.run_id === run.id || store.pendingSaveOrder(user.id)) {
+          throw fail(409, '付费订单仍在确认，请先确认订单再继续。', 'PAYMENT_PENDING');
         }
         await checkpoint(run, input);
         json(200, { ...account(user), summary: run.summary, play: playPermission(run, input.run_id) });
@@ -362,12 +512,16 @@ export async function createGameServer(options = {}) {
             receipt: { id: previous.receipt_id, quota: previous.quota, used_props: true } }); return; }
           throw fail(409, '这次道具请求已结束，请重新选择道具。', 'PROP_REQUEST_FAILED');
         }
+        if (store.saveOrder(requestId)) throw fail(409, '请求编号已用于其他操作。', 'PROP_REQUEST_CONFLICT');
         const prop = validatePropInput(input);
         const pendingForAccount = store.pendingPropReceipt(user.id);
         if (pendingForAccount) {
           json(202, { success: true, pending: true, receipt: { id: pendingForAccount.receipt_id,
             quota: pendingForAccount.quota, used_props: true } }); return;
         }
+        const pendingSave = store.pendingSaveOrder(user.id);
+        if (pendingSave) { json(202, { success: true, pending: true,
+          receipt: { id: pendingSave.operation_id, slot: pendingSave.slot, quota: pendingSave.quota, used_props: false } }); return; }
         if (!propsEnabled) throw fail(503, '道具付费功能暂不可用。', 'PROPS_DISABLED');
         const run = getRun(user, prop.runId);
         if (run.busy) throw fail(409, '这局正在同步，请稍后再试。', 'RUN_BUSY');
@@ -384,7 +538,8 @@ export async function createGameServer(options = {}) {
           const receiptId = randomUUID();
           const prepared = store.createPropReceipt({ requestId: prop.requestId, userId: user.id, runId: run.id,
             fingerprint, receiptId, kind: prop.kind, bodyIds: prop.bodyIds, step: prop.step, now: now(), weekId: run.weekId, name: user.username,
-            moveCount: run.moves, propRevision: (run.propRevision || 0) + 1,
+            moveCount: run.moves, propRevision: Math.max(run.propRevision || 0, run.propCount || 0) + 1,
+            lineageId: run.lineageId || run.id,
             state: applied.state, summary, profile: preparedProfile, rewards: preparedRewards, play: preparedPlay });
           if (prepared.fingerprint !== fingerprint) throw fail(409, '请求编号已用于其他操作。', 'PROP_REQUEST_CONFLICT');
           if (!prepared.created) {
@@ -415,7 +570,7 @@ export async function createGameServer(options = {}) {
             summary, profile: preparedProfile, rewards: preparedRewards, play: preparedPlay,
             week: run.weekId, userId: user.id, name: user.username, runId: run.id, usedProps: true });
           run.state = applied.state; run.summary = summary; run.usedProps = true; run.propRevision = prepared.prop_revision; run.propReceiptId = receipt.receipt_id; run.hash = null;
-          run.propCount = (run.propCount || 0) + 1;
+          run.propCount = Math.max(run.propCount || 0, store.lineagePropCount(user.id, run.lineageId || run.id));
           json(200, { success: true, state: receipt.state, summary: receipt.summary, profile: receipt.profile,
             rewards: receipt.rewards, play: receipt.play, receipt: { id: receipt.receipt_id, quota: receipt.quota, used_props: true } }); return;
         } finally { run.busy = false; }
@@ -513,6 +668,7 @@ export async function createGameServer(options = {}) {
     for (const [key, value] of runs) if (now() - value.created > 1800000) runs.delete(key);
     for (const [key, id] of currentRun) if (!runs.has(id)) currentRun.delete(key);
     for (const [key, id] of guestRuns) if (!runs.has(id)) guestRuns.delete(key);
+    try { store.cleanupExpiredSaves(now()); store.cleanupFreeSaveOrders(now()); } catch { /* retried on the next cleanup or read */ }
     try { settleDueWeeks(); } catch { /* retried on the next cleanup or read */ }
   }, 60000).unref();
   server.on('close', () => { clearInterval(cleanup); arenaRooms.close(); void verifier.close(); });

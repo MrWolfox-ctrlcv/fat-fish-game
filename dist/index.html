@@ -21,6 +21,7 @@
         <a class="leaderboard-link" href="https://oua-cdn.wolfoxlabs.xyz/" target="_blank" rel="noopener" aria-label="访问 Wolfox Labs OUA 中转站">↗<span>中转站</span></a>
         <a class="leaderboard-link" href="/games/bumper/" aria-label="碰碰擂台与联动衣柜">◉<span>擂台衣柜</span></a>
         <a class="leaderboard-link" href="#weekly-board" aria-label="查看周排行榜">🏆<span>周榜</span></a>
+        <button class="saves-open" id="saves-open" type="button"><span class="prop-icon prop-icon--save" aria-hidden="true"></span><span>存档</span></button>
         <a class="login-link" id="login-link" href="/sign-in?redirect=%2Fgames%2Ffat-fish%2F">登录以保存图鉴</a>
         <span class="account-label" id="account-label" hidden></span>
         <button class="admin-open" id="admin-open" type="button" hidden>奖品管理</button>
@@ -48,8 +49,11 @@
         </div>
         <section class="fish-props" id="fish-props" aria-label="本局道具">
           <div class="fish-props-buttons">
-            <button id="prop-remove" type="button" hidden>🕸️ 捞鱼网</button>
-            <button id="prop-merge" type="button" hidden>🧵 牵线合成</button>
+            <button id="prop-remove" class="prop-button" data-kind="remove" type="button" hidden><span class="prop-icon prop-icon--remove" aria-hidden="true"></span><span>捞鱼网</span></button>
+            <button id="prop-merge" class="prop-button" data-kind="merge" type="button" hidden><span class="prop-icon prop-icon--merge" aria-hidden="true"></span><span>牵线合成</span></button>
+            <button id="prop-swap" class="prop-button" data-kind="swap" type="button" hidden><span class="prop-icon prop-icon--swap" aria-hidden="true"></span><span>交换位置</span></button>
+            <button id="prop-pack" class="prop-button" data-kind="pack" type="button" hidden><span class="prop-icon prop-icon--pack" aria-hidden="true"></span><span>打包小鱼</span></button>
+            <button id="prop-pack-finish" type="button" hidden>确认打包所选鱼</button>
             <button id="prop-retry" type="button" hidden>重试确认</button>
           </div>
           <p id="prop-status" role="status" aria-live="polite">正在确认道具服务状态。</p>
@@ -102,6 +106,15 @@
       </section>
     </section>
   </main>
+
+  <dialog id="saves-dialog" class="saves-dialog" aria-labelledby="saves-title">
+    <div class="saves-dialog-head"><div><h2 id="saves-title">鱼缸存档</h2><p>空档位 · 到期时间 · 道具标签</p></div><button id="saves-close" type="button" aria-label="关闭存档">关闭</button></div>
+    <p class="saves-disclosure">免费档保留至少 24 小时。额外档位首次启用 $0.01 保留 7 天，每延长 7 天 $0.01，最多保留未来 30 天。覆盖有效档不收费，也不会缩短已购买的有效期。不会自动续费。</p>
+    <p class="saves-disclosure">读取会替换当前棋盘；已同步的花费与道具标签不会回退。存档沿用原周信息，跨周旧局不会计入新周榜；图鉴和领奖数据仍来自账户。</p>
+    <p id="saves-status" role="status" aria-live="polite">登录账户后可查看云存档。</p>
+    <div id="saves-list" class="saves-list"></div>
+    <button type="button" data-saves-retry>重试 / 刷新列表</button>
+  </dialog>
   <dialog class="gift-dialog" id="gift-dialog" aria-labelledby="gift-dialog-title">
     <div class="dialog-art" aria-hidden="true">🎟️</div><h2 id="gift-dialog-title">女仆的谢礼</h2>
     <p id="gift-dialog-copy">正在查看谢礼状态。</p>

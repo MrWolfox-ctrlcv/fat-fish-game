@@ -2,6 +2,7 @@ import { DatabaseSync } from 'node:sqlite';
 import { mkdirSync, chmodSync } from 'node:fs';
 import { dirname } from 'node:path';
 import { weekFor } from './weekly.mjs';
+import { SAVE_EXTENSION } from './saves.mjs';
 
 export class GameStore {
   constructor(path) {
@@ -29,6 +30,7 @@ export class GameStore {
         details TEXT NOT NULL, created_at INTEGER NOT NULL
       );`);
     this.migrateWeeklySchema();
+    this.migrateSaveSchema();
   }
 
   migrateWeeklySchema() {
@@ -94,6 +96,32 @@ export class GameStore {
     addColumn('prop_receipts', 'name', 'TEXT');
     addColumn('prop_receipts', 'move_count', 'INTEGER NOT NULL DEFAULT 0');
     addColumn('prop_receipts', 'prop_revision', 'INTEGER NOT NULL DEFAULT 0');
+  }
+
+  migrateSaveSchema() {
+    const addColumn = (table, name, definition) => {
+      if (!this.db.prepare(`PRAGMA table_info(${table})`).all().some((column) => column.name === name)) {
+        this.db.exec(`ALTER TABLE ${table} ADD COLUMN ${name} ${definition}`);
+      }
+    };
+    addColumn('prop_receipts', 'lineage_id', 'TEXT');
+    this.db.exec(`UPDATE prop_receipts SET lineage_id=run_id WHERE lineage_id IS NULL OR lineage_id='';
+      CREATE INDEX IF NOT EXISTS prop_receipts_user_lineage ON prop_receipts(user_id,lineage_id,status);
+      CREATE TABLE IF NOT EXISTS game_saves (
+        user_id INTEGER NOT NULL, slot INTEGER NOT NULL CHECK(slot BETWEEN 1 AND 5), kind TEXT NOT NULL CHECK(kind IN ('free','paid')),
+        expires_at INTEGER NOT NULL, updated_at INTEGER NOT NULL, state TEXT NOT NULL, summary TEXT NOT NULL,
+        lineage_id TEXT NOT NULL, week_id TEXT NOT NULL, physics_version INTEGER NOT NULL,
+        PRIMARY KEY(user_id,slot)
+      );
+      CREATE INDEX IF NOT EXISTS game_saves_expiry ON game_saves(expires_at);
+      CREATE TABLE IF NOT EXISTS save_orders (
+        request_id TEXT PRIMARY KEY, user_id INTEGER NOT NULL, slot INTEGER NOT NULL CHECK(slot BETWEEN 1 AND 5),
+        fingerprint TEXT NOT NULL, status TEXT NOT NULL CHECK(status IN ('pending','committed','failed')),
+        operation_id TEXT NOT NULL UNIQUE, quota INTEGER NOT NULL DEFAULT 5000, operation TEXT NOT NULL,
+        payload TEXT NOT NULL, result TEXT, created_at INTEGER NOT NULL, updated_at INTEGER NOT NULL
+      );
+      CREATE INDEX IF NOT EXISTS save_orders_user_status ON save_orders(user_id,status,created_at);
+      CREATE INDEX IF NOT EXISTS save_orders_cleanup ON save_orders(status,updated_at);`);
   }
 
   profile(userId) {
@@ -188,16 +216,18 @@ export class GameStore {
     return row;
   }
 
-  createPropReceipt({ requestId, userId, runId, fingerprint, receiptId, kind, bodyIds, step, now, weekId = null, name = '',
+  createPropReceipt({ requestId, userId, runId, lineageId = runId, fingerprint, receiptId, kind, bodyIds, step, now, weekId = null, name = '',
     moveCount = 0, propRevision = 0, state = null, summary = null, profile = null, rewards = null, play = null }) {
     this.db.exec('BEGIN IMMEDIATE');
     try {
       const existing = this.propReceipt(requestId);
       if (existing) { this.db.exec('COMMIT'); return { ...existing, created: false }; }
+      if (this.saveOrder(requestId)) throw Object.assign(new Error('请求编号已用于其他操作。'), { status: 409, code: 'PAYMENT_REQUEST_CONFLICT' });
+      if (this.pendingSaveOrder(userId)) throw Object.assign(new Error('存档订单仍在确认，请先确认订单再继续。'), { status: 409, code: 'PAYMENT_PENDING' });
       this.db.prepare(`INSERT INTO prop_receipts
-        (request_id,user_id,run_id,fingerprint,status,receipt_id,quota,kind,body_ids,step,week_id,name,move_count,prop_revision,state,summary,profile,rewards,play,created_at,updated_at)
-        VALUES(?,?,?,?,'pending',?,5000,?,?,?,?,?,?,?,?,?,?,?,?,?,?)`)
-        .run(requestId, userId, runId, fingerprint, receiptId, kind, JSON.stringify(bodyIds), step, weekId, name, moveCount, propRevision,
+        (request_id,user_id,run_id,lineage_id,fingerprint,status,receipt_id,quota,kind,body_ids,step,week_id,name,move_count,prop_revision,state,summary,profile,rewards,play,created_at,updated_at)
+        VALUES(?,?,?,?,?,'pending',?,5000,?,?,?,?,?,?,?,?,?,?,?,?,?,?)`)
+        .run(requestId, userId, runId, lineageId, fingerprint, receiptId, kind, JSON.stringify(bodyIds), step, weekId, name, moveCount, propRevision,
           state === null ? null : JSON.stringify(state), summary === null ? null : JSON.stringify(summary),
           profile === null ? null : JSON.stringify(profile), rewards === null ? null : JSON.stringify(rewards),
           play === null ? null : JSON.stringify(play), now, now);
@@ -223,15 +253,152 @@ export class GameStore {
       const receipt = this.db.prepare('SELECT status FROM prop_receipts WHERE request_id=?').get(requestId);
       if (!receipt || receipt.status !== 'pending') throw Object.assign(new Error('道具支付状态已变化。'), { status: 409, code: 'PROP_RECEIPT_CONFLICT' });
       const persistedProfile = this.saveProgress(userId, summary);
-      this.markWeeklyRunUsedProps({ weekId: week, userId, runId, attainedAt: now });
-      if (week === weekFor(now).id) this.recordWeeklyScore({ weekId: week, userId, name, score: summary.score,
-        maxLevel: summary.max_level, runId, attainedAt: now, usedProps, inTransaction: true });
+      const receiptRow = this.db.prepare('SELECT lineage_id FROM prop_receipts WHERE request_id=?').get(requestId);
+      const lineageId = receiptRow?.lineage_id || runId;
+      if (week === weekFor(now).id) {
+        this.markWeeklyRunUsedProps({ weekId: week, userId, runId: lineageId, attainedAt: now });
+        this.recordWeeklyScore({ weekId: week, userId, name, score: summary.score,
+          maxLevel: summary.max_level, runId: lineageId, attainedAt: now, usedProps, inTransaction: true });
+      }
       this.db.prepare(`UPDATE prop_receipts SET status='committed',state=?,summary=?,profile=?,rewards=?,play=?,updated_at=?
         WHERE request_id=? AND status='pending'`).run(JSON.stringify(state), JSON.stringify(summary),
         JSON.stringify({ ...persistedProfile, user_id: userId }), JSON.stringify(this.rewards(userId, persistedProfile)), JSON.stringify(play), now, requestId);
       this.db.exec('COMMIT');
       return this.propReceipt(requestId);
     } catch (error) { this.db.exec('ROLLBACK'); throw error; }
+  }
+
+  activeSave(userId, slot, timestamp = Date.now()) {
+    const row = this.db.prepare('SELECT * FROM game_saves WHERE user_id=? AND slot=? AND expires_at>?').get(userId, slot, timestamp);
+    return row ? { ...row, state: JSON.parse(row.state), summary: JSON.parse(row.summary) } : null;
+  }
+
+  saveListing(userId, timestamp = Date.now()) {
+    this.cleanupExpiredSaves(timestamp);
+    const rows = this.db.prepare('SELECT slot,kind,expires_at,updated_at,summary,state,lineage_id FROM game_saves WHERE user_id=? AND expires_at>?')
+      .all(userId, timestamp);
+    const bySlot = new Map(rows.map((row) => [row.slot, row]));
+    return Array.from({ length: 5 }, (_, index) => {
+      const slot = index + 1;
+      const row = bySlot.get(slot);
+      const summary = row ? JSON.parse(row.summary) : null;
+      const state = row ? JSON.parse(row.state) : null;
+      const usedProps = row ? this.lineageUsedProps(userId, row.lineage_id || '') : false;
+      return { slot, kind: slot === 1 ? 'free' : 'paid', exists: Boolean(row),
+        expires_at: row?.expires_at ?? null, updated_at: row?.updated_at ?? null,
+        score: summary?.score ?? null, max_level: summary?.max_level ?? null,
+        used_props: Boolean(usedProps || state?.usedProps) };
+    });
+  }
+
+  cleanupExpiredSaves(timestamp = Date.now()) {
+    return Number(this.db.prepare(`DELETE FROM game_saves WHERE expires_at<=? AND NOT EXISTS (
+      SELECT 1 FROM save_orders o WHERE o.user_id=game_saves.user_id AND o.slot=game_saves.slot AND o.status='pending' AND o.operation='extend')`)
+      .run(timestamp).changes);
+  }
+
+  cleanupFreeSaveOrders(timestamp = Date.now()) {
+    return Number(this.db.prepare("DELETE FROM save_orders WHERE quota=0 AND status<>'pending' AND updated_at<=?")
+      .run(timestamp - 7 * 24 * 60 * 60 * 1000).changes);
+  }
+
+  saveOrder(requestId) {
+    const row = this.db.prepare('SELECT * FROM save_orders WHERE request_id=?').get(requestId);
+    if (!row) return null;
+    return { ...row, payload: JSON.parse(row.payload), result: row.result == null ? null : JSON.parse(row.result) };
+  }
+
+  pendingSaveOrder(userId) {
+    const row = this.db.prepare("SELECT request_id,operation_id,slot,quota,operation FROM save_orders WHERE user_id=? AND status='pending' ORDER BY created_at LIMIT 1").get(userId);
+    return row || null;
+  }
+
+  hasPendingPayment(userId) { return Boolean(this.pendingPropReceipt(userId) || this.pendingSaveOrder(userId)); }
+
+  createSaveOrder({ requestId, userId, slot, fingerprint, operationId, operation, payload, now }) {
+    this.db.exec('BEGIN IMMEDIATE');
+    try {
+      const existing = this.saveOrder(requestId);
+      if (existing) { this.db.exec('COMMIT'); return { ...existing, created: false }; }
+      if (this.propReceipt(requestId)) throw Object.assign(new Error('请求编号已用于其他操作。'), { status: 409, code: 'PAYMENT_REQUEST_CONFLICT' });
+      if (this.pendingPropReceipt(userId) || this.pendingSaveOrder(userId)) {
+        throw Object.assign(new Error('上一笔付费订单仍在确认，请先确认订单再继续。'), { status: 409, code: 'PAYMENT_PENDING' });
+      }
+      const active = this.activeSave(userId, slot, now);
+      const requiresPayment = operation === 'extend' || (operation === 'write' && slot > 1 && !active);
+      if (requiresPayment && !payload.allow_payment) {
+        throw Object.assign(new Error('需要确认这笔 $0.01 额度扣减。'), { status: 422, code: 'SAVE_CONFIRM_REQUIRED' });
+      }
+      if (operation === 'extend' && !active) throw Object.assign(new Error('这个存档已过期或不存在。'), { status: 409, code: 'SAVE_EXPIRED' });
+      if (operation === 'write' && slot > 1 && active && active.kind !== 'paid') {
+        throw Object.assign(new Error('这个付费存档已过期，请重新创建。'), { status: 409, code: 'SAVE_EXPIRED' });
+      }
+      if (requiresPayment && slot > 1 && !active) {
+        const paidCount = this.db.prepare("SELECT COUNT(*) AS count FROM game_saves WHERE user_id=? AND kind='paid' AND expires_at>?")
+          .get(userId, now).count;
+        if (paidCount >= 4) throw Object.assign(new Error('付费存档数量已达上限。'), { status: 409, code: 'SAVE_LIMIT' });
+      }
+      this.db.prepare(`INSERT INTO save_orders
+        (request_id,user_id,slot,fingerprint,status,operation_id,quota,operation,payload,created_at,updated_at)
+        VALUES(?,?,?,?,'pending',?,?,?,?,?,?)`).run(requestId, userId, slot, fingerprint, operationId,
+        requiresPayment ? 5000 : 0, operation, JSON.stringify(payload), now, now);
+      this.db.exec('COMMIT');
+      return { ...this.saveOrder(requestId), created: true, requiresPayment };
+    } catch (error) { this.db.exec('ROLLBACK'); throw error; }
+  }
+
+  commitSaveOrder(requestId, now) {
+    this.db.exec('BEGIN IMMEDIATE');
+    try {
+      const order = this.saveOrder(requestId);
+      if (!order || order.status !== 'pending') throw Object.assign(new Error('存档订单状态已变化。'), { status: 409, code: 'SAVE_ORDER_CONFLICT' });
+      const { slot, payload, operation } = order;
+      let expiresAt;
+      if (operation === 'extend') {
+        expiresAt = Math.max(payload.expires_at, now + SAVE_EXTENSION);
+        const save = payload.save;
+        const updated = this.db.prepare('UPDATE game_saves SET expires_at=?,updated_at=? WHERE user_id=? AND slot=?')
+          .run(expiresAt, now, order.user_id, slot);
+        if (Number(updated.changes) === 0 && save) {
+          this.db.prepare(`INSERT INTO game_saves(user_id,slot,kind,expires_at,updated_at,state,summary,lineage_id,week_id,physics_version)
+            VALUES(?,?,?,?,?,?,?,?,?,?)`).run(order.user_id, slot, save.kind, expiresAt, now, JSON.stringify(save.state),
+            JSON.stringify(save.summary), save.lineage_id, save.week_id, save.physics_version);
+        }
+      } else {
+        const save = payload.save;
+        expiresAt = save.expires_at;
+        this.db.prepare(`INSERT INTO game_saves(user_id,slot,kind,expires_at,updated_at,state,summary,lineage_id,week_id,physics_version)
+          VALUES(?,?,?,?,?,?,?,?,?,?) ON CONFLICT(user_id,slot) DO UPDATE SET kind=excluded.kind,expires_at=excluded.expires_at,
+          updated_at=excluded.updated_at,state=excluded.state,summary=excluded.summary,lineage_id=excluded.lineage_id,
+          week_id=excluded.week_id,physics_version=excluded.physics_version`)
+          .run(order.user_id, slot, slot === 1 ? 'free' : 'paid', expiresAt, now, JSON.stringify(save.state),
+            JSON.stringify(save.summary), save.lineage_id, save.week_id, save.physics_version);
+      }
+      const result = { slot, kind: slot === 1 ? 'free' : 'paid', expires_at: expiresAt };
+      this.db.prepare("UPDATE save_orders SET status='committed',result=?,payload='{}',updated_at=? WHERE request_id=? AND status='pending'")
+        .run(JSON.stringify(result), now, requestId);
+      this.db.exec('COMMIT');
+      return { ...this.saveOrder(requestId), result };
+    } catch (error) { this.db.exec('ROLLBACK'); throw error; }
+  }
+
+  failSaveOrder(requestId, now) {
+    this.db.prepare("UPDATE save_orders SET status='failed',payload='{}',updated_at=? WHERE request_id=? AND status='pending'").run(now, requestId);
+  }
+
+  lineageUsedProps(userId, lineageId) {
+    if (!lineageId) return false;
+    return Boolean(this.db.prepare(`SELECT 1 FROM weekly_prop_runs WHERE user_id=? AND run_id=?
+      UNION SELECT 1 FROM prop_receipts WHERE user_id=? AND lineage_id=? AND status='committed' LIMIT 1`)
+      .get(userId, lineageId, userId, lineageId));
+  }
+
+  lineagePropCount(userId, lineageId) {
+    if (!lineageId) return 0;
+    const marker = this.db.prepare('SELECT COUNT(*) AS count FROM prop_receipts WHERE user_id=? AND lineage_id=? AND status=\'committed\'')
+      .get(userId, lineageId).count;
+    return Math.max(marker, this.db.prepare('SELECT COUNT(*) AS count FROM weekly_prop_runs WHERE user_id=? AND run_id=?')
+      .get(userId, lineageId).count);
   }
 
   weeklyEntries(weekId, usedProps = null) {

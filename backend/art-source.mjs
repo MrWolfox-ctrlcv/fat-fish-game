@@ -7,10 +7,12 @@ export const ART_VERSION = 1;
 const sources = [
   ['maids', 'whale-maids.png'], ['stages', 'ai-stage-eggs.png'], ['astra', 'astra-stages.png'],
   ['newFish', 'doubao-gemini-stages.png'], ['doubao', 'doubao-stages.png'],
+  ['newEaster', 'new-easter-eggs.png'],
 ];
 const hash = (data) => createHash('sha256').update(data).digest('hex');
 
-function extract(source, [x, y, width, height]) {
+function extract(source, rect) {
+  const [x, y, width, height] = rect;
   const side = Math.max(width, height);
   const crop = new PNG({ width: side, height: side });
   crop.data.fill(0);

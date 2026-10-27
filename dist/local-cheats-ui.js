@@ -1,5 +1,6 @@
 // This UI is loaded only by the explicit loopback-only cheat flag.
 import { chooseAutoDropX } from "./local-cheats.js";
+import { setupLocalCheatSaveUI } from "./fish-saves-ui.js";
 
 export function setupLocalCheatUI({
   BASE_FIELD_HEIGHT, FIELD_WIDTH, MAX_LEVEL, awardForLevel, clamp, createGame,
@@ -103,6 +104,16 @@ export function setupLocalCheatUI({
     if (event.code === "ArrowLeft" || event.code === "ArrowRight") { event.preventDefault(); game.aimX = clamp(game.aimX + (event.code === "ArrowLeft" ? -24 : 24), 30, FIELD_WIDTH - 30); }
   });
   const restart = () => { game = createGame({ height: BASE_FIELD_HEIGHT }); levelSelect.value = String(game.currentLevel); overlay.hidden = true; };
+  setupLocalCheatSaveUI({
+    controls, getGame: () => game,
+    setGame: (snapshot) => {
+      game = snapshot;
+      levelSelect.value = String(game.currentLevel);
+      overlay.hidden = !game.over;
+      if (game.over) document.querySelector("#final-score").textContent = String(game.score);
+      selectedToolFish = null; toolMode = "";
+    },
+  });
   document.querySelector("#restart").addEventListener("click", restart);
   document.querySelector("#play-again").addEventListener("click", restart);
   const frame = (time) => {

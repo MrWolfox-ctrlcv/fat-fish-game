@@ -242,3 +242,42 @@ test("道具状态查询匿名可用，道具请求提交完整的幂等 payload
   assert.deepEqual(JSON.parse(calls[1].options.body), payload);
   client.close();
 });
+
+test("云存档 requests use authenticated relative endpoints and preserve idempotent payloads", async () => {
+  const calls = [];
+  const replies = [
+    jsonResponse(401, { success: false }),
+    jsonResponse(200, { success: true, data: { access_token: "save-token", user: { id: 1 } } }),
+    jsonResponse(200, { success: true, user: { id: 1 }, profile: {}, rewards: [], admin: false }),
+    jsonResponse(200, { success: true, saves: [], price_usd: "0.01", price_quota: 5000, billing_enabled: true, limits: {} }),
+    jsonResponse(202, { success: true, pending: true, receipt: { id: "save-receipt" } }),
+    jsonResponse(200, { success: true, saves: [], receipt: { id: "extend-receipt" } }),
+    jsonResponse(200, { success: true, run: { id: "r1" }, state: { stepIndex: 1 } }),
+  ];
+  const client = createOnlineClient({
+    moduleUrl: "https://example.test/games/fat-fish/online-client.js",
+    BroadcastChannelRef: null,
+    fetchImpl: async (url, options) => { calls.push({ url: String(url), options }); return replies.shift(); },
+  });
+  await client.getMe();
+  await client.getSaves();
+  const writePayload = { slot: 1, run_id: "r1", step: 20, moves: [], physics_version: PHYSICS_VERSION, request_id: "same-write" };
+  assert.equal((await client.writeSave(writePayload)).pending, true);
+  const extendPayload = { slot: 2, request_id: "same-extend", confirm_quota: 5000 };
+  await client.extendSave(extendPayload);
+  await client.loadSave({ slot: 1, physics_version: PHYSICS_VERSION });
+  assert.deepEqual(calls.map(({ url }) => url), [
+    "https://example.test/games/fat-fish/api/me",
+    "https://example.test/api/user/auth/refresh",
+    "https://example.test/games/fat-fish/api/me",
+    "https://example.test/games/fat-fish/api/saves",
+    "https://example.test/games/fat-fish/api/saves/write",
+    "https://example.test/games/fat-fish/api/saves/extend",
+    "https://example.test/games/fat-fish/api/saves/load",
+  ]);
+  assert.deepEqual(JSON.parse(calls[4].options.body), writePayload);
+  assert.deepEqual(JSON.parse(calls[5].options.body), extendPayload);
+  assert.deepEqual(JSON.parse(calls[6].options.body), { slot: 1, physics_version: PHYSICS_VERSION });
+  for (const call of calls.slice(3)) assert.equal(call.options.headers.Authorization, "Bearer save-token");
+  client.close();
+});

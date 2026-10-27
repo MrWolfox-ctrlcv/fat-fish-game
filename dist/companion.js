@@ -29,6 +29,11 @@ const EASTER_VARIANTS = new Set([
   "gpt-astra",
   "doubao",
   "gemini",
+  "qwen",
+  "kimi",
+  "grok",
+  "claude-real",
+  "yellow-doubao",
 ]);
 
 export const canUseCompanion = (config, locallyEnabled) =>

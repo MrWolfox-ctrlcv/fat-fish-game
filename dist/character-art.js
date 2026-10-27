@@ -34,6 +34,17 @@ const DOUBAO_SPRITES = [
   [4, [723, 49, 527, 655]],
   [6, [1450, 11, 578, 693]],
 ];
+// Explicit crops from the alpha-separated 2-column × 4-row atlas.
+const NEW_EASTER_SPRITES = [
+  ['qwen', 4, [0, 0, 512, 512]],
+  ['kimi', 6, [512, 0, 512, 512]],
+  ['grok', 7, [0, 512, 512, 512]],
+  ['claude-real', 8, [512, 512, 512, 512]],
+  ['yellow-doubao', 2, [0, 1024, 512, 512]],
+  ['yellow-doubao', 5, [512, 1024, 512, 512]],
+  ['qwen', 7, [0, 1536, 512, 512]],
+  ['kimi', 9, [512, 1536, 512, 512]],
+];
 
 function spriteFromAtlas(image, [x, y, width, height]) {
   const crop = document.createElement("canvas");
@@ -100,15 +111,20 @@ export async function loadEasterArt(register) {
   const astra = new Image();
   const newFish = new Image();
   const doubao = new Image();
+  const newEaster = new Image();
   stages.src = new URL("./assets/ai-stage-eggs.png", import.meta.url).href;
   astra.src = new URL("./assets/astra-stages.png", import.meta.url).href;
   newFish.src = new URL('./assets/doubao-gemini-stages.png', import.meta.url).href;
   doubao.src = new URL('./assets/doubao-stages.png', import.meta.url).href;
-  await Promise.all([stages.decode(), astra.decode(), newFish.decode(), doubao.decode()]);
+  newEaster.src = new URL('./assets/new-easter-eggs.png', import.meta.url).href;
+  await Promise.all([stages.decode(), astra.decode(), newFish.decode(), doubao.decode(), newEaster.decode()]);
   EASTER_SPRITES.forEach(([id, level, rectangle]) => register(id, spriteFromAtlas(stages, rectangle), null, level));
   ASTRA_SPRITES.forEach(([level, rectangle]) => register("gpt-astra", spriteFromAtlas(astra, rectangle), null, level));
   NEW_FISH_SPRITES.forEach(([id, level, rectangle]) => register(id, spriteFromAtlas(newFish, rectangle), null, level));
   DOUBAO_SPRITES.forEach(([level, rectangle]) => register('doubao', spriteFromAtlas(doubao, rectangle), null, level));
+  NEW_EASTER_SPRITES.forEach(([id, level, rectangle]) => {
+    register(id, spriteFromAtlas(newEaster, rectangle), null, level);
+  });
 }
 
 // Production retrieves only individually authorised images, never the atlases.
@@ -163,4 +179,4 @@ export async function loadAccountArt(profile, fetchArt, registerCharacter, regis
   }));
 }
 
-export { SPRITES as CHARACTER_SPRITES, EASTER_SPRITES as STAGE_SPRITES, ASTRA_SPRITES, NEW_FISH_SPRITES, DOUBAO_SPRITES };
+export { SPRITES as CHARACTER_SPRITES, EASTER_SPRITES as STAGE_SPRITES, ASTRA_SPRITES, NEW_FISH_SPRITES, DOUBAO_SPRITES, NEW_EASTER_SPRITES };

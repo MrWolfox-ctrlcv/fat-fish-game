@@ -11,11 +11,11 @@ function withStore(run) {
   try { run(store); } finally { store.close(); }
 }
 
-test('catalogue contains the 31 actual art keys; only starter is initially unlocked', () => withStore((store) => {
+test('catalogue contains the 39 actual art keys; only starter is initially unlocked', () => withStore((store) => {
   const wardrobe = createWardrobe({ store });
   const result = wardrobe.get(1);
-  assert.equal(result.total, 31);
-  assert.equal(result.catalog.length, 31);
+  assert.equal(result.total, 39);
+  assert.equal(result.catalog.length, 39);
   assert.equal(result.catalog.filter((skin) => skin.unlocked).length, 1);
   assert.equal(result.catalog.find((skin) => skin.id === 'maid:1').source, 'starter');
   assert.equal(result.catalog.every((skin) => skin.id === 'maid:1' || skin.source === 'merge'), true);

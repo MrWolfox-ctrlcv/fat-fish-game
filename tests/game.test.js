@@ -1,6 +1,6 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import { applyFishProp, awardForLevel, createGame, dropBody, easterUnlocksFor, ensureAdminCampaigns, formatRewardExpiry, formatRewardQuota, galleryUnlocksFor, getRegisteredEasterImage, isInvalidRunError, makeBody, MAX_LEVEL, radiusForLevel, registerEasterImage, stepGame, toNumericCandidateIds } from "../dist/game.js";
+import { applyFishProp, awardForLevel, createGame, drawGame, dropBody, easterUnlocksFor, ensureAdminCampaigns, formatRewardExpiry, formatRewardQuota, galleryUnlocksFor, getRegisteredEasterImage, isInvalidRunError, makeBody, MAX_LEVEL, radiusForLevel, registerEasterImage, stepGame, toNumericCandidateIds } from "../dist/game.js";
 import { EASTER_EGGS, EASTER_STAGE_COUNT, getAllowedVariants, getEasterImageKey, isEasterEggId, rollEasterVariant, STAGE_VARIANTS } from "../dist/easter-eggs.js";
 import { OnlineApiError } from "../dist/online-client.js";
 
@@ -156,15 +156,22 @@ test("Astra 只在 9 到 11 级合成时以 2% 边界出现", () => {
 });
 
 test('豆包与 Gemini 各有固定阶段造型，分摊原有彩蛋概率', () => {
-  assert.equal(EASTER_STAGE_COUNT, 20);
+  assert.equal(EASTER_STAGE_COUNT, 28);
   for (const level of [2, 4, 6]) assert.equal(getEasterImageKey('doubao', level), `doubao:${level}`);
   for (const level of [3, 5, 7]) assert.equal(getEasterImageKey('gemini', level), `gemini:${level}`);
   assert.equal(getEasterImageKey('doubao', 3), null);
   assert.equal(getEasterImageKey('gemini', 6), null);
   assert.equal(rollEasterVariant(2, () => .015), 'doubao');
   assert.equal(rollEasterVariant(3, () => .015), 'gemini');
-  assert.equal(rollEasterVariant(6, () => .02), 'doubao');
-  assert.equal(rollEasterVariant(7, () => .02), 'gemini');
+  assert.equal(rollEasterVariant(2, () => .025), 'yellow-doubao');
+  assert.equal(rollEasterVariant(4, () => .03), 'qwen');
+  assert.equal(rollEasterVariant(5, () => .03), 'yellow-doubao');
+  assert.equal(rollEasterVariant(6, () => .03), 'kimi');
+  assert.equal(rollEasterVariant(7, () => .02), 'qwen');
+  assert.equal(rollEasterVariant(7, () => .035), 'grok');
+  assert.equal(rollEasterVariant(8, () => .02), 'claude-real');
+  assert.equal(rollEasterVariant(9, () => .02), 'kimi');
+  assert.deepEqual(getAllowedVariants(9), ['super-whale', 'kimi', 'gpt-astra']);
   for (let level = 1; level <= 10; level++) {
     let total = 0;
     for (let i = 0; i < 10000; i++) if (rollEasterVariant(level, () => i / 10000)) total++;
@@ -179,7 +186,15 @@ test("注册在第 4 级的彩蛋图片不会被第 6 级读取", () => {
   assert.equal(getRegisteredEasterImage("gpt-normal", 4).image, imageAtFour);
   assert.equal(getRegisteredEasterImage("gpt-normal", 6), null);
   assert.equal(getEasterImageKey("gpt-normal", 5), null);
-  assert.deepEqual(getAllowedVariants(9), ["super-whale", "gpt-astra"]);
+  assert.deepEqual(getAllowedVariants(9), ["super-whale", "kimi", "gpt-astra"]);
+  assert.equal(getEasterImageKey('qwen', 4), 'qwen:4');
+  assert.equal(getEasterImageKey('qwen', 7), 'qwen:7');
+  assert.equal(getEasterImageKey('kimi', 6), 'kimi:6');
+  assert.equal(getEasterImageKey('kimi', 9), 'kimi:9');
+  assert.equal(getEasterImageKey('grok', 7), 'grok:7');
+  assert.equal(getEasterImageKey('claude-real', 8), 'claude-real:8');
+  assert.equal(getEasterImageKey('yellow-doubao', 2), 'yellow-doubao:2');
+  assert.equal(getEasterImageKey('yellow-doubao', 5), 'yellow-doubao:5');
   registerEasterImage("gpt-normal", imageAtSix, null, 6);
   assert.equal(getRegisteredEasterImage("gpt-normal", 6).image, imageAtSix);
   assert.equal(getRegisteredEasterImage("gpt-normal", 4).image, imageAtFour);
@@ -206,6 +221,18 @@ test("未知彩蛋 id 会安全忽略", () => {
   const game = createGame({ random: fixedRandom });
   assert.equal(isEasterEggId("not-a-real-egg"), false);
   assert.equal(makeBody(game, 2, 180, 240, { variant: "not-a-real-egg" }).variant, null);
+});
+
+test('drawGame paints one screen-facing level badge on both regular and Easter fish', () => {
+  const game = createGame({ random: () => 0.5, variantRandom: () => 0.99 });
+  game.bodies.push(makeBody(game, 1, 120, 200, { angle: .7 }), makeBody(game, 2, 260, 240, { angle: -.5, variant: 'gpt-silly' }));
+  const labels = [];
+  const context = new Proxy({ fillText: (text) => labels.push(text) }, {
+    get(target, key) { return target[key] ?? (() => {}); },
+  });
+  drawGame(context, game, { showAim: false });
+  assert.equal(labels.filter((text) => text === '1').length, 1);
+  assert.equal(labels.filter((text) => text === '2').length, 1);
 });
 
 test("三只重叠同级鱼在一个物理步内不会让新鱼连锁重复合成", () => {

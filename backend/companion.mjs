@@ -3,7 +3,8 @@ const SYSTEM = '你是小游戏的AI陪玩小鲸，用中文说一句轻松、�
 const GAMES = { 'fat-fish': '合成大肥鱼', bumper: '碰碰擂台', survival: '肥鱼幸存者', kitchen: '女仆厨房' };
 const EVENTS = { milestone: '局内精彩事件', end: '本局结束', chat: '玩家聊天', new_level: '解锁新等级', new_easter: '遇见彩蛋角色', double_kill: '双杀', kill_streak: '连续击杀', death_streak: '连续失利', survivor: '幸存' };
 const integer = (value, low, high) => Number.isSafeInteger(value) && value >= low && value <= high;
-const VARIANTS = new Set(['gpt-silly', 'gpt-normal', 'deepseek-claude', 'super-whale', 'gpt-astra', 'doubao', 'gemini']);
+const VARIANTS = new Set(['gpt-silly', 'gpt-normal', 'deepseek-claude', 'super-whale', 'gpt-astra', 'doubao', 'gemini',
+  'qwen', 'kimi', 'grok', 'claude-real', 'yellow-doubao']);
 const boundedInt = (value, low, high, name) => {
   if (!Number.isFinite(value)) throw fault(400, '本局摘要格式不正确。', 'AI_INPUT');
   return [name, Math.max(low, Math.min(high, Math.round(value)))];

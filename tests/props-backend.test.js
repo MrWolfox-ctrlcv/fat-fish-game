@@ -6,10 +6,10 @@ import { join } from 'node:path';
 import { GameStore } from '../backend/store.mjs';
 import { createGameServer } from '../backend/app.mjs';
 import { initialState, replayCheckpoint } from '../backend/replay.mjs';
-import { applyFishProp, createGame, dropBody, stepGame } from '../dist/game.js';
+import { applyFishProp, createGame, dropBody, makeBody, stepGame } from '../dist/game.js';
 import { seededRandom } from '../dist/seeded-random.js';
 import { PHYSICS_VERSION } from '../dist/physics-version.js';
-import { propInputFingerprint } from '../backend/props.mjs';
+import { propInputFingerprint, validatePropBodies, validatePropInput } from '../backend/props.mjs';
 import { weekFor } from '../backend/weekly.mjs';
 
 const token = 'Bearer prop-test-token';
@@ -103,6 +103,88 @@ test('prop endpoint validates before debit, persists receipts idempotently, and 
   assert.equal((await request('api/run/prop', valid)).status, 409); // old receipt cannot roll this advanced run back
   const afterStale = await request('api/run/checkpoint', { run_id: started.run.id, step: 60, moves: [{ step: 60, x: 270 }] });
   assert.equal(afterStale.status, 200);
+});
+
+test('swap and pack validate selected bodies, reset game-over danger, and replay continues after debit', async (t) => {
+  let debitCount = 0;
+  const { request } = await fixture(t, { propWallet: { enabled: true, debit: async () => {
+    debitCount++;
+    return { id: `prop-op-${debitCount}` };
+  } } });
+
+  const started = await (await request('api/run', { physics_version: PHYSICS_VERSION })).json();
+  const swapMoves = [{ step: 0, x: 120 }, { step: 30, x: 350 }];
+  const beforeSwap = replayCheckpoint(initialState(started.run.seed, started.run.variant_seed), swapMoves, 30).state;
+  assert.equal(beforeSwap.bodies.length, 2);
+  const [first, second] = beforeSwap.bodies;
+  const swap = await request('api/run/prop', { run_id: started.run.id, step: 30, moves: swapMoves,
+    request_id: 'prop-swap-request-01', kind: 'swap', body_ids: [first.id, second.id], confirm_quota: 5000 });
+  assert.equal(swap.status, 200);
+  const swapped = await swap.json();
+  assert.equal(debitCount, 1);
+  const a = swapped.state.bodies.find((body) => body.id === first.id);
+  const b = swapped.state.bodies.find((body) => body.id === second.id);
+  assert.deepEqual([a.x, a.y], [Math.max(a.r + 4, Math.min(480 - a.r - 4, second.x)), Math.max(a.r + 4, Math.min(620 - 9 - a.r, second.y))]);
+  assert.deepEqual([b.x, b.y], [Math.max(b.r + 4, Math.min(480 - b.r - 4, first.x)), Math.max(b.r + 4, Math.min(620 - 9 - b.r, first.y))]);
+  assert.deepEqual([a.vx, a.vy, b.vx, b.vy], [0, 0, 0, 0]);
+  assert.equal(swapped.summary.over, false);
+  assert.equal((await request('api/run/checkpoint', { run_id: started.run.id, step: 60, moves: [{ step: 60, x: 250 }] })).status, 200);
+
+  const packRun = await (await request('api/run', { physics_version: PHYSICS_VERSION })).json();
+  const packMoves = [{ step: 0, x: 210 }];
+  const beforePack = replayCheckpoint(initialState(packRun.run.seed, packRun.run.variant_seed), packMoves, 0).state;
+  assert.ok(beforePack.bodies[0].level <= 3);
+  const packed = await request('api/run/prop', { run_id: packRun.run.id, step: 0, moves: packMoves,
+    request_id: 'prop-pack-request-01', kind: 'pack', body_ids: [beforePack.bodies[0].id], confirm_quota: 5000 });
+  assert.equal(packed.status, 200);
+  const packResult = await packed.json();
+  assert.equal(debitCount, 2);
+  assert.deepEqual(packResult.state.bodies, []);
+  assert.equal(packResult.summary.score, 0);
+  assert.equal(packResult.summary.over, false);
+  assert.equal(await request('api/run/checkpoint', { run_id: packRun.run.id, step: 30, moves: [] }).then((r) => r.status), 200);
+});
+
+test('prop input and selected-body validators reject duplicate IDs and high-level packing before mutation', () => {
+  assert.throws(() => validatePropInput({ run_id: 'run', step: 0, moves: [], request_id: 'duplicate-ids-01',
+    kind: 'swap', body_ids: [1, 1], confirm_quota: 5000 }), { code: 'INVALID_PROP' });
+  assert.throws(() => validatePropInput({ run_id: 'run', step: 0, moves: [], request_id: 'too-many-pack-01',
+    kind: 'pack', body_ids: [1, 2, 3, 4], confirm_quota: 5000 }), { code: 'INVALID_PROP' });
+
+  const game = createGame({ random: () => 0.1, variantRandom: () => 0.99 });
+  const high = makeBody(game, 4, 100, 100);
+  game.bodies.push(high);
+  assert.throws(() => validatePropBodies(game, 'pack', [high.id]), { code: 'INVALID_PROP' });
+  assert.throws(() => validatePropBodies(game, 'merge', [high.id]), { code: 'INVALID_PROP' });
+  assert.throws(() => applyFishProp(game, 'pack', [high.id]), RangeError);
+  assert.deepEqual(game.bodies, [high]);
+
+  const rescue = createGame({ random: () => 0.1, variantRandom: () => 0.99 });
+  const rescued = makeBody(rescue, 2, 100, 100, { dangerTime: 2 });
+  rescue.bodies.push(rescued);
+  rescue.over = true; rescue.overTimer = 1.5;
+  const outcome = applyFishProp(rescue, 'pack', [rescued.id]);
+  assert.equal(outcome.resultBodyId, null);
+  assert.equal(rescue.over, false);
+  assert.equal(rescue.overTimer, 0);
+});
+
+test('server refuses packing a high-level fish before requesting payment', async (t) => {
+  let debitCount = 0;
+  const verifier = {
+    async verify(state, _moves, step) {
+      return { state: { ...state, stepIndex: step, bodies: [{ id: 'high-body', level: 4, r: 47, x: 100, y: 100,
+        vx: 0, vy: 0, angle: 0, angularVelocity: 0, variant: null, age: 2, mergeCooldown: 0, dangerTime: 0 }] },
+      summary: { score: 0, max_level: 1, over: false, unlocked: [1], egg_stages: [] } };
+    },
+    async close() {},
+  };
+  const { request } = await fixture(t, { verifier, propWallet: { enabled: true, debit: async () => { debitCount++; } } });
+  const started = await (await request('api/run', { physics_version: PHYSICS_VERSION })).json();
+  const response = await request('api/run/prop', { run_id: started.run.id, step: 0, moves: [], request_id: 'high-pack-no-fee-01',
+    kind: 'pack', body_ids: ['high-body'], confirm_quota: 5000 });
+  assert.equal(response.status, 422);
+  assert.equal(debitCount, 0);
 });
 
 test('unknown debit status stays pending without retry; disabled mode fails closed', async (t) => {

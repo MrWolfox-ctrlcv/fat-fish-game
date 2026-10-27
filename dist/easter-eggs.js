@@ -13,7 +13,16 @@ export const STAGE_VARIANTS = Object.freeze({
 });
 
 const ASTRA_LEVELS = Object.freeze([9, 10, 11]);
-const EXTRA_STAGES = Object.freeze({ 2: 'doubao', 3: 'gemini', 4: 'doubao', 5: 'gemini', 6: 'doubao', 7: 'gemini' });
+const EXTRA_STAGES = Object.freeze({
+  2: Object.freeze(['doubao', 'yellow-doubao']),
+  3: Object.freeze(['gemini']),
+  4: Object.freeze(['doubao', 'qwen']),
+  5: Object.freeze(['gemini', 'yellow-doubao']),
+  6: Object.freeze(['doubao', 'kimi']),
+  7: Object.freeze(['gemini', 'qwen', 'grok']),
+  8: Object.freeze(['claude-real']),
+  9: Object.freeze(['kimi']),
+});
 
 export const EASTER_EGGS = Object.freeze([
   Object.freeze({ id: "gpt-silly", name: "降智版 GPT", description: "脑袋放空，先滚再说。", previewLevel: 3 }),
@@ -23,6 +32,11 @@ export const EASTER_EGGS = Object.freeze([
   Object.freeze({ id: "gpt-astra", name: "满血 Astra", description: "思路在线，星图展开。", previewLevel: 10 }),
   Object.freeze({ id: 'doubao', name: '迷糊豆包', description: '脑袋放空，先眨眨眼再说。', previewLevel: 4 }),
   Object.freeze({ id: 'gemini', name: '莽撞 Gemini', description: '懂了！先冲，回头再想。', previewLevel: 5 }),
+  Object.freeze({ id: 'qwen', name: '通义千问 Qwen', description: '答案准备好了，先找对题目。', previewLevel: 4 }),
+  Object.freeze({ id: 'kimi', name: 'Kimi', description: '记得很清楚，正在确认是哪一页。', previewLevel: 6 }),
+  Object.freeze({ id: 'grok', name: 'Grok', description: '先笑一下，再认真分析。', previewLevel: 7 }),
+  Object.freeze({ id: 'claude-real', name: 'Claude 本尊', description: '这次没有借错衣服。', previewLevel: 8 }),
+  Object.freeze({ id: 'yellow-doubao', name: '黄豆包', description: '今天换了件亮黄色外套。', previewLevel: 2 }),
 ]);
 
 const eggIds = new Set(EASTER_EGGS.map((egg) => egg.id));
@@ -38,7 +52,7 @@ export function getEasterEgg(id) {
 // Normal variants are bound to the exact stage; Astra is an additional merge-only look.
 export function getAllowedVariants(level) {
   const allowed = STAGE_VARIANTS[level] ? [STAGE_VARIANTS[level]] : [];
-  if (EXTRA_STAGES[level]) allowed.push(EXTRA_STAGES[level]);
+  if (EXTRA_STAGES[level]) allowed.push(...EXTRA_STAGES[level]);
   if (ASTRA_LEVELS.includes(level)) allowed.push("gpt-astra");
   return allowed;
 }
@@ -55,8 +69,10 @@ export function rollEasterVariant(level, random = Math.random, source = "spawn")
   const chance = level <= 3 ? 0.03 : level <= 7 ? 0.04 : level <= 10 ? 0.03 : 0;
   const roll = random();
   if (chance === 0 || roll >= chance) return null;
-  if (EXTRA_STAGES[level] && roll >= chance / 2) return EXTRA_STAGES[level];
-  return STAGE_VARIANTS[level] ?? null;
+  const variants = [STAGE_VARIANTS[level], ...(EXTRA_STAGES[level] ?? [])].filter(Boolean);
+  if (!variants.length) return null;
+  const index = Math.min(variants.length - 1, Math.floor((roll / chance) * variants.length));
+  return variants[index];
 }
 
 export const EASTER_STAGE_COUNT = Array.from({ length: 11 }, (_, index) => getAllowedVariants(index + 1).length).reduce((sum, count) => sum + count, 0);

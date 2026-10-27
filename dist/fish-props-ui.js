@@ -1,30 +1,39 @@
 export function createFishPropsUI({
   account, activeRun, guestRun, gameReady, getGame, setGame, getCanvasScale,
-  client, flushCheckpoint, checkpointClean, refreshGame, refreshLeaderboard, toast,
+  client, flushCheckpoint, checkpointClean, refreshGame, refreshLeaderboard, toast, getBlocked = () => false,
   renderFinal, focusCanvas, settled,
 }) {
   let enabled = false, reason = "正在确认道具服务状态。", mode = "", selection = [];
   let pending = null, busy = false, paused = false;
   const removeButton = document.querySelector("#prop-remove");
   const mergeButton = document.querySelector("#prop-merge");
+  const swapButton = document.querySelector("#prop-swap");
+  const packButton = document.querySelector("#prop-pack");
+  const packFinishButton = document.querySelector("#prop-pack-finish");
   const retryButton = document.querySelector("#prop-retry");
   const status = document.querySelector("#prop-status");
   const overlay = document.querySelector("#overlay");
   const selected = (game) => { game.propSelectionIds = [...selection]; };
 
   const render = () => {
-    const canUse = Boolean(enabled && account() && gameReady() && !guestRun());
-    removeButton.hidden = !canUse; mergeButton.hidden = !canUse; retryButton.hidden = !pending;
-    removeButton.disabled = busy || Boolean(pending); mergeButton.disabled = busy || Boolean(pending); retryButton.disabled = busy;
+    const canUse = Boolean(enabled && account() && gameReady() && !guestRun() && !getBlocked());
+    removeButton.hidden = !canUse; mergeButton.hidden = !canUse; swapButton.hidden = !canUse; packButton.hidden = !canUse;
+    packFinishButton.hidden = mode !== "pack"; retryButton.hidden = !pending;
+    removeButton.disabled = busy || Boolean(pending); mergeButton.disabled = busy || Boolean(pending);
+    swapButton.disabled = busy || Boolean(pending); packButton.disabled = busy || Boolean(pending);
+    packFinishButton.disabled = busy || Boolean(pending) || selection.length < 1 || selection.length > 3;
+    retryButton.disabled = busy;
     if (pending) status.textContent = busy
       ? "正在确认同一笔道具请求，请稍候。"
       : `道具结果暂未确认。游戏已暂停；使用同一请求重试。${pending.receiptId ? `订单号：${pending.receiptId}` : `请求号：${pending.payload.request_id}`}`;
-    else if (mode) status.textContent = mode === "remove"
-      ? (selection.length ? "已选中一条鱼，点击确认后扣款并移除。" : "游戏已暂停，请点击要移走的鱼。")
-      : (selection.length ? "已选中一条鱼，请再选一条同级鱼。" : "游戏已暂停，请选择两条同级鱼。");
+    else if (getBlocked()) status.textContent = "存档请求尚未确认，游戏与道具操作暂时锁定。请先确认同一请求。";
+    else if (mode === "remove") status.textContent = selection.length ? "已选中一条鱼，确认后扣款并移除。" : "游戏已暂停，请点击要移走的鱼。";
+    else if (mode === "merge") status.textContent = selection.length ? "已选中一条鱼，请再选一条同级鱼。" : "游戏已暂停，请选择两条同级鱼。";
+    else if (mode === "swap") status.textContent = selection.length ? "已选中一条鱼，请再选任意另一条鱼交换位置。" : "游戏已暂停，请选择两条鱼交换位置。";
+    else if (mode === "pack") status.textContent = `已选 ${selection.length}/3 条。请选择 1–3 级小鱼，再按“确认打包所选鱼”。`;
     else if (!account()) status.textContent = "登录中转站账户后可使用付费道具。";
     else if (!enabled) status.textContent = reason || "道具暂不可用。";
-    else if (!gameReady()) status.textContent = "本局就绪后可用，每次从中转站账户扣 $0.01。";
+    else if (!gameReady()) status.textContent = "本局就绪后可用，每次从中转站账户扣 $0.01；每局最多 20 次。";
     else status.textContent = "每次从中转站账户扣 $0.01；每局最多 20 次。";
     selected(getGame());
   };
@@ -100,8 +109,10 @@ export function createFishPropsUI({
 
   const confirmSelection = async () => {
     const kind = mode, bodyIds = [...selection];
-    const label = kind === "remove" ? "捞鱼网" : "牵线合成";
-    const action = kind === "remove" ? "移走这条鱼" : "合成这两条鱼";
+    if (!kind || !bodyIds.length || (kind !== "remove" && bodyIds.length !== 2 && kind !== "pack") ||
+        (kind === "pack" && (bodyIds.length < 1 || bodyIds.length > 3))) return;
+    const label = ({ remove: "捞鱼网", merge: "牵线合成", swap: "交换位置", pack: "打包小鱼" })[kind];
+    const action = ({ remove: "移走这条鱼", merge: "合成这两条鱼", swap: "交换这两条鱼的位置", pack: `打包所选 ${bodyIds.length} 条小鱼` })[kind];
     if (!window.confirm(`确认使用“${label}”${action}？本次从中转站账户扣 $0.01；未成功生效不收费。`)) { clearSelection(); return; }
     const run = activeRun();
     pending = { ownerId: account().id, runId: run.id, receiptId: null, payload: { run_id: run.id, step: getGame().stepIndex, moves: [],
@@ -119,7 +130,7 @@ export function createFishPropsUI({
 
   const begin = (kind) => {
     if (pending) { void submit(); return; }
-    if (!enabled || !account() || !gameReady() || guestRun() || busy) return;
+    if (!enabled || !account() || !gameReady() || guestRun() || busy || getBlocked()) return;
     mode = kind; selection = []; paused = true; overlay.hidden = true; render(); focusCanvas();
   };
 
@@ -130,19 +141,29 @@ export function createFishPropsUI({
     const game = getGame(), fish = [...game.bodies].reverse().find((body) => Math.hypot(body.x - x, body.y - y) <= body.r + 8);
     if (!fish) return;
     if (mode === "remove") { selection = [fish.id]; render(); void confirmSelection(); return; }
+    if (mode === "pack") {
+      if (fish.level < 1 || fish.level > 3) { status.textContent = "打包只能选择 1–3 级小鱼。"; return; }
+      if (selection.includes(fish.id)) { selection = selection.filter((id) => id !== fish.id); render(); return; }
+      if (selection.length >= 3) { status.textContent = "最多打包 3 条小鱼；移除已选鱼后再选。"; return; }
+      selection.push(fish.id); render(); return;
+    }
     if (!selection.length) {
-      if (fish.level >= 11) { status.textContent = "11 级鱼无法继续合成，请选择其他鱼。"; return; }
+      if (mode === "merge" && fish.level >= 11) { status.textContent = "11 级鱼无法继续合成，请选择其他鱼。"; return; }
       selection = [fish.id]; render(); return;
     }
     const first = game.bodies.find((body) => body.id === selection[0]);
-    if (!first || first.id === fish.id || first.level !== fish.level || fish.level >= 11) {
-      status.textContent = "请选择另一条等级相同且低于 11 级的鱼。"; return;
+    if (!first || first.id === fish.id || (mode === "merge" && (first.level !== fish.level || fish.level >= 11))) {
+      if (mode === "swap" && first && first.id !== fish.id) { selection.push(fish.id); render(); void confirmSelection(); return; }
+      status.textContent = mode === "merge" ? "请选择另一条等级相同且低于 11 级的鱼。" : "请选择另一条不同的鱼。"; return;
     }
     selection.push(fish.id); render(); void confirmSelection();
   };
 
   removeButton.addEventListener("click", () => begin("remove"));
   mergeButton.addEventListener("click", () => begin("merge"));
+  swapButton.addEventListener("click", () => begin("swap"));
+  packButton.addEventListener("click", () => begin("pack"));
+  packFinishButton.addEventListener("click", () => { if (mode === "pack" && selection.length >= 1 && selection.length <= 3) void confirmSelection(); });
   retryButton.addEventListener("click", () => { void submit(); });
   render();
   return {

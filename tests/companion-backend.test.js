@@ -31,6 +31,9 @@ test('短摘要只包含白名单；关闭和非法输入不会调用上游', as
     const noImage = normalizeCompanionInput({ ...input, game: 'fat-fish', scene: { balls: [], ball_count: 1, stack_height: 2, danger: false, highest_level: 1, image: 'screenshot' } });
     assert.equal(JSON.stringify(noImage).includes('screenshot'), false);
     assert.throws(() => normalizeCompanionInput({ ...input, event: 'new_easter', detail: { level: 2, variant: 'unknown' } }), { code: 'AI_INPUT' });
+    for (const [level, variant] of [[4, 'qwen'], [6, 'kimi'], [7, 'grok'], [8, 'claude-real'], [2, 'yellow-doubao']]) {
+      assert.equal(normalizeCompanionInput({ ...input, game: 'fat-fish', event: 'new_easter', detail: { level, variant } }).detail.variant, variant);
+    }
     const clean = normalizeCompanionInput({ ...input, game: 'fat-fish', scene: { balls: [], ball_count: 2, stack_height: 4, danger: false, highest_level: 3, username: 'secret' } });
     assert.deepEqual(clean.scene, { balls: [], ball_count: 2, stack_height: 4, danger: false, highest_level: 3 });
     assert.equal(JSON.stringify(clean).includes('secret'), false);

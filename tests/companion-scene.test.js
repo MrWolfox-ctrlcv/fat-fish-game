@@ -17,6 +17,17 @@ test('discoveries respect account history, exact egg stage and account switch', 
   assert.equal(tracker.observe(game).length, 4);
 });
 
+test('new Easter identities are allowed as discoveries only at their registered levels', () => {
+  const tracker = createFishDiscoveryTracker();
+  tracker.sync({ unlocked: [1], egg_stages: [] }, 12);
+  const game = { unlocked: new Set([1]), seenEggStages: new Set([
+    'qwen:4', 'qwen:7', 'kimi:6', 'kimi:9', 'grok:7', 'claude-real:8', 'yellow-doubao:2', 'yellow-doubao:5', 'grok:6',
+  ]) };
+  assert.deepEqual(tracker.observe(game).map((event) => `${event.detail.variant}:${event.detail.level}`), [
+    'qwen:4', 'qwen:7', 'kimi:6', 'kimi:9', 'grok:7', 'claude-real:8', 'yellow-doubao:2', 'yellow-doubao:5',
+  ]);
+});
+
 test('scene samples twelve visible balls with no account data and ignores falling ball danger', () => {
   const game = { score: 10, stepIndex: 120, unlocked: new Set([1, 3]), height: 620,
     username: 'private', bodies: Array.from({ length: 20 }, (_, i) => ({ level: 2, x: 25, y: 50 + i * 20, r: 30, age: i ? 2 : .1, dangerTime: i ? 0 : 1, variant: null })) };
