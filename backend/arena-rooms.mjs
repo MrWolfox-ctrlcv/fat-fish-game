@@ -2,6 +2,7 @@ import { randomBytes } from 'node:crypto';
 import { WebSocketServer, WebSocket } from 'ws';
 import { createGame, stepArena } from '../playroom/src/modes/bumper.js';
 import { encodeArenaSnapshot } from '../playroom/src/arena-network.js';
+import { normalizeArenaConfig } from '../playroom/src/arena-config.js';
 
 const COOKIE = 'arena_session';
 const MAX_SESSIONS = 128;
@@ -53,7 +54,7 @@ export function createArenaRooms({ origins = new Set(), env = process.env, produ
   let closed = false;
   let tick = 0;
   let lastTick = now();
-  let lastSnapshot = now();
+  let nextSnapshotAt = now() + 100;
   let accumulatedTime = 0;
   const wss = new WebSocketServer({ noServer: true, maxPayload: 1024, perMessageDeflate: false });
 
@@ -92,7 +93,7 @@ export function createArenaRooms({ origins = new Set(), env = process.env, produ
   function roomView(room, token) {
     const session = sessions.get(token);
     return { code: room.code, self_id: session?.roomCode === room.code ? session.seatId : null, host_id: room.hostId,
-      phase: room.phase, mode: room.mode, seats: [...room.seats.values()].map((s) => ({ id: s.id, nickname: s.nickname, characterId: s.characterId, teamId: s.teamId, isHuman: true, connected: s.connected })) };
+      phase: room.phase, mode: room.mode, ...room.config, seats: [...room.seats.values()].map((s) => ({ id: s.id, nickname: s.nickname, characterId: s.characterId, teamId: s.teamId, isHuman: true, connected: s.connected })) };
   }
   function roomChanged(room) {
     for (const seat of room.seats.values()) {
@@ -193,9 +194,9 @@ export function createArenaRooms({ origins = new Set(), env = process.env, produ
       }
     }
     lastTick = time;
-    if (time - lastSnapshot >= 100) {
+    if (time >= nextSnapshotAt) {
       for (const room of rooms.values()) if (room.phase === 'playing' && room.game) broadcastSnapshot(room, room.phase);
-      lastSnapshot = time;
+      nextSnapshotAt += (Math.floor((time - nextSnapshotAt) / 100) + 1) * 100;
     }
     if (![...rooms.values()].some((r) => r.phase === 'playing')) stopTimer();
   }
@@ -212,7 +213,7 @@ export function createArenaRooms({ origins = new Set(), env = process.env, produ
     for (const [token, session] of sessions) if (time - session.lastSeen > 1800000 && !session.roomCode) sessions.delete(token);
     for (const [key, value] of limits) if (time - value.start > 60000) limits.delete(key);
   }
-  function ensureTimer() { if (!timer && !closed) { lastTick = now(); lastSnapshot = now(); accumulatedTime = 0; timer = setIntervalFn(tickRooms, 1000 / 60); timer.unref?.(); } }
+  function ensureTimer() { if (!timer && !closed) { lastTick = now(); nextSnapshotAt = now() + 100; accumulatedTime = 0; timer = setIntervalFn(tickRooms, 1000 / 60); timer.unref?.(); } }
   function stopTimer() { if (timer) { clearIntervalFn(timer); timer = null; } }
   function ensureHeartbeat() {
     if (!heartbeat && !closed) {
@@ -241,7 +242,7 @@ export function createArenaRooms({ origins = new Set(), env = process.env, produ
     const humanIds = [...room.seats.keys()];
     room.seed = randomBytes(4).readUInt32BE() || 1;
     const humanTeams = Object.fromEntries([...room.seats.values()].filter((seat) => seat.teamId === 0 || seat.teamId === 1).map((seat) => [seat.id, seat.teamId]));
-    room.game = createGame({ seed: room.seed, mode: room.mode, humanIds, humanTeams,
+    room.game = createGame({ seed: room.seed, mode: room.mode, ...room.config, humanIds, humanTeams,
       humanCharacters: Object.fromEntries([...room.seats.values()].map((s) => [s.id, s.characterId])) });
     room.phase = 'playing'; room.startedAt = now(); room.endedAt = 0; room.emptySince = 0;
     for (const seat of room.seats.values()) {
@@ -310,7 +311,7 @@ export function createArenaRooms({ origins = new Set(), env = process.env, produ
     const send = (status, value) => { response.writeHead(status, { 'Cache-Control': 'no-store', 'X-Content-Type-Options': 'nosniff', 'Content-Type': 'application/json; charset=utf-8' }); response.end(JSON.stringify(value)); };
     try {
       const suffix = path.slice('/games/bumper/api/rooms'.length) || '/';
-      if (suffix === '/' && request.method === 'POST' || suffix === '/join' && request.method === 'POST' || suffix === '/start' && request.method === 'POST' || suffix === '/leave' && request.method === 'POST') sameOrigin(request);
+      if (suffix === '/' && request.method === 'POST' || suffix === '/join' && request.method === 'POST' || suffix === '/start' && request.method === 'POST' || suffix === '/leave' && request.method === 'POST' || suffix === '/settings' && request.method === 'POST') sameOrigin(request);
       const clientIP = request.headers['x-real-ip'] || request.socket.remoteAddress || 'unknown';
       if (suffix === '/' && request.method === 'POST') {
         throttle(`create:${clientIP}`, 2, 60000);
@@ -318,13 +319,14 @@ export function createArenaRooms({ origins = new Set(), env = process.env, produ
         const mode = input.mode === undefined ? 'ffa' : input.mode;
         if (!['ffa', 'teams'].includes(mode)) throw Object.assign(new Error('对局模式不正确。'), { status: 400, code: 'invalid_mode' });
         if (mode === 'teams' && input.teamId !== 0 && input.teamId !== 1) throw Object.assign(new Error('请选择红队或蓝队。'), { status: 400, code: 'invalid_team' });
+        const config = normalizeArenaConfig({ ...input, mode }, { strict: true });
         if (rooms.size >= maxRooms) throw Object.assign(new Error('目前房间较多，请稍后再试。'), { status: 503, code: 'no_slots' });
         const { token, session } = setSession(request, response);
         if (session.roomCode) { const prev = findRoom(session.roomCode); const ps = prev?.seats.get(session.seatId); if (prev && ps) leaveSeat(prev, ps); }
         const teamId = mode === 'teams' ? input.teamId : null;
         const code = newCode(); const seat = { id: 0, token, nickname: validNickname(input.nickname), characterId: teamId === 1 ? 'gptNormal' : 'deepseek', teamId,
           connected: false, connections: new Set(), input: { moveX: 0, moveY: 0, aimX: 640, aimY: 450, primary: false }, inputAt: 0, disconnectedAt: 0 };
-        const room = { code, hostId: 0, mode, seats: new Map([[0, seat]]), phase: 'waiting', created: now(), emptySince: 0, seed: randomBytes(4).readUInt32BE() || 1, game: null };
+        const room = { code, hostId: 0, mode, config, seats: new Map([[0, seat]]), phase: 'waiting', created: now(), emptySince: 0, seed: randomBytes(4).readUInt32BE() || 1, game: null };
         rooms.set(code, room); session.roomCode = code; session.seatId = 0;
         send(201, { success: true, room: roomView(room, token) }); return true;
       }
@@ -335,14 +337,14 @@ export function createArenaRooms({ origins = new Set(), env = process.env, produ
         const room = findRoom(code);
         if (!room) throw Object.assign(new Error('房间不存在。'), { status: 404, code: 'room_not_found' });
         if (room.phase !== 'waiting' && room.phase !== 'ended') throw Object.assign(new Error('房间当前无法加入。'), { status: 409, code: 'room_not_started' });
-        if (room.seats.size >= 6) throw Object.assign(new Error('房间已满。'), { status: 409, code: 'room_full' });
+        if (room.seats.size >= room.config.maxPlayers) throw Object.assign(new Error('房间已满。'), { status: 409, code: 'room_full' });
         let teamId = null;
         if (room.mode === 'teams') {
           if (input.teamId !== undefined && input.teamId !== 0 && input.teamId !== 1) throw Object.assign(new Error('队伍编号不正确。'), { status: 400, code: 'invalid_team' });
           const counts = [0, 0];
           for (const seat of room.seats.values()) if (seat.teamId === 0 || seat.teamId === 1) counts[seat.teamId]++;
           teamId = input.teamId === undefined ? (counts[0] <= counts[1] ? 0 : 1) : input.teamId;
-          if (counts[teamId] >= 3) throw Object.assign(new Error('这支队伍已满。'), { status: 409, code: 'team_full' });
+          if (counts[teamId] >= room.config.maxPlayers / 2) throw Object.assign(new Error('这支队伍已满。'), { status: 409, code: 'team_full' });
         }
         const { token, session } = setSession(request, response);
         if (session.roomCode) { const prev = findRoom(session.roomCode); const ps = prev?.seats.get(session.seatId); if (prev && ps) leaveSeat(prev, ps); }
@@ -355,6 +357,22 @@ export function createArenaRooms({ origins = new Set(), env = process.env, produ
         const token = cookieValue(request); const found = token && locateSession(request);
         if (!found) { send(200, { success: true, room: null }); return true; }
         send(200, { success: true, room: roomView(found.room, token) }); return true;
+      }
+      if (suffix === '/settings' && request.method === 'POST') {
+        const input = await readJson(request);
+        const found = locateSession(request);
+        if (!found) throw Object.assign(new Error('你当前不在房间中。'), { status: 409 });
+        const room = found.room;
+        if (found.seat.id !== room.hostId) throw Object.assign(new Error('只有房主可以修改设置。'), { status: 403, code: 'host_only' });
+        if (!['waiting', 'ended'].includes(room.phase)) throw Object.assign(new Error('对局进行中不能修改设置。'), { status: 409, code: 'room_not_editable' });
+        const config = normalizeArenaConfig({ ...room.config, ...input, mode: room.mode }, { strict: true });
+        const counts = [0, 0];
+        for (const seat of room.seats.values()) if (seat.teamId === 0 || seat.teamId === 1) counts[seat.teamId]++;
+        if (room.seats.size > config.maxPlayers || (room.mode === 'teams' && counts.some((count) => count > config.maxPlayers / 2)))
+          throw Object.assign(new Error('人数设置不能少于当前房间人数或队伍人数。'), { status: 409, code: 'settings_below_occupancy' });
+        room.config = config;
+        roomChanged(room);
+        send(200, { success: true, room: roomView(room, found.token) }); return true;
       }
       if (suffix === '/leave' && request.method === 'POST') {
         await readJson(request);

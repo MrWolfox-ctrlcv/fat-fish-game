@@ -13,7 +13,9 @@ import { createWardrobeClient } from './wardrobe-client.js';
 import { createPersonalCompanion } from './personal-companion.js';
 import { createCornerCompanion } from './companion-corner.js';
 import { createArenaRoomClient } from './arena-room-client.js';
+import { ARENA_REMOTE_INTERPOLATION_DELAY, pushArenaSnapshot, sampleArenaSnapshots } from './arena-interpolation.js';
 import { createArenaRoomUI } from './arena-room-ui.js';
+import { createArenaSettingsEditor } from './arena-room-ui.js';
 import { ROSTER } from './arena-roster.js';
 import { getTeamLabel } from './arena-teams.js';
 import { attributeRoomEvents, getTeamEventText, isRoomEntryIntent, shouldResetRoomGame, teamOutcome } from './arena-room-state.js';
@@ -59,15 +61,21 @@ if (!localPreview) {
 let mode = modes[id];
 let practiceRule = read('wolfox.arena.practiceRule') === 'teams' ? 'teams' : 'ffa';
 let practiceTeamId = Number(read('wolfox.arena.practiceTeam')) === 1 ? 1 : 0;
+let savedPracticeSettings = {};
+try { savedPracticeSettings = JSON.parse(read('wolfox.arena.settings') || '{}') || {}; } catch { savedPracticeSettings = {}; }
+let practiceMaxPlayers = Number.isInteger(savedPracticeSettings.maxPlayers) && savedPracticeSettings.maxPlayers >= 2 && savedPracticeSettings.maxPlayers <= 6 ? savedPracticeSettings.maxPlayers : 6;
+let practiceFillBots = typeof savedPracticeSettings.fillBots === 'boolean' ? savedPracticeSettings.fillBots : true;
+let practiceBotRoster = Array.isArray(savedPracticeSettings.botRoster) ? savedPracticeSettings.botRoster : [];
+if (practiceRule === 'teams' && practiceMaxPlayers % 2) practiceMaxPlayers = 6;
 function createCurrentGame() {
   return id === 'bumper'
-    ? bumper.createGame({ seed: 20261025, mode: practiceRule, teamId: practiceTeamId })
+    ? bumper.createGame({ seed: 20261025, mode: practiceRule, teamId: practiceTeamId, maxPlayers: practiceMaxPlayers, fillBots: practiceFillBots, botRoster: practiceBotRoster })
     : mode.createGame({ seed: 20261025 });
 }
 let game = createCurrentGame();
 let onlineRoom = null;
 let onlineSnapshot = null;
-let roomSnapshotPair = [];
+let roomSnapshotBuffer = [];
 let onlineRoundEndSeen = false;
 let onlineEndEventSeen = false;
 let onlineNetworkStatus = 'idle';
@@ -218,7 +226,7 @@ function chooseMode(next) {
   $('arena-ribbon').hidden = id !== 'bumper';
   text('page-heading', id === 'bumper' ? '保持 Q 弹，站稳擂台。' : '这次，换个玩法。');
   text('page-description', id === 'bumper' ? '找角度，抓空档。90 秒，把对手撞下去。' : '换个玩法，看看哪种快乐更适合你。');
-  text('match-tag', id === 'bumper' ? '单人练习 · 6 人混战 · 90 秒' : '单人 · 60 秒');
+  text('match-tag', id === 'bumper' ? practiceMatchLabel() : '单人 · 60 秒');
   $('game-panel').setAttribute('aria-labelledby', `tab-${id}`);
   document.querySelectorAll('.mode-tabs [data-mode]').forEach((button) => {
     const selected = button.dataset.mode === id;
@@ -249,6 +257,10 @@ function chooseMode(next) {
 
 function start() {
   if (!ready) return;
+  if (!onlineRoom && id === 'bumper' && practiceSettings.root.dataset.invalidTeams === 'true') {
+    $('announcer').textContent = practiceSettings.root.querySelector('.arena-settings-hint')?.textContent || '组队模式的人机名单需要同时包含两个阵营的角色。';
+    return;
+  }
   if (onlineRoom) {
     if (document.body.classList.contains('arena-focus')) setFocusMode(false);
     $('room-card').scrollIntoView({ block: 'center', behavior: motion.matches ? 'instant' : 'smooth' });
@@ -277,12 +289,23 @@ function pause() {
   updateHud();
 }
 
+function practiceMatchLabel() {
+  if (onlineRoom) {
+    const players = Number(onlineRoom.maxPlayers) || 6;
+    return onlineRoom.mode === 'teams' ? `好友房 · ${players / 2}v${players / 2} · 90 秒` : `好友房 · ${players} 人混战 · 90 秒`;
+  }
+  return practiceRule === 'teams'
+    ? `单人练习 · ${practiceMaxPlayers / 2}v${practiceMaxPlayers / 2} · 90 秒`
+    : `单人练习 · 最多 ${practiceMaxPlayers} 人 · 90 秒`;
+}
+
 function updateHud() {
   const hud = mode.getHud(game);
   const teamMatch = id === 'bumper' && game.mode === 'teams';
   const teamRank = teamMatch ? bumper.getTeamStandings?.(game).find((row) => row.teamId === game.player?.teamId)?.rank : null;
   const ended = game.phase !== 'playing';
   const active = running && !paused && !ended;
+  if (id === 'bumper') text('match-tag', practiceMatchLabel());
   text('score', number(hud.score));
   const remaining = Math.max(0, Math.ceil(game.duration - hud.time));
   if ($('timer').textContent !== `${remaining} 秒`) {
@@ -349,6 +372,7 @@ function updateHud() {
   const lockPracticeRule = Boolean(onlineRoom) || (running && game.phase === 'playing');
   practiceRuleSelect.disabled = lockPracticeRule;
   practiceTeamSelect.disabled = lockPracticeRule;
+  for (const control of [practiceSettings.count, practiceSettings.fill, ...practiceSettings.checks.values()]) control.disabled = Boolean(onlineRoom);
   document.querySelectorAll('[data-station]').forEach((button) => { button.disabled = !active; });
   if (ended) {
     text('overlay-kicker', game.phase === 'draw' ? 'A TEAM DRAW' : game.phase === 'won' ? 'ONE MORE ROUND?' : 'A NEW TRY, A NEW STORY');
@@ -395,8 +419,7 @@ function finishArenaRound() {
 function applyRoomSnapshot(snapshot) {
   if (!onlineRoom || id !== 'bumper' || !snapshot) return;
   const arrivedAt = performance.now();
-  roomSnapshotPair.push({ snapshot, arrivedAt });
-  if (roomSnapshotPair.length > 2) roomSnapshotPair.shift();
+  pushArenaSnapshot(roomSnapshotBuffer, snapshot, arrivedAt);
   onlineSnapshot = snapshot;
   const selfId = Number(onlineRoom.self_id);
   const byId = new Map((onlineRoom.seats || []).map((seat) => [Number(seat.id), seat]));
@@ -474,7 +497,7 @@ function onRoomUpdate(room) {
     onlineRoom = null;
     onlineNetworkStatus = 'idle';
     onlineSnapshot = null;
-    roomSnapshotPair = [];
+    roomSnapshotBuffer = [];
     onlineRoundEndSeen = false;
     onlineEndEventSeen = false;
     mobileOnlineFocusApplied = false;
@@ -487,12 +510,15 @@ function onRoomUpdate(room) {
     const humanIds = seats.map((seat) => Number(seat.id)).filter(Number.isInteger);
     if (resetGame) {
       onlineSnapshot = null;
-      roomSnapshotPair = [];
+      roomSnapshotBuffer = [];
       onlineRoundEndSeen = false;
       onlineEndEventSeen = false;
       mobileOnlineFocusApplied = false;
       const humanTeams = Object.fromEntries(seats.filter((seat) => seat.teamId === 0 || seat.teamId === 1).map((seat) => [Number(seat.id), seat.teamId]));
-      game = bumper.createGame({ humanIds: humanIds.length ? humanIds : [Number(nextRoom.self_id) || 0], mode: nextRoom.mode || 'ffa', humanTeams });
+      game = bumper.createGame({
+        humanIds: humanIds.length ? humanIds : [Number(nextRoom.self_id) || 0], mode: nextRoom.mode || 'ffa', humanTeams,
+        maxPlayers: nextRoom.maxPlayers, fillBots: nextRoom.fillBots, botRoster: nextRoom.botRoster,
+      });
       game.phase = 'playing';
       game.score = 0;
       game.result = '';
@@ -545,16 +571,27 @@ roomClient = createArenaRoomClient({
 });
 roomUI = createArenaRoomUI({ container: $('room-card'), client: roomClient });
 
-const practiceRuleSelect = $('practice-rule');
+const practiceSettings = createArenaSettingsEditor({ prefix: '练习', initialMode: practiceRule });
+$('practice-settings').replaceChildren(practiceSettings.root);
+practiceSettings.set({ mode: practiceRule, maxPlayers: practiceMaxPlayers, fillBots: practiceFillBots, botRoster: practiceBotRoster });
+const practiceRuleSelect = practiceSettings.mode;
 const practiceTeamSelect = $('practice-team');
-practiceRuleSelect.value = practiceRule;
 practiceTeamSelect.value = String(practiceTeamId);
 $('practice-team-field').hidden = practiceRule !== 'teams';
+const savePracticeSettings = () => {
+  const value = practiceSettings.refresh();
+  practiceRule = value.mode;
+  practiceMaxPlayers = value.maxPlayers;
+  practiceFillBots = value.fillBots;
+  practiceBotRoster = value.botRoster;
+  store('wolfox.arena.practiceRule', practiceRule);
+  store('wolfox.arena.settings', JSON.stringify({ maxPlayers: practiceMaxPlayers, fillBots: practiceFillBots, botRoster: practiceBotRoster }));
+  $('practice-team-field').hidden = practiceRule !== 'teams';
+  updateHud();
+};
 practiceRuleSelect.addEventListener('change', () => {
   if (running || onlineRoom) return;
-  practiceRule = practiceRuleSelect.value === 'teams' ? 'teams' : 'ffa';
-  store('wolfox.arena.practiceRule', practiceRule);
-  $('practice-team-field').hidden = practiceRule !== 'teams';
+  savePracticeSettings();
   game = createCurrentGame();
   applyEquipped();
   effects = [];
@@ -562,6 +599,9 @@ practiceRuleSelect.addEventListener('change', () => {
   dirty = true;
   updateHud();
 });
+for (const control of [practiceSettings.count, practiceSettings.fill, ...practiceSettings.checks.values()]) {
+  control.addEventListener('change', savePracticeSettings);
+}
 practiceTeamSelect.addEventListener('change', () => {
   if (running || onlineRoom) return;
   practiceTeamId = Number(practiceTeamSelect.value) === 1 ? 1 : 0;
@@ -806,19 +846,26 @@ function frame(now) {
   lastPaint = now;
   resize();
   ctx.fillStyle = '#172a45'; ctx.fillRect(viewport.x, viewport.y, viewport.width, viewport.height);
-  if (onlineRoom && roomSnapshotPair.length === 2) {
-    const [previous, current] = roomSnapshotPair;
-    const duration = Math.max(1, current.arrivedAt - previous.arrivedAt);
-    const alpha = Math.max(0, Math.min(1, (now - 100 - previous.arrivedAt) / duration));
-    const previousById = new Map(previous.snapshot.fighters.map((fighter) => [fighter.id, fighter]));
-    const currentById = new Map(current.snapshot.fighters.map((fighter) => [fighter.id, fighter]));
+  if (onlineRoom && roomSnapshotBuffer.length) {
+    const latest = roomSnapshotBuffer.at(-1);
+    const remoteTarget = latest.snapshot.time - ARENA_REMOTE_INTERPOLATION_DELAY;
+    const selfTarget = latest.snapshot.time + Math.min(0.08, Math.max(0, (now - latest.receivedAt) / 1000));
+    const remoteSample = sampleArenaSnapshots(roomSnapshotBuffer, remoteTarget);
+    const selfSample = sampleArenaSnapshots(roomSnapshotBuffer, selfTarget);
+    const selfId = Number(onlineRoom.self_id);
+    const remoteById = new Map((remoteSample?.fighters || []).map((fighter) => [fighter.id, fighter]));
+    const selfById = new Map((selfSample?.fighters || []).map((fighter) => [fighter.id, fighter]));
     for (const fighter of game.fighters) {
-      const before = previousById.get(fighter.id);
-      const after = currentById.get(fighter.id);
-      if (!before || !after) continue;
-      for (const key of ['x', 'y', 'vx', 'vy', 'facing', 'dashCooldown', 'dashTimer']) {
-        fighter[key] = before[key] + (after[key] - before[key]) * alpha;
-      }
+      Object.assign(fighter, (fighter.id === selfId ? selfById : remoteById).get(fighter.id) || {});
+    }
+    const self = game.fighters.find((fighter) => fighter.id === selfId);
+    if (self) {
+      const input = getInput();
+      self.aimX = input.aimX;
+      self.aimY = input.aimY;
+      self.facing = Math.atan2(input.aimY - self.y, input.aimX - self.x);
+      self.dashX = Math.cos(self.facing);
+      self.dashY = Math.sin(self.facing);
     }
   }
   if (id === 'bumper') {

@@ -84,6 +84,32 @@ test('rooms authenticate by cookie and origin, enforce host start, and stream au
   assert.equal(me.data.room.self_id, 0);
 });
 
+test('snapshot deadlines preserve 10Hz cadence after irregular server timer delays', async (t) => {
+  const { port, intervals, advance } = await fixture(t, { fakeClock: true });
+  const created = await request(port, '/games/bumper/api/rooms', { method: 'POST', body: { nickname: 'A' } });
+  await request(port, '/games/bumper/api/rooms/start', { method: 'POST', body: {}, cookie: created.cookie });
+  const ws = new WebSocket(`ws://127.0.0.1:${port}/games/bumper/socket`, { headers: { Cookie: created.cookie, Origin: ORIGIN } });
+  t.after(() => ws.terminate());
+  const snapshots = [];
+  ws.on('message', (data, binary) => { if (binary) snapshots.push(decodeArenaSnapshot(data)); });
+  await once(ws, 'open');
+  const tickRooms = intervals.find((item) => Math.abs(item.ms - 1000 / 60) < 1)?.fn;
+  assert.equal(typeof tickRooms, 'function');
+  await new Promise(setImmediate);
+  assert.equal(snapshots.length, 1, 'connection receives the current snapshot immediately');
+
+  advance(99); tickRooms(); await new Promise(setImmediate);
+  assert.equal(snapshots.length, 1);
+  advance(17); tickRooms(); await new Promise(setImmediate);
+  assert.equal(snapshots.length, 2);
+  advance(284); tickRooms(); await new Promise(setImmediate);
+  assert.equal(snapshots.length, 3, 'a late tick sends once instead of bursting missed snapshots');
+  advance(99); tickRooms(); await new Promise(setImmediate);
+  assert.equal(snapshots.length, 3, 'the next deadline remains on the accumulated 10Hz schedule');
+  advance(1); tickRooms(); await new Promise(setImmediate);
+  assert.equal(snapshots.length, 4);
+});
+
 test('room mutations reject missing or foreign Origin and leave clears the cookie session seat', async (t) => {
   const { port } = await fixture(t);
   const missing = await request(port, '/games/bumper/api/rooms', { method: 'POST', body: {}, origin: null });
@@ -93,6 +119,35 @@ test('room mutations reject missing or foreign Origin and leave clears the cooki
   assert.equal(left.response.status, 200);
   const me = await request(port, '/games/bumper/api/rooms/me', { cookie: created.cookie });
   assert.equal(me.data.room, null);
+});
+
+test('room creation and host settings validate configured room and bot capacity', async (t) => {
+  const { port } = await fixture(t);
+  const created = await request(port, '/games/bumper/api/rooms', { method: 'POST', body: {
+    mode: 'teams', teamId: 0, maxPlayers: 4, fillBots: false, botRoster: ['deepseek', 'gptNormal'],
+  } });
+  assert.equal(created.response.status, 201);
+  assert.deepEqual({ maxPlayers: created.data.room.maxPlayers, fillBots: created.data.room.fillBots, botRoster: created.data.room.botRoster }, {
+    maxPlayers: 4, fillBots: false, botRoster: ['deepseek', 'gptNormal'],
+  });
+  const joined = await request(port, '/games/bumper/api/rooms/join', { method: 'POST', body: { code: created.data.room.code, nickname: 'B', teamId: 1 } });
+  assert.equal(joined.response.status, 200);
+  const third = await request(port, '/games/bumper/api/rooms/join', { method: 'POST', body: { code: created.data.room.code, nickname: 'C', teamId: 0 } });
+  assert.equal(third.response.status, 200);
+  const notHost = await request(port, '/games/bumper/api/rooms/settings', { method: 'POST', body: { maxPlayers: 2 }, cookie: joined.cookie });
+  assert.equal(notHost.response.status, 403);
+  const tooSmall = await request(port, '/games/bumper/api/rooms/settings', { method: 'POST', body: { maxPlayers: 2 }, cookie: created.cookie });
+  assert.equal(tooSmall.response.status, 409);
+  assert.equal(tooSmall.data.code, 'settings_below_occupancy');
+  const oddTeams = await request(port, '/games/bumper/api/rooms/settings', { method: 'POST', body: { maxPlayers: 3 }, cookie: created.cookie });
+  assert.equal(oddTeams.response.status, 400);
+  assert.equal(oddTeams.data.code, 'invalid_settings');
+  const invalidRoster = await request(port, '/games/bumper/api/rooms/settings', { method: 'POST', body: { botRoster: ['deepseek'] }, cookie: created.cookie });
+  assert.equal(invalidRoster.response.status, 400);
+  assert.equal(invalidRoster.data.code, 'invalid_bot_roster');
+  const changed = await request(port, '/games/bumper/api/rooms/settings', { method: 'POST', body: { maxPlayers: 4, fillBots: true }, cookie: created.cookie });
+  assert.equal(changed.response.status, 200);
+  assert.deepEqual(changed.data.room.botRoster, ['deepseek', 'gptNormal']);
 });
 
 test('room capacity, invalid codes, and attacker-chosen cookie values stay bounded', async (t) => {

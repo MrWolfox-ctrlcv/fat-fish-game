@@ -1,6 +1,7 @@
 import { drawAvatar } from "../art.js";
 import { drawArenaFloor } from "../arena-scene.js";
 import { ROSTER, getCharacter } from "../arena-roster.js";
+import { normalizeArenaConfig } from "../arena-config.js";
 import { decideBotInput, getBotThinkInterval } from "../arena-bots.js";
 import {
   TEAM_IDS,
@@ -84,7 +85,8 @@ function fighter(id, isHuman, x, y, characterId, teamId = null) {
     botKind: character.id,
   };
 }
-export function createGame({ seed = 20261025, mode = "ffa", humanIds = [0], humanTeams = {}, teamId, humanCharacters = {}, botCharacters = {} } = {}) {
+export function createGame({ seed = 20261025, mode = "ffa", humanIds = [0], humanTeams = {}, teamId, humanCharacters = {}, botCharacters = {}, maxPlayers = 6, fillBots = true, botRoster } = {}) {
+  const config = normalizeArenaConfig({ maxPlayers, fillBots, botRoster, mode });
   let s = Number.isFinite(Number(seed)) ? Number(seed) >>> 0 : 0x51f15e;
   if (!s) s = 0x51f15e;
   const g = {
@@ -104,14 +106,21 @@ export function createGame({ seed = 20261025, mode = "ffa", humanIds = [0], huma
     impact: null,
     effects: [],
     botState: { think: 0, inputs: [], timers: [] },
+    maxPlayers: config.maxPlayers,
+    fillBots: config.fillBots,
+    botRoster: [...config.botRoster],
     humanIds: [...new Set(humanIds.map(Number))],
   };
   const ids = g.humanIds = g.humanIds.filter((id) => Number.isInteger(id) && id >= 0 && id < 6);
   if (!ids.length) ids.push(0);
+  if (ids.length > config.maxPlayers) {
+    throw new RangeError(`humanIds (${ids.length}) exceed maxPlayers (${config.maxPlayers})`);
+  }
   const requestedTeams = { ...(humanTeams || {}) };
   if (g.mode === "teams" && TEAM_IDS.includes(teamId) && requestedTeams[0] === undefined)
     requestedTeams[0] = teamId;
-  const humanTeamById = g.mode === "teams" ? balanceHumanTeams(ids, requestedTeams) : {};
+  const teamCapacity = g.mode === "teams" ? config.maxPlayers / 2 : config.maxPlayers;
+  const humanTeamById = g.mode === "teams" ? balanceHumanTeams(ids, requestedTeams, teamCapacity) : {};
   const teamCounts = [0, 0];
   for (const id of ids) if (g.mode === "teams") teamCounts[humanTeamById[id]]++;
   const defaultCharacter = (id, assignedTeam) => g.mode === "teams"
@@ -123,35 +132,43 @@ export function createGame({ seed = 20261025, mode = "ffa", humanIds = [0], huma
       ? requested
       : defaultCharacter(id, humanTeamById[id]);
   };
-  const used = new Set(ids.map(humanCharacter));
-  const shuffled = [...ROSTER];
-  for (let i = shuffled.length - 1; i > 0; i--) {
+  const botPool = config.botRoster.map((id) => getCharacter(id));
+  for (let i = botPool.length - 1; i > 0; i--) {
     const j = Math.floor(rng(g) * (i + 1));
-    [shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]];
+    [botPool[i], botPool[j]] = [botPool[j], botPool[i]];
   }
-  for (let id = 0; id < 6; id++) {
+  const usedCharacters = new Set(ids.map(humanCharacter));
+  const chooseBot = (pool, requestedId) => {
+    const preferred = pool.find((c) => c.id === requestedId && !usedCharacters.has(c.id));
+    const fresh = pool.find((c) => !usedCharacters.has(c.id));
+    const chosen = preferred || fresh || pool[0];
+    if (chosen) usedCharacters.add(chosen.id);
+    return chosen?.id;
+  };
+  const fighterIds = [...ids];
+  if (config.fillBots) {
+    for (let id = 0; id < config.maxPlayers && fighterIds.length < Math.max(config.maxPlayers, ids.length); id++)
+      if (!ids.includes(id)) fighterIds.push(id);
+  }
+  fighterIds.sort((a, b) => a - b);
+  for (const id of fighterIds) {
     const isHuman = ids.includes(id);
     let fighterTeam = g.mode === "teams" ? humanTeamById[id] : null;
     let characterId = isHuman ? humanCharacter(id) : null;
     if (!isHuman) {
       if (g.mode === "teams") {
-        fighterTeam = TEAM_IDS.filter((value) => teamCounts[value] < 3)
+        fighterTeam = TEAM_IDS.filter((value) => teamCounts[value] < teamCapacity)
           .sort((a, b) => teamCounts[a] - teamCounts[b] || a - b)[0];
-        teamCounts[fighterTeam]++;
-        const requested = getCharacter(botCharacters[id]);
-        const requestedIsUsable = botCharacters[id] && !used.has(requested.id) && getCharacterFaction(requested.id) === fighterTeam;
-        characterId = requestedIsUsable
-          ? requested.id
-          : shuffled.find((c) => !used.has(c.id) && getCharacterFaction(c.id) === fighterTeam)?.id;
+        if (fighterTeam !== undefined) teamCounts[fighterTeam]++;
+        const allowed = botPool.filter((c) => getCharacterFaction(c.id) === fighterTeam);
+        characterId = chooseBot(allowed, botCharacters[id]);
       } else {
-        characterId = botCharacters[id];
-        if (!characterId || used.has(characterId)) characterId = shuffled.find((c) => !used.has(c.id))?.id;
+        characterId = chooseBot(botPool, botCharacters[id]);
       }
-      if (!characterId) characterId = ROSTER.find((c) => !used.has(c.id) && (g.mode !== "teams" || getCharacterFaction(c.id) === fighterTeam))?.id || "deepseek";
-      used.add(characterId);
+      characterId ||= (g.mode === "teams" ? botPool.find((c) => getCharacterFaction(c.id) === fighterTeam)?.id : botPool[0]?.id) || "deepseek";
     }
-    const slot = ids.indexOf(id);
-    const a = slot < 0 ? (TAU * (id + 0.5)) / 6 + 0.3 : (TAU * slot) / Math.max(1, ids.length) + 0.3;
+    const slot = fighterIds.indexOf(id);
+    const a = slot === 0 && isHuman && id === 0 ? 0.3 : (TAU * (slot + 0.5)) / Math.max(1, fighterIds.length) + 0.3;
     const r = isHuman && id === 0 ? 0 : 125 + rng(g) * 80;
     g.fighters.push(fighter(id, isHuman, CX + Math.cos(a) * r, CY + Math.sin(a) * r, characterId, fighterTeam));
   }

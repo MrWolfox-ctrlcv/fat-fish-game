@@ -217,3 +217,28 @@ test("登录账户继续使用普通 run/checkpoint 接口并提交固定场地�
   assert.equal(calls.some((call) => call.path.endsWith("/api/play/checkpoint")), false);
   client.close();
 });
+
+test("道具状态查询匿名可用，道具请求提交完整的幂等 payload", async () => {
+  const calls = [];
+  const client = createOnlineClient({
+    moduleUrl: "https://example.test/games/fat-fish/online-client.js",
+    BroadcastChannelRef: null,
+    fetchImpl: async (url, options) => {
+      calls.push({ url: String(url), options });
+      return jsonResponse(200, String(url).endsWith("/api/props")
+        ? { success: true, enabled: true, price_usd: "0.01", price_quota: 5000 }
+        : { success: true, pending: true });
+    },
+  });
+  const props = await client.getProps();
+  const payload = { run_id: "r1", step: 60, moves: [], request_id: "same-id", kind: "remove", body_ids: [4], confirm_quota: 5000 };
+  const result = await client.useProp(payload);
+  assert.equal(props.enabled, true);
+  assert.equal(result.pending, true);
+  assert.equal(calls[0].url, "https://example.test/games/fat-fish/api/props");
+  assert.equal(calls[0].options.headers.Authorization, undefined);
+  assert.equal(calls[1].url, "https://example.test/games/fat-fish/api/run/prop");
+  assert.equal(calls[1].options.method, "POST");
+  assert.deepEqual(JSON.parse(calls[1].options.body), payload);
+  client.close();
+});

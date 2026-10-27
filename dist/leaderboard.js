@@ -50,9 +50,12 @@ export function setupLeaderboard({ client, onReward }) {
         const row = document.createElement('li');
         const rank = document.createElement('span'); rank.className = 'leaderboard-rank'; rank.textContent = ['🥇', '🥈', '🥉'][item.rank - 1] || String(item.rank);
         const name = document.createElement('span'); name.className = 'leaderboard-name'; name.textContent = item.name;
+        const person = document.createElement('span'); person.className = 'leaderboard-person'; person.append(name);
+        const tag = document.createElement('span'); tag.className = `leaderboard-prop-tag${item.used_props ? ' used' : ''}`;
+        tag.textContent = item.used_props ? '使用道具' : '未使用道具'; person.append(tag);
         const score = document.createElement('strong'); score.className = 'leaderboard-score'; score.textContent = `${item.score} 分`;
         row.title = `最高合成第 ${item.max_level} 级`;
-        row.append(rank, name, score); rows.append(row);
+        row.append(rank, person, score); rows.append(row);
       }
       if (!data.total) status.textContent = period === 'current' ? '本周还没有上榜成绩，来合出第一条肥鱼。' : '上周暂无有效成绩。';
       else if (period === 'previous' && data.winner) status.textContent = data.winner.status === 'assigned' ? '上周冠军谢礼已分配，可在本人账户查看。' : '上周冠军已锁定，奖池补货后补发。';
@@ -63,7 +66,20 @@ export function setupLeaderboard({ client, onReward }) {
     } else status.textContent = '周榜暂时没连上，点击 ↻ 重试。';
     if (owner && privateResult.status === 'fulfilled' && privateResult.value) {
       const data = privateResult.value;
-      mine.textContent = data.my_rank ? `我的本周名次：第 ${data.my_rank} 名 · 最高 ${data.my_score} 分` : '本周尚未上榜，合成得分并同步后即可参与。';
+      const entries = data.my_entries ?? data.entries;
+      if (Array.isArray(entries)) {
+        mine.replaceChildren();
+        const heading = document.createElement('strong'); heading.textContent = '我的本周成绩（每种各取最高）'; mine.append(heading);
+        const byMode = new Map(entries.map((entry) => [Boolean(entry.used_props), entry]));
+        for (const usedProps of [false, true]) {
+          const line = document.createElement('span');
+          const item = byMode.get(usedProps);
+          line.textContent = item
+            ? `${usedProps ? '使用道具' : '未使用道具'}：第 ${item.rank} 名 · ${item.score} 分`
+            : `${usedProps ? '使用道具' : '未使用道具'}：暂无成绩`;
+          mine.append(line);
+        }
+      } else mine.textContent = data.my_rank ? `我的本周名次：第 ${data.my_rank} 名 · 最高 ${data.my_score} 分` : '本周尚未上榜，合成得分并同步后即可参与。';
       renderRewards(data.weekly_rewards);
     } else if (owner) mine.textContent = '个人周榜暂未同步，稍后刷新查看。';
     else { mine.textContent = '登录后参与周榜，游客成绩不计入排名。'; renderRewards(); }

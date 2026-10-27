@@ -11,6 +11,7 @@ test("faction map and strict team choices balance human seats", () => {
   assert.equal(getTeamLabel(0), "国模队");
   assert.equal(getTeamLabel(1), "美模队");
   assert.deepEqual(balanceHumanTeams([0, 1, 2, 3], { 0: 1, 1: null }), { 0: 1, 1: 0, 2: 0, 3: 1 });
+  assert.deepEqual(balanceHumanTeams([0, 1], {}, 1), { 0: 0, 1: 1 });
 });
 
 test("team game balances humans, fills both factions to three, and keeps shared physics", () => {

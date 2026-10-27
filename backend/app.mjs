@@ -11,6 +11,8 @@ import { previousWeek, publicName, weekFor } from './weekly.mjs';
 import { PHYSICS_VERSION } from '../dist/physics-version.js';
 import { createWardrobe } from './wardrobe.mjs';
 import { createArenaRooms } from './arena-rooms.mjs';
+import { applyProp, propInputFingerprint, PROP_PRICE_QUOTA, PROP_PRICE_USD, validatePropInput, validatePropBodies } from './props.mjs';
+import { createPropWallet } from './prop-wallet.mjs';
 
 // These three already-visible starter/NPC portraits are shared by both games.
 // Seeing an NPC does not grant permission to equip its outfit.
@@ -34,6 +36,7 @@ export async function createGameServer(options = {}) {
   const art = options.art ?? preparedArt;
   if (!options.art && process.env.NODE_ENV === 'production') await preparedArt.validatePreparedArt();
   const fetcher = options.fetchImpl ?? fetch;
+  const propWallet = options.propWallet ?? createPropWallet({ fetchImpl: fetcher });
   const now = options.now ?? Date.now;
   const staticRoot = new URL('../dist/', import.meta.url);
   const staticFiles = new Set((await readdir(staticRoot)).filter((name) => /^[a-z0-9-]+\.(js|css|html)$/.test(name) || name === 'companion-portrait.png'));
@@ -107,6 +110,19 @@ export async function createGameServer(options = {}) {
     return run;
   }
 
+  function checkCommittedPropRun(user, receipt) {
+    const run = runs.get(receipt.run_id);
+    if (!run || run.userId !== user.id || currentRun.get(user.id) !== run.id || now() - run.created > 1800000) return 'expired';
+    if (!receipt.state || run.state.stepIndex > receipt.step || run.moves > receipt.move_count ||
+        run.propRevision > receipt.prop_revision) return 'stale';
+    if (run.propRevision === receipt.prop_revision) return run.propReceiptId === receipt.receipt_id ? 'current' : 'stale';
+    if (run.propRevision !== receipt.prop_revision - 1 || run.state.stepIndex !== receipt.step || run.moves !== receipt.move_count) return 'stale';
+    run.state = receipt.state; run.summary = receipt.summary; run.usedProps = true;
+    run.propRevision = receipt.prop_revision; run.propReceiptId = receipt.receipt_id; run.hash = null;
+    run.propCount = Math.max(run.propCount || 0, receipt.prop_revision);
+    return 'restored';
+  }
+
   function playPermission(run, id) {
     const stages = new Set(run.state.seenEggStages);
     if (run.state.currentVariant) stages.add(`${run.state.currentVariant}:${run.state.currentLevel}`);
@@ -128,13 +144,13 @@ export async function createGameServer(options = {}) {
     return run;
   }
 
-  async function checkpoint(run, input) {
-    const digest = sha(JSON.stringify({ step: input.step, moves: input.moves }));
+  async function checkpoint(run, input, held = false) {
+    const digest = sha(JSON.stringify({ step: input.step, moves: input.moves, propRevision: run.propRevision || 0 }));
     if (run.hash === digest) return;
-    if (run.busy) throw fail(409, '这局正在同步，请稍后再试。', 'RUN_BUSY');
+    if (!held && run.busy) throw fail(409, '这局正在同步，请稍后再试。', 'RUN_BUSY');
     if (!Number.isSafeInteger(input.step) || input.step > Math.floor((now() - run.created) * 60 / 1000) + 180) throw fail(422, '对局时间不合法。', 'INVALID_REPLAY');
     if (!Array.isArray(input.moves) || run.moves + input.moves.length > 2000) throw fail(422, '这局已达记录上限，请重新开始。');
-    run.busy = true;
+    if (!held) run.busy = true;
     try {
       const result = await verifier.verify(run.state, input.moves, input.step);
       const verifiedAt = now();
@@ -142,10 +158,10 @@ export async function createGameServer(options = {}) {
         store.saveProgress(run.userId, result.summary);
         if (run.weekId === weekFor(verifiedAt).id) store.recordWeeklyScore({ weekId: run.weekId, userId: run.userId,
           name: run.username, score: result.summary.score, maxLevel: result.summary.max_level,
-          runId: run.id || '', attainedAt: verifiedAt });
+          runId: run.id || '', attainedAt: verifiedAt, usedProps: Boolean(run.usedProps) });
       }
       run.state = result.state; run.hash = digest; run.summary = result.summary; run.moves += input.moves.length;
-    } finally { run.busy = false; }
+    } finally { if (!held) run.busy = false; }
   }
 
   async function body(request) {
@@ -189,6 +205,11 @@ export async function createGameServer(options = {}) {
       if (path === 'api/health' && request.method === 'GET') { json(200, { success: true }); return; }
       const clientIP = request.headers['x-real-ip'] || request.socket.remoteAddress;
       rate(`ip:${clientIP}`, 600, 60000);
+      const propsEnabled = propWallet?.enabled === true && typeof propWallet?.debit === 'function';
+      if (path === 'api/props' && request.method === 'GET') {
+        json(200, { success: true, enabled: propsEnabled, price_usd: PROP_PRICE_USD, price_quota: PROP_PRICE_QUOTA,
+          ...(!propsEnabled ? { reason: '道具付费功能暂不可用。' } : {}) }); return;
+      }
       if (path === 'api/companion' && request.method === 'GET') { json(200, companion.status()); return; }
       if (path === 'api/sprites' && request.method === 'GET') {
         const level = Number(url.searchParams.get('level'));
@@ -215,12 +236,12 @@ export async function createGameServer(options = {}) {
         if (!['current', 'previous'].includes(period)) throw fail(400, '榜单周期不合法。');
         settleDueWeeks();
         const week = period === 'current' ? weekFor(now()) : previousWeek(now());
-        const rows = store.weeklyRows(week.id, 20).map((row, index) => ({
-          rank: index + 1, name: publicName(row.name, row.user_id), score: row.score, max_level: row.max_level,
+        const rows = store.weeklyRows(week.id, 20, null).map((row, index) => ({
+          rank: index + 1, name: publicName(row.name, row.user_id), score: row.score, max_level: row.max_level, used_props: Boolean(row.used_props),
         }));
         const settlement = period === 'previous' ? store.db.prepare('SELECT * FROM weekly_settlements WHERE week_id=?').get(week.id) : null;
         const winner = settlement?.winner_user_id ? { name: publicName(settlement.winner_name, settlement.winner_user_id), status: settlement.status } : null;
-        json(200, { success: true, week: { id: week.id, start: week.start_at, end: week.end_at, label: week.label }, rows, total: store.weeklyCount(week.id), winner }); return;
+        json(200, { success: true, week: { id: week.id, start: week.start_at, end: week.end_at, label: week.label }, rows, total: store.weeklyCount(week.id, null), winner }); return;
       }
       if (path === 'api/leaderboard/me' && request.method === 'GET') {
         const user = await authenticate(request);
@@ -229,6 +250,9 @@ export async function createGameServer(options = {}) {
         const score = store.weeklyScore(week.id, user.id);
         json(200, { success: true, week: { id: week.id, start: week.start_at, end: week.end_at, label: week.label },
           my_rank: store.weeklyRank(week.id, user.id), my_score: score?.score ?? null,
+          my_entries: [false, true].map((usedProps) => { const row = store.weeklyScore(week.id, user.id, usedProps); return row ? { score: row.score,
+            max_level: row.max_level, attained_at: row.attained_at, used_props: usedProps,
+            rank: store.weeklyMixedRank(week.id, user.id, usedProps) } : null; }).filter(Boolean),
           weekly_rewards: store.weeklyRewardRows(user.id) }); return;
       }
       if (path === 'api/play/run' && request.method === 'POST') {
@@ -303,16 +327,98 @@ export async function createGameServer(options = {}) {
         const randomSeed = seed();
         const variantSeed = seed();
         const startedAt = now();
-        runs.set(id, { id, userId: user.id, username: user.username, weekId: weekFor(startedAt).id, created: startedAt, state: initialState(randomSeed, variantSeed), hash: null, summary: null, busy: false, moves: 0 });
+        runs.set(id, { id, userId: user.id, username: user.username, weekId: weekFor(startedAt).id, created: startedAt, state: initialState(randomSeed, variantSeed), hash: null, propRevision: 0, usedProps: false, summary: null, busy: false, moves: 0 });
         currentRun.set(user.id, id);
         json(200, { success: true, run: { id, seed: randomSeed, variant_seed: variantSeed, width: 480, height: 620 }, play: playPermission(runs.get(id), id) }); return;
       }
       if (path === 'api/run/checkpoint' && request.method === 'POST') {
         const input = await body(request);
         const run = getRun(user, input.run_id);
+        if (store.pendingPropReceipt(user.id)?.run_id === run.id) {
+          throw fail(409, '这局的道具扣款仍在确认，请先确认订单再继续。', 'PAYMENT_PENDING');
+        }
         await checkpoint(run, input);
         json(200, { ...account(user), summary: run.summary, play: playPermission(run, input.run_id) });
         return;
+      }
+      if (path === 'api/run/prop' && request.method === 'POST') {
+        rate(`prop:${user.id}`, 5, 60000);
+        const input = await body(request);
+        const requestId = input?.request_id;
+        if (typeof requestId !== 'string' || !/^[a-zA-Z0-9_-]{8,128}$/.test(requestId)) throw fail(422, '道具选择无效。', 'INVALID_PROP');
+        const fingerprint = propInputFingerprint(input);
+        const previous = store.propReceipt(requestId);
+        if (previous) {
+          if (previous.user_id !== user.id || previous.fingerprint !== fingerprint) throw fail(409, '请求编号已用于其他操作。', 'PROP_REQUEST_CONFLICT');
+          if (previous.status === 'committed') {
+            const runStatus = checkCommittedPropRun(user, previous);
+            if (runStatus === 'stale') throw fail(409, '这笔道具结果已过期，请不要覆盖当前对局。', 'STALE_PROP_RECEIPT');
+            if (runStatus === 'expired') { json(200, { success: true, expired: true,
+              receipt: { id: previous.receipt_id, quota: previous.quota, used_props: true } }); return; }
+            json(200, { success: true, state: previous.state, summary: previous.summary, profile: previous.profile,
+              rewards: previous.rewards, play: previous.play, receipt: { id: previous.receipt_id, quota: previous.quota, used_props: true } }); return;
+          }
+          if (previous.status === 'pending') { json(202, { success: true, pending: true,
+            receipt: { id: previous.receipt_id, quota: previous.quota, used_props: true } }); return; }
+          throw fail(409, '这次道具请求已结束，请重新选择道具。', 'PROP_REQUEST_FAILED');
+        }
+        const prop = validatePropInput(input);
+        const pendingForAccount = store.pendingPropReceipt(user.id);
+        if (pendingForAccount) {
+          json(202, { success: true, pending: true, receipt: { id: pendingForAccount.receipt_id,
+            quota: pendingForAccount.quota, used_props: true } }); return;
+        }
+        if (!propsEnabled) throw fail(503, '道具付费功能暂不可用。', 'PROPS_DISABLED');
+        const run = getRun(user, prop.runId);
+        if (run.busy) throw fail(409, '这局正在同步，请稍后再试。', 'RUN_BUSY');
+        if ((run.propCount || 0) >= 20) throw fail(429, '这局的道具次数已达上限。', 'PROP_RUN_LIMIT');
+        run.busy = true;
+        try {
+          await checkpoint(run, { step: prop.step, moves: prop.moves }, true);
+          validatePropBodies(run.state, prop.kind, prop.bodyIds);
+          const applied = await applyProp(run.state, prop.kind, prop.bodyIds);
+          const summary = applied.summary;
+          const preparedPlay = playPermission({ ...run, state: applied.state }, run.id);
+          const preparedProfile = { ...store.previewProgress(user.id, summary), user_id: user.id };
+          const preparedRewards = store.rewards(user.id, preparedProfile);
+          const receiptId = randomUUID();
+          const prepared = store.createPropReceipt({ requestId: prop.requestId, userId: user.id, runId: run.id,
+            fingerprint, receiptId, kind: prop.kind, bodyIds: prop.bodyIds, step: prop.step, now: now(), weekId: run.weekId, name: user.username,
+            moveCount: run.moves, propRevision: (run.propRevision || 0) + 1,
+            state: applied.state, summary, profile: preparedProfile, rewards: preparedRewards, play: preparedPlay });
+          if (prepared.fingerprint !== fingerprint) throw fail(409, '请求编号已用于其他操作。', 'PROP_REQUEST_CONFLICT');
+          if (!prepared.created) {
+            if (prepared.status === 'committed') {
+              const runStatus = checkCommittedPropRun(user, prepared);
+              if (runStatus === 'stale') throw fail(409, '这笔道具结果已过期，请不要覆盖当前对局。', 'STALE_PROP_RECEIPT');
+              if (runStatus === 'expired') { json(200, { success: true, expired: true,
+                receipt: { id: prepared.receipt_id, quota: prepared.quota, used_props: true } }); return; }
+              json(200, { success: true, state: prepared.state, summary: prepared.summary, profile: prepared.profile,
+                rewards: prepared.rewards, play: prepared.play, receipt: { id: prepared.receipt_id, quota: prepared.quota, used_props: true } }); return;
+            }
+            if (prepared.status === 'pending') { json(202, { success: true, pending: true,
+              receipt: { id: prepared.receipt_id, quota: prepared.quota, used_props: true } }); return; }
+            throw fail(409, '这次道具请求已结束，请重新选择道具。', 'PROP_REQUEST_FAILED');
+          }
+          if (prepared.status !== 'pending') throw fail(409, '这次道具请求状态已变化。', 'PROP_RECEIPT_CONFLICT');
+          try {
+            await propWallet.debit({ userId: user.id, quota: PROP_PRICE_QUOTA, operationId: prepared.receipt_id });
+          } catch (error) {
+            if (error?.code === 'PAYMENT_PENDING') {
+              json(202, { success: true, pending: true, receipt: { id: prepared.receipt_id, quota: prepared.quota, used_props: true } }); return;
+            }
+            store.failPropReceipt(prop.requestId, now());
+            throw fail(402, '账户额度扣减未完成，道具没有生效。', error?.code || 'PAYMENT_REFUSED');
+          }
+          const committedAt = now();
+          const receipt = store.commitPropReceipt({ requestId: prop.requestId, now: committedAt, state: applied.state,
+            summary, profile: preparedProfile, rewards: preparedRewards, play: preparedPlay,
+            week: run.weekId, userId: user.id, name: user.username, runId: run.id, usedProps: true });
+          run.state = applied.state; run.summary = summary; run.usedProps = true; run.propRevision = prepared.prop_revision; run.propReceiptId = receipt.receipt_id; run.hash = null;
+          run.propCount = (run.propCount || 0) + 1;
+          json(200, { success: true, state: receipt.state, summary: receipt.summary, profile: receipt.profile,
+            rewards: receipt.rewards, play: receipt.play, receipt: { id: receipt.receipt_id, quota: receipt.quota, used_props: true } }); return;
+        } finally { run.busy = false; }
       }
       if (path === 'api/rewards/claim' && request.method === 'POST') {
         const input = await body(request);

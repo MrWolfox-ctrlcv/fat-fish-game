@@ -48,6 +48,30 @@ test('changed inputs are capped at 20Hz and a primary press is sent once', async
   h.client.dispose();
 });
 
+test('input changes and forced neutral wait only for the next 20Hz slot; keepalive reschedules', async () => {
+  FakeSocket.instances = [];
+  const h = harness(async () => response({ room: { code: '123456', self_id: 0, host_id: 0, seats: [], phase: 'playing' } }));
+  await h.client.create('玩家');
+  const socket = FakeSocket.instances[0];
+  socket.open();
+  h.clock.value = 60;
+  h.client.setInput({ moveX: 1, aimX: 90, aimY: 40 });
+  h.clock.value = 80;
+  h.client.neutral();
+  assert.equal(socket.sent.length, 2);
+  const due = h.timers.find((item) => !item.cleared);
+  assert.equal(due.delay, 100);
+  h.clock.value = 110;
+  due.fn();
+  assert.equal(socket.sent.length, 3);
+  assert.equal(socket.sent.at(-1).moveX, 0);
+  assert.equal(socket.sent.at(-1).primary, false);
+  const keepalive = h.timers.find((item) => !item.cleared && item !== due);
+  assert.ok(keepalive, 'periodic keepalive should remain scheduled');
+  h.client.dispose();
+  assert.ok(keepalive.cleared, 'disposing the client clears the recurring timer');
+});
+
 test('team create sends the host faction and team join sends only an explicit preference', async () => {
   FakeSocket.instances = [];
   const calls = [];
@@ -56,7 +80,7 @@ test('team create sends the host faction and team join sends only an explicit pr
     return response({ room: { code: '123456', self_id: 0, host_id: 0, phase: 'waiting', mode: 'teams', seats: [] } });
   });
   await h.client.create('房主', { mode: 'teams', teamId: 1 });
-  assert.deepEqual(calls[0].body, { nickname: '房主', mode: 'teams', teamId: 1 });
+  assert.deepEqual(calls[0].body, { nickname: '房主', mode: 'teams', maxPlayers: 6, fillBots: true, botRoster: [], teamId: 1 });
   await h.client.join('123456', '队友');
   assert.deepEqual(calls[1].body, { code: '123456', nickname: '队友' });
   await h.client.join('123456', '选队', { teamId: 0 });
@@ -73,7 +97,26 @@ test('invalid local mode or faction values cannot be sent as team requests', asy
   });
   await h.client.create('玩家', { mode: 'invalid', teamId: 8 });
   await h.client.join('123456', '玩家', { teamId: 9 });
-  assert.deepEqual(calls, [{ nickname: '玩家', mode: 'ffa' }, { code: '123456', nickname: '玩家' }]);
+  assert.deepEqual(calls, [
+    { nickname: '玩家', mode: 'ffa', maxPlayers: 6, fillBots: true, botRoster: [] },
+    { code: '123456', nickname: '玩家' },
+  ]);
+  h.client.dispose();
+});
+
+test('create sends explicit match settings and host settings use POST /settings', async () => {
+  FakeSocket.instances = [];
+  const calls = [];
+  const h = harness(async (url, options) => {
+    calls.push({ url, method: options.method, body: options.body ? JSON.parse(options.body) : null });
+    return response({ room: { code: '123456', self_id: 0, host_id: 0, phase: 'waiting', mode: 'ffa', maxPlayers: 4, fillBots: false, botRoster: ['astra', 'claude'], seats: [] } });
+  });
+  await h.client.create('房主', { mode: 'ffa', maxPlayers: 4, fillBots: false, botRoster: ['astra', 'claude'] });
+  assert.deepEqual(calls[0].body, { nickname: '房主', mode: 'ffa', maxPlayers: 4, fillBots: false, botRoster: ['astra', 'claude'] });
+  await h.client.updateSettings({ mode: 'teams', maxPlayers: 4, fillBots: true, botRoster: ['deepseek', 'astra'] });
+  assert.equal(calls[1].url, '/games/bumper/api/rooms/settings');
+  assert.equal(calls[1].method, 'POST');
+  assert.deepEqual(calls[1].body, { mode: 'teams', maxPlayers: 4, fillBots: true, botRoster: ['deepseek', 'astra'] });
   h.client.dispose();
 });
 
@@ -127,6 +170,27 @@ test('hidden tabs stop movement, while the visibility neutral is sent once', asy
   h.client.neutral();
   assert.equal(socket.sent.at(-1).moveX, 0);
   assert.equal(socket.sent.at(-1).primary, false);
+  h.client.dispose();
+});
+
+test('a throttled neutral remains forced when its scheduled send runs in a hidden tab', async () => {
+  FakeSocket.instances = [];
+  let hidden = false;
+  const h = harness(async () => response({ room: { code: '123456', self_id: 0, host_id: 0, seats: [], phase: 'playing' } }), { isHidden: () => hidden });
+  await h.client.create('玩家');
+  const socket = FakeSocket.instances[0];
+  socket.open();
+  h.clock.value = 60;
+  h.client.setInput({ moveX: 1, aimX: 90, aimY: 40 });
+  hidden = true;
+  h.clock.value = 80;
+  h.client.neutral();
+  assert.equal(socket.sent.length, 2);
+  h.clock.value = 110;
+  const due = h.timers.find((item) => !item.cleared);
+  due.fn();
+  assert.equal(socket.sent.length, 3);
+  assert.equal(socket.sent.at(-1).moveX, 0);
   h.client.dispose();
 });
 

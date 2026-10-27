@@ -7,6 +7,8 @@ import { createFishDiscoveryTracker, fatFishSnapshot } from './companion-scene.j
 import { createWardrobeClient } from './wardrobe-client.js';
 import { createPersonalCompanion } from './personal-companion.js';
 import { createCornerCompanion } from './companion-corner.js';
+import { isLocalCheatAllowed } from './local-cheats.js';
+import { createFishPropsUI } from './fish-props-ui.js';
 
 export const MAX_LEVEL = 11;
 export const GIFT_LEVEL = 6;
@@ -53,6 +55,10 @@ export function easterUnlocksFor(account, profile) {
 
 const GRAVITY = 1120;
 const FRICTION = 0.72;
+const makeRequestUuid = () => globalThis.crypto?.randomUUID?.() ?? "xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx".replace(/[xy]/g, (slot) => {
+  const value = Math.floor(Math.random() * 16);
+  return (slot === "x" ? value : (value & 0x3) | 0x8).toString(16);
+});
 const characterImages = new Map();
 const easterImages = new Map();
 
@@ -166,6 +172,58 @@ function mergePair(game, a, b) {
   game.best = Math.max(game.best, game.score);
   game.particles.push({ x: merged.x, y: merged.y, age: 0, life: 0.48, level });
   return merged;
+}
+
+export function mergeBodiesInLocalMode(game, firstId, secondId) {
+  const first = game.bodies.find((body) => body.id === firstId);
+  const second = game.bodies.find((body) => body.id === secondId);
+  if (!first || !second || first === second || first.level !== second.level || first.level >= MAX_LEVEL) return null;
+  game.bodies = game.bodies.filter((body) => body !== first && body !== second);
+  const merged = mergePair(game, first, second);
+  game.bodies.push(merged);
+  return merged;
+}
+
+// Applies a replayable account prop to a hydrated game state. The caller is
+// responsible for pausing simulation and persisting the resulting snapshot.
+export function applyFishProp(game, kind, bodyIds) {
+  if (!game || !Array.isArray(game.bodies) || !Array.isArray(bodyIds)) throw new RangeError("道具参数不合法");
+  let selected;
+  if (kind === "remove") {
+    if (bodyIds.length !== 1) throw new RangeError("捞鱼网需要选择一条鱼");
+    selected = game.bodies.find((body) => body.id === bodyIds[0]);
+    if (!selected) throw new RangeError("所选鱼已不存在");
+    game.bodies = game.bodies.filter((body) => body !== selected);
+  } else if (kind === "merge") {
+    if (bodyIds.length !== 2 || bodyIds[0] === bodyIds[1]) throw new RangeError("牵线合成需要选择两条不同的鱼");
+    const first = game.bodies.find((body) => body.id === bodyIds[0]);
+    const second = game.bodies.find((body) => body.id === bodyIds[1]);
+    if (!first || !second || first === second || first.level !== second.level || first.level >= MAX_LEVEL) {
+      throw new RangeError("请选择两条等级相同且低于 11 级的鱼");
+    }
+    game.bodies = game.bodies.filter((body) => body !== first && body !== second);
+    selected = mergePair(game, first, second);
+    game.bodies.push(selected);
+  } else {
+    throw new RangeError("未知道具");
+  }
+  if (game.over) {
+    game.over = false;
+    game.overTimer = 0;
+    for (const body of game.bodies) body.dangerTime = 0;
+  }
+  return {
+    kind,
+    selectedIds: [...bodyIds],
+    resultBodyId: kind === "merge" ? selected.id : null,
+    summary: {
+      score: game.score,
+      max_level: Math.max(...game.unlocked),
+      over: game.over,
+      unlocked: [...game.unlocked],
+      egg_stages: [...game.seenEggStages],
+    },
+  };
 }
 
 function resolveCollisions(game, delta) {
@@ -477,10 +535,16 @@ export function drawGame(ctx, game, { width = FIELD_WIDTH, height = game.height,
     }
     ctx.restore();
   }
-  [...game.bodies].sort((a, b) => a.y - b.y).forEach((body) => drawWhale(ctx, body.x, body.y, body.level, body.r, 1, body.angle, body.variant));
+  [...game.bodies].sort((a, b) => a.y - b.y).forEach((body) => {
+    drawWhale(ctx, body.x, body.y, body.level, body.r, 1, body.angle, body.variant);
+    if (game.propSelectionIds?.includes(body.id)) {
+      ctx.save(); ctx.strokeStyle = "#ffbd54"; ctx.lineWidth = 4; ctx.setLineDash([7, 4]);
+      ctx.beginPath(); ctx.arc(body.x, body.y, body.r + 6, 0, Math.PI * 2); ctx.stroke(); ctx.restore();
+    }
+  });
 }
 
-function drawMini(canvas, level, locked = false, variant = null) {
+export function drawMini(canvas, level, locked = false, variant = null) {
   const ctx = canvas.getContext("2d");
   const ratio = Math.min(window.devicePixelRatio || 1, 2);
   const size = canvas.clientWidth || canvas.width;
@@ -493,6 +557,13 @@ function drawMini(canvas, level, locked = false, variant = null) {
 }
 
 function setupUI() {
+  if (typeof window !== "undefined" && isLocalCheatAllowed(window.location)) {
+    void import("./local-cheats-ui.js").then(({ setupLocalCheatUI }) => setupLocalCheatUI({
+      BASE_FIELD_HEIGHT, FIELD_WIDTH, MAX_LEVEL, awardForLevel, clamp, createGame, drawGame, drawMini, dropBody,
+      mergeBodiesInLocalMode, registerCharacterImage, registerEasterImage, stepGame,
+    }));
+    return;
+  }
   const canvas = document.querySelector("#game-canvas");
   const ctx = canvas.getContext("2d");
   const wrapper = document.querySelector(".board-wrap");
@@ -558,6 +629,7 @@ function setupUI() {
   let activePlay = null;
   let activeRunGuest = false;
   let gameReady = false;
+  let deferredSessionKind = null;
   let pendingMoves = [];
   let checkpointFlight = null;
   let checkpointTimer = null;
@@ -1037,6 +1109,7 @@ function setupUI() {
     renderRewards();
     renderGallery();
     renderEasterGallery();
+    fishProps.render();
   };
 
   const flushCheckpoint = async () => {
@@ -1116,6 +1189,52 @@ function setupUI() {
     }
     return success;
   };
+
+  const fishProps = createFishPropsUI({
+    account: () => account,
+    activeRun: () => activeRun,
+    guestRun: () => activeRunGuest,
+    gameReady: () => gameReady,
+    getGame: () => game,
+    setGame: (snapshot) => {
+      game = {
+        ...structuredClone(snapshot), width: FIELD_WIDTH, height: BASE_FIELD_HEIGHT,
+        random: seededRandom(snapshot.randomState), variantRandom: seededRandom(snapshot.variantState),
+        unlocked: new Set(snapshot.unlocked ?? [1]), seenEggs: new Set(snapshot.seenEggs ?? []),
+        seenEggStages: new Set(snapshot.seenEggStages ?? []), propSelectionIds: [],
+      };
+    },
+    getCanvasScale: () => ({ scale: gameScale, offsetX: gameOffsetX, offsetY: gameOffsetY }),
+    client: onlineClient,
+    flushCheckpoint,
+    checkpointClean: () => {
+      pendingMoves = []; checkpointNeeded = false; checkpointVersion++;
+      retryCheckpointPayload = null;
+      if (checkpointTimer) clearTimeout(checkpointTimer);
+      checkpointTimer = null; checkpointFlight = null;
+    },
+    refreshGame: (payload, isPlay = false) => {
+      if (isPlay) void updatePlayingState(payload, activeRun, false);
+      else applyServerState(payload);
+    },
+    refreshLeaderboard: () => { void leaderboard.refresh(true); },
+    toast: sayToast,
+    renderFinal: (state) => {
+      if (state.over) {
+        document.querySelector("#final-score").textContent = String(state.score);
+        drawMini(gameoverCanvas, Math.max(...state.unlocked));
+      }
+      updateHud();
+    },
+    focusCanvas: () => canvas.focus({ preventScroll: true }),
+    settled: () => {
+      const kind = deferredSessionKind;
+      deferredSessionKind = null;
+      if (!kind) return;
+      if (kind === "signed_out") { enterGuest("guest", true); void startOnlineRun(); }
+      else void loadAccount(true);
+    },
+  });
 
   const scheduleCheckpoint = () => {
     if (!activeRun || (!pendingMoves.length && !checkpointNeeded) || checkpointTimer) return;
@@ -1315,6 +1434,7 @@ function setupUI() {
     game.aimX = clamp(x, radiusForLevel(game.currentLevel) + 7, FIELD_WIDTH - radiusForLevel(game.currentLevel) - 7);
   };
   const drop = () => {
+    if (fishProps.isPaused()) return;
     if (!activeRun || !gameReady) {
       sayToast(syncMessage || "游戏记录不可用，请重新开始。");
       return;
@@ -1337,6 +1457,11 @@ function setupUI() {
   canvas.addEventListener("pointerdown", (event) => {
     aimFromEvent(event);
     canvas.focus({ preventScroll: true });
+    if (fishProps.isSelecting()) {
+      event.preventDefault();
+      fishProps.selectFish(event);
+      return;
+    }
     if (event.pointerType === "touch" || event.pointerType === "pen") {
       event.preventDefault();
       aimingPointerId = event.pointerId;
@@ -1359,6 +1484,7 @@ function setupUI() {
     if (canvas.hasPointerCapture(event.pointerId)) canvas.releasePointerCapture(event.pointerId);
   });
   canvas.addEventListener("keydown", (event) => {
+    if (fishProps.handleKeyDown(event)) return;
     if (event.code === "Space") { event.preventDefault(); drop(); }
     else if (event.code === "ArrowLeft" || event.code === "ArrowRight") {
       event.preventDefault(); game.aimX = clamp(game.aimX + (event.code === "ArrowLeft" ? -24 : 24), 30, FIELD_WIDTH - 30);
@@ -1592,6 +1718,8 @@ function setupUI() {
   });
 
   async function resetGame() {
+    if (fishProps.hasPending()) { sayToast("道具结果确认前，本局已暂停。请先重试确认同一请求。"); return; }
+    if (fishProps.isSelecting()) fishProps.cancelSelection();
     if (activeRun && (pendingMoves.length || checkpointNeeded) && !(await flushCheckpoint())) {
       sayToast(syncMessage || "进度未同步，请稍后重试。");
       return;
@@ -1606,6 +1734,13 @@ function setupUI() {
 
   const frame = (time) => {
     if (document.hidden) { lastTime = 0; accumulator = 0; requestAnimationFrame(frame); return; }
+    if (fishProps.isPaused()) {
+      lastTime = time;
+      accumulator = 0;
+      drawGame(ctx, game, { width: FIELD_WIDTH, height: game.height });
+      requestAnimationFrame(frame);
+      return;
+    }
     if (!lastTime) lastTime = time;
     accumulator += Math.min(.05, (time - lastTime) / 1000);
     lastTime = time;
@@ -1641,9 +1776,13 @@ function setupUI() {
   };
 
   new ResizeObserver(resizeCanvas).observe(wrapper);
-  resizeCanvas(); updateHud(); requestAnimationFrame(frame);
+  resizeCanvas(); updateHud(); void fishProps.load(); requestAnimationFrame(frame);
   onlineClient.onSessionChange((kind) => {
     sessionGeneration++;
+    if (fishProps.hasPending()) {
+      deferredSessionKind = kind;
+      return;
+    }
     if (kind === "signed_out") {
       enterGuest("guest", true);
       void startOnlineRun();

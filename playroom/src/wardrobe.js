@@ -37,7 +37,7 @@ export function createWardrobe({ container, client, onEquip = () => {}, onOpen =
   const login = document.createElement('a'); login.className = 'wardrobe__login'; login.textContent = '登录并同步衣柜'; login.hidden = true;
   const host = globalThis.location?.hostname;
   login.href = host === 'localhost' || host === '127.0.0.1'
-    ? 'https://oua.wolfoxlabs.xyz:8443/games/bumper/'
+    ? 'https://oua-cdn.wolfoxlabs.xyz/games/bumper/'
     : '/sign-in?redirect=%2Fgames%2Fbumper%2F';
   root.append(heading, closeButton, status, grid, pager, detail, login); container.append(root);
 

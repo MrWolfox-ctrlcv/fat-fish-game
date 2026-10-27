@@ -33,6 +33,8 @@ export function createArenaRoomClient({
   let lastSentAt = 0;
   let currentInput = { moveX: 0, moveY: 0, aimX: 0, aimY: 0, primary: false };
   let inputTimer = null;
+  let inputTimerAt = 0;
+  let forceInputPending = false;
   let online = false;
 
   async function request(path, body) {
@@ -59,6 +61,8 @@ export function createArenaRoomClient({
     retryTimer = null;
     if (inputTimer !== null) clearTimer(inputTimer);
     inputTimer = null;
+    inputTimerAt = 0;
+    forceInputPending = false;
     const old = socket;
     socket = null;
     if (old && old.readyState < 2) old.close(1000, 'room changed');
@@ -86,7 +90,7 @@ export function createArenaRoomClient({
       lastSentAt = 0;
       onStatus('connected');
       sendInputNow();
-      inputTimer = setTimer(sendInputNow, 50);
+      scheduleInputSend(100);
     });
     ws.addEventListener('message', (event) => {
       if (expectedGeneration !== generation || socket !== ws) return;
@@ -107,6 +111,7 @@ export function createArenaRoomClient({
       online = false;
       if (inputTimer !== null) clearTimer(inputTimer);
       inputTimer = null;
+      inputTimerAt = 0;
       onStatus('reconnecting');
       scheduleRetry(expectedGeneration);
     });
@@ -122,18 +127,40 @@ export function createArenaRoomClient({
     retryTimer = setTimer(() => { retryTimer = null; connect(expectedGeneration); }, delay);
   }
 
+  function scheduleInputSend(delay, force = false) {
+    if (!online || !socket || socket.readyState !== 1) return;
+    if (force) forceInputPending = true;
+    const due = now() + Math.max(0, delay);
+    if (inputTimer !== null && inputTimerAt <= due) return;
+    if (inputTimer !== null) clearTimer(inputTimer);
+    inputTimerAt = due;
+    inputTimer = setTimer(() => {
+      inputTimer = null;
+      inputTimerAt = 0;
+      const force = forceInputPending;
+      forceInputPending = false;
+      sendInputNow(force);
+      scheduleInputSend(100);
+    }, Math.max(0, due - now()));
+  }
+
   function sendInputNow(force = false) {
     if (!online || !socket || socket.readyState !== 1 || (isHidden() && !force)) return;
     const primary = nextPrimary;
     const input = { ...currentInput, primary };
     const at = now();
-    if (lastSent && at - lastSentAt < 50) return;
-    if (sameInput(input, lastSent || {}) && at - lastSentAt < 200) return;
+    const changed = !lastSent || !sameInput(input, lastSent);
+    if (lastSent && at - lastSentAt < 50) {
+      if (changed) scheduleInputSend(50 - (at - lastSentAt), force);
+      return;
+    }
+    if (!changed && at - lastSentAt < 200) return;
     try {
       socket.send(JSON.stringify({ type: 'input', seq: ++seq, ...input }));
       lastSent = input;
       lastSentAt = at;
       if (primary) nextPrimary = false;
+      if (inputTimer === null) scheduleInputSend(100);
     } catch { /* Socket close handler owns recovery. */ }
   }
 
@@ -154,7 +181,13 @@ export function createArenaRoomClient({
     create: (nickname, options = {}) => {
       const mode = options.mode === 'teams' ? 'teams' : 'ffa';
       const teamId = Number(options.teamId);
-      return enter('', { nickname, mode, ...(mode === 'teams' && (teamId === 0 || teamId === 1) ? { teamId } : {}) });
+      return enter('', {
+        nickname, mode,
+        maxPlayers: Number(options.maxPlayers) || 6,
+        fillBots: options.fillBots !== false,
+        botRoster: Array.isArray(options.botRoster) ? options.botRoster : [],
+        ...(mode === 'teams' && (teamId === 0 || teamId === 1) ? { teamId } : {}),
+      });
     },
     join: (code, nickname, options = {}) => {
       const teamId = Number(options.teamId);
@@ -182,6 +215,12 @@ export function createArenaRoomClient({
     start: async () => {
       const mine = generation;
       const result = await request('/start', {});
+      if (mine === generation && !disposed) notifyRoom(result);
+      return room;
+    },
+    updateSettings: async (settings) => {
+      const mine = generation;
+      const result = await request('/settings', settings);
       if (mine === generation && !disposed) notifyRoom(result);
       return room;
     },

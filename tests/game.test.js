@@ -1,10 +1,55 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import { awardForLevel, createGame, dropBody, easterUnlocksFor, ensureAdminCampaigns, formatRewardExpiry, formatRewardQuota, galleryUnlocksFor, getRegisteredEasterImage, isInvalidRunError, makeBody, MAX_LEVEL, radiusForLevel, registerEasterImage, stepGame, toNumericCandidateIds } from "../dist/game.js";
+import { applyFishProp, awardForLevel, createGame, dropBody, easterUnlocksFor, ensureAdminCampaigns, formatRewardExpiry, formatRewardQuota, galleryUnlocksFor, getRegisteredEasterImage, isInvalidRunError, makeBody, MAX_LEVEL, radiusForLevel, registerEasterImage, stepGame, toNumericCandidateIds } from "../dist/game.js";
 import { EASTER_EGGS, EASTER_STAGE_COUNT, getAllowedVariants, getEasterImageKey, isEasterEggId, rollEasterVariant, STAGE_VARIANTS } from "../dist/easter-eggs.js";
 import { OnlineApiError } from "../dist/online-client.js";
 
 const fixedRandom = () => 0;
+
+test("付费道具移除指定鱼，并可从失败状态救场而不立刻再次失败", () => {
+  const game = createGame({ random: fixedRandom, variantRandom: fixedRandom });
+  const target = makeBody(game, 2, 100, 120, { dangerTime: 1.2 });
+  const survivor = makeBody(game, 3, 200, 130, { dangerTime: 1.4 });
+  game.bodies.push(target, survivor);
+  game.over = true;
+  game.overTimer = 2;
+  const result = applyFishProp(game, "remove", [target.id]);
+  assert.deepEqual(game.bodies.map((body) => body.id), [survivor.id]);
+  assert.equal(game.over, false);
+  assert.equal(game.overTimer, 0);
+  assert.equal(survivor.dangerTime, 0);
+  assert.equal(result.kind, "remove");
+  assert.equal(result.summary.over, false);
+});
+
+test("付费道具同级合成复用合成分数、等级解锁和彩蛋随机状态", () => {
+  const game = createGame({ random: fixedRandom, variantRandom: fixedRandom });
+  const first = makeBody(game, 4, 140, 180);
+  const second = makeBody(game, 4, 210, 180);
+  const other = makeBody(game, 2, 300, 180);
+  game.bodies.push(first, second, other);
+  const result = applyFishProp(game, "merge", [first.id, second.id]);
+  assert.deepEqual(game.bodies.map((body) => body.id), [other.id, result.resultBodyId]);
+  const merged = game.bodies.find((body) => body.id === result.resultBodyId);
+  assert.equal(merged.level, 5);
+  assert.equal(game.score, 60);
+  assert.ok(game.unlocked.has(5));
+  assert.equal(result.summary.score, 60);
+});
+
+test("付费道具拒绝无效鱼选择且不会修改游戏状态", () => {
+  const game = createGame({ random: fixedRandom, variantRandom: fixedRandom });
+  const first = makeBody(game, 4, 100, 140);
+  const second = makeBody(game, 5, 180, 140);
+  const max = makeBody(game, MAX_LEVEL, 260, 140);
+  game.bodies.push(first, second, max);
+  const before = game.bodies.map((body) => body.id);
+  assert.throws(() => applyFishProp(game, "remove", [999]), RangeError);
+  assert.throws(() => applyFishProp(game, "merge", [first.id, second.id]), RangeError);
+  assert.throws(() => applyFishProp(game, "merge", [max.id, max.id]), RangeError);
+  assert.throws(() => applyFishProp(game, "unknown", [first.id]), RangeError);
+  assert.deepEqual(game.bodies.map((body) => body.id), before);
+});
 
 test("谢礼额度和 Unix 到期时间按用户格式显示，库存错误不误报游戏局失效", () => {
   assert.equal(formatRewardQuota(1000000), "2");

@@ -18,7 +18,7 @@
         <span><strong>合成大肥鱼</strong><small>滚一滚，合个大的</small></span>
       </a>
       <div class="top-actions">
-        <a class="leaderboard-link" href="https://oua.wolfoxlabs.xyz:8443/" target="_blank" rel="noopener" aria-label="访问 Wolfox Labs OUA 中转站">↗<span>中转站</span></a>
+        <a class="leaderboard-link" href="https://oua-cdn.wolfoxlabs.xyz/" target="_blank" rel="noopener" aria-label="访问 Wolfox Labs OUA 中转站">↗<span>中转站</span></a>
         <a class="leaderboard-link" href="/games/bumper/" aria-label="碰碰擂台与联动衣柜">◉<span>擂台衣柜</span></a>
         <a class="leaderboard-link" href="#weekly-board" aria-label="查看周排行榜">🏆<span>周榜</span></a>
         <a class="login-link" id="login-link" href="/sign-in?redirect=%2Fgames%2Ffat-fish%2F">登录以保存图鉴</a>
@@ -46,6 +46,14 @@
           </div>
           <div class="toast" id="toast" role="status" aria-live="polite"></div>
         </div>
+        <section class="fish-props" id="fish-props" aria-label="本局道具">
+          <div class="fish-props-buttons">
+            <button id="prop-remove" type="button" hidden>🕸️ 捞鱼网</button>
+            <button id="prop-merge" type="button" hidden>🧵 牵线合成</button>
+            <button id="prop-retry" type="button" hidden>重试确认</button>
+          </div>
+          <p id="prop-status" role="status" aria-live="polite">正在确认道具服务状态。</p>
+        </section>
         <details class="controls-hint">
           <summary>操作提示 · 触屏拖动选位置，松手放下</summary>
           <p>电脑：移动鼠标选位置，点击投放。键盘：Tab 聚焦鱼缸，按 <kbd>←</kbd> <kbd>→</kbd> 选位置，再按 <kbd>空格</kbd> 或 Enter 投放。</p>
@@ -74,7 +82,7 @@
           <p id="leaderboard-status" class="leaderboard-status" role="status" aria-live="polite">只统计登录账户的有效成绩。</p>
           <ol id="leaderboard-rows" class="leaderboard-rows" aria-label="周排行榜前二十名"></ol>
           <p id="leaderboard-mine" class="leaderboard-mine">登录后参与周榜。</p>
-          <p class="leaderboard-rules">取每人本周单局最高分，同分先达到者优先。北京时间周一 00:00 结算，冠军获得一张专用奖池兑换码；缺货时保留资格，补货后补发。</p>
+          <p class="leaderboard-rules">每个账户可分别保留未使用道具、使用道具的最高成绩，同分先达到者优先。北京时间周一 00:00 结算，冠军获得一张专用奖池兑换码；缺货时保留资格，补货后补发。</p>
           <div id="weekly-rewards" class="weekly-rewards" hidden></div>
         </section>
       </aside>

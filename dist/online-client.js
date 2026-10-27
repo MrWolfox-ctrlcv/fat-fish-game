@@ -159,6 +159,8 @@ export function createOnlineClient({
     },
     getLeaderboard: (period = 'current') => request(`leaderboard?period=${encodeURIComponent(period)}`, { withBearer: false, retryUnauthorized: false }),
     getWeeklyMe: () => request('leaderboard/me'),
+    getProps: () => request('props', { withBearer: false, retryUnauthorized: false }),
+    useProp: (payload) => request('run/prop', { method: 'POST', body: payload }),
     startRun: (height = 620) => request("run", { method: "POST", body: { height, physics_version: PHYSICS_VERSION } }),
     startGuestRun: () => request("play/run", { method: "POST", body: { physics_version: PHYSICS_VERSION }, withBearer: false, retryUnauthorized: false }),
     checkpoint: (payload) => request("run/checkpoint", { method: "POST", body: payload }),

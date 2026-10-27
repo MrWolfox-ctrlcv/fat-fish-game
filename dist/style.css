@@ -121,6 +121,13 @@ button:focus-visible, a:focus-visible, summary:focus-visible, #game-canvas:focus
 .toast { position: absolute; z-index: 3; top: 45%; left: 50%; transform: translate(-50%,-50%) scale(.94); opacity: 0; pointer-events: none; padding: 10px 16px; border: 1px solid #c6e0e5; border-radius: 999px; background: #fffef5; color: #205f7c; font-size: 14px; font-weight: 900; box-shadow: 0 6px 20px rgba(33,91,114,.2); transition: opacity .18s, transform .18s; white-space: nowrap; }
 .toast.show { opacity: 1; transform: translate(-50%,-50%) scale(1); }
 .controls-hint { margin: 11px 2px 0; color: #48667d; font-size: 13px; }
+.fish-props { display: flex; align-items: center; justify-content: space-between; gap: 10px; min-height: 42px; margin: 10px 2px 0; }
+.fish-props-buttons { display: flex; flex-wrap: wrap; gap: 7px; }
+.fish-props button { min-height: 36px; padding: 6px 11px; border: 1px solid #b8d6dc; border-radius: 10px; background: #edf8f5; color: #236b70; font: inherit; font-size: 12px; font-weight: 800; cursor: pointer; }
+.fish-props button:hover:not(:disabled) { background: #dcf2ed; }
+.fish-props button:disabled { opacity: .6; cursor: wait; }
+.fish-props button[hidden] { display: none; }
+.fish-props p { margin: 0; color: #647e8d; font-size: 11px; line-height: 1.4; text-align: right; }
 .controls-hint summary { width: fit-content; cursor: pointer; font-weight: 700; }
 .controls-hint summary::marker { color: #4387a7; }
 .controls-hint p { margin: 8px 0 2px; color: #557188; line-height: 1.55; }
@@ -215,8 +222,12 @@ button:focus-visible, a:focus-visible, summary:focus-visible, #game-canvas:focus
 .leaderboard-rank { color: #8b9caa; font-size: 12px; font-weight: 800; }
 .leaderboard-rows li:first-child { background: #fff7df; border-color: #ebd59f; }
 .leaderboard-name { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.leaderboard-person { display: flex; min-width: 0; align-items: center; gap: 7px; }
+.leaderboard-prop-tag { flex: 0 0 auto; padding: 2px 5px; border-radius: 6px; background: #edf1f3; color: #687d88; font-size: 9px; font-weight: 800; }
+.leaderboard-prop-tag.used { background: #fff0d5; color: #976322; }
 .leaderboard-score { color: #1f5678; font-variant-numeric: tabular-nums; }
 .leaderboard-mine { margin: 10px 0 7px; padding: 9px; border-radius: 9px; background: #eaf3f7; color: #2c5f7b; font-size: 12px; }
+.leaderboard-mine > strong, .leaderboard-mine > span { display: block; margin-top: 5px; }
 .leaderboard-rules { margin: 0; color: #758593; font-size: 11px; line-height: 1.7; }
 .weekly-rewards { margin-top: 12px; padding-top: 11px; border-top: 1px solid #d9e4e8; }
 .weekly-rewards[hidden] { display: none; }
@@ -245,6 +256,8 @@ button:focus-visible, a:focus-visible, summary:focus-visible, #game-canvas:focus
   .brand { flex-shrink: 0; }
   .top-actions { flex-wrap: wrap; justify-content: flex-end; row-gap: 5px; }
   .leaderboard-link { min-height: 35px; padding: 6px 8px; }
+  .fish-props { align-items: flex-start; flex-direction: column; }
+  .fish-props p { text-align: left; }
   .leaderboard-link span { display: none; }
   .shell { width: calc(100% - 16px); padding-top: 7px; }
   .topbar { height: 51px; margin-bottom: 9px; }

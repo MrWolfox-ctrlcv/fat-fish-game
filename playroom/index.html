@@ -13,7 +13,7 @@
 </head>
 <body>
   <div class="shell">
-    <header><a class="brand" href="./"><canvas id="brand-art" width="64" height="64" aria-hidden="true"></canvas><span>WOLFOX <b>PLAYROOM</b></span><i>LAB</i></a><nav class="site-nav" aria-label="网站入口"><a id="hall-link" class="station-link" href="/games/">小游戏大厅 ↗</a><a class="station-link" href="https://oua.wolfoxlabs.xyz:8443/" target="_blank" rel="noopener">Wolfox Labs · OUA 中转站 ↗</a><a class="old-game" href="http://127.0.0.1:4178/" target="_blank" rel="noopener">弹弹乐 ↗</a></nav></header>
+    <header><a class="brand" href="./"><canvas id="brand-art" width="64" height="64" aria-hidden="true"></canvas><span>WOLFOX <b>PLAYROOM</b></span><i>LAB</i></a><nav class="site-nav" aria-label="网站入口"><a id="hall-link" class="station-link" href="/games/">小游戏大厅 ↗</a><a class="station-link" href="https://oua-cdn.wolfoxlabs.xyz/" target="_blank" rel="noopener">Wolfox Labs · OUA 中转站 ↗</a><a class="old-game" href="http://127.0.0.1:4178/" target="_blank" rel="noopener">弹弹乐 ↗</a></nav></header>
     <main>
       <div class="intro"><div><p class="eyebrow"><span></span> WOLFOX PLAYROOM <i>/</i> 保持 Q 弹</p><h1 id="page-heading">保持 Q 弹，站稳擂台。</h1></div><p id="page-description">找角度，抓空档。90 秒，把对手撞下去。</p></div>
       <div class="mode-tabs" role="tablist" aria-label="选择小游戏">
@@ -24,14 +24,14 @@
 
       <div class="play-layout">
         <section class="game-panel" id="game-panel" role="tabpanel" aria-labelledby="tab-bumper">
-          <div class="game-bar"><div><span class="game-dot"></span><strong id="game-name">碰碰擂台</strong><span class="state-pill" id="state-label">准备就绪</span></div><div class="view-actions"><button id="practice-mode" class="view-toggle" type="button">单人练习</button><button id="room-mode" class="view-toggle" type="button">好友房间</button><button id="wardrobe-open" class="view-toggle" type="button">衣柜</button><a class="arena-site" href="https://oua.wolfoxlabs.xyz:8443/" target="_blank" rel="noopener">OUA 中转站 ↗</a><button id="expand" class="view-toggle" type="button" aria-pressed="false">专注模式 ↗</button><button id="sound" class="sound-toggle" type="button" aria-pressed="false" aria-label="开启声音">♪ <span id="sound-label">声音关</span></button></div></div>
+          <div class="game-bar"><div><span class="game-dot"></span><strong id="game-name">碰碰擂台</strong><span class="state-pill" id="state-label">准备就绪</span></div><div class="view-actions"><button id="practice-mode" class="view-toggle" type="button">单人练习</button><button id="room-mode" class="view-toggle" type="button">好友房间</button><button id="wardrobe-open" class="view-toggle" type="button">衣柜</button><a class="arena-site" href="https://oua-cdn.wolfoxlabs.xyz/" target="_blank" rel="noopener">OUA 中转站 ↗</a><button id="expand" class="view-toggle" type="button" aria-pressed="false">专注模式 ↗</button><button id="sound" class="sound-toggle" type="button" aria-pressed="false" aria-label="开启声音">♪ <span id="sound-label">声音关</span></button></div></div>
           <div class="hud"><div><span id="score-label">本局击飞</span><strong id="score">0</strong></div><div><span>剩余时间</span><strong id="timer">90<small> 秒</small></strong></div><div><span id="stat1-label">名次</span><strong id="stat1">第1名</strong></div><div><span id="stat2-label">冲刺冷却</span><strong id="stat2">就绪</strong></div></div>
           <div class="match-layout">
           <div class="stage" id="stage">
             <canvas id="game-canvas" width="1280" height="900" tabindex="0" role="application" aria-label="游戏画布。擂台：WASD移动、鼠标瞄准、点击或空格冲刺；触屏左侧移动、右侧拖动瞄准后松手冲刺，支持双指。幸存者按住拖动移动，厨房点击工作台。"></canvas>
             <div id="touch-hints" class="touch-hints" hidden aria-hidden="true"><span>◯ 左手移动</span><span>瞄准 · 松手冲刺 ◯</span></div>
             <div id="arena-ribbon" class="arena-ribbon" aria-label="本局选手击飞数"></div>
-            <div class="stage-overlay" id="overlay"><div class="overlay-card"><p class="eyebrow" id="overlay-kicker">ONE MINUTE, ONE MORE TRY</p><h2 id="overlay-title">肥鱼正在集合…</h2><p id="overlay-copy">三种玩法，三种快乐。</p><div class="result-stats" id="result-stats" hidden><span>本局得分<strong id="result-score">0</strong></span><span>本机最佳<strong id="result-best">0</strong></span></div><button id="start" class="primary" type="button" disabled>正在准备…</button><button id="next-mode" class="quiet-button" type="button" hidden>换个口味 →</button><a class="overlay-site" href="https://oua.wolfoxlabs.xyz:8443/" target="_blank" rel="noopener">Wolfox Labs · 访问中转站 ↗</a></div></div>
+            <div class="stage-overlay" id="overlay"><div class="overlay-card"><p class="eyebrow" id="overlay-kicker">ONE MINUTE, ONE MORE TRY</p><h2 id="overlay-title">肥鱼正在集合…</h2><p id="overlay-copy">三种玩法，三种快乐。</p><div class="result-stats" id="result-stats" hidden><span>本局得分<strong id="result-score">0</strong></span><span>本机最佳<strong id="result-best">0</strong></span></div><button id="start" class="primary" type="button" disabled>正在准备…</button><button id="next-mode" class="quiet-button" type="button" hidden>换个口味 →</button><a class="overlay-site" href="https://oua-cdn.wolfoxlabs.xyz/" target="_blank" rel="noopener">Wolfox Labs · 访问中转站 ↗</a></div></div>
           </div>
           <section id="companion" class="companion-corner" aria-label="小鲸 AI 陪玩">
             <button id="companion-toggle" class="companion-trigger" type="button" aria-expanded="false" aria-controls="companion-popover" aria-label="打开小鲸陪玩">
@@ -46,12 +46,12 @@
           </section>
           </div>
           <div class="controls"><button id="pause" type="button" class="square-button" aria-label="暂停游戏" disabled>Ⅱ</button><button id="action" type="button" class="action-button" disabled>冲撞 <span>SPACE</span></button><div id="kitchen-controls" hidden><button type="button" data-station="0">寿司 <kbd>1</kbd></button><button type="button" data-station="1">甜点 <kbd>2</kbd></button><button type="button" data-station="2">咖啡 <kbd>3</kbd></button></div><button id="restart" type="button" class="square-button" aria-label="重新开始">↻</button></div>
-          <p id="input-hint" class="input-hint">WASD 移动 · 鼠标瞄准 · 点击 / 空格冲刺</p><div class="game-note"><span id="game-message">把对手撞出台外，自己要站稳。</span><span id="match-tag" class="local-tag">单人练习 · 6 人混战 · 90 秒</span></div>
+          <p id="input-hint" class="input-hint">WASD 移动 · 鼠标瞄准 · 点击 / 空格冲刺</p><div class="game-note"><span id="game-message">把对手撞出台外，自己要站稳。</span><span id="match-tag" class="local-tag">单人练习 · 2–6 人 · 90 秒</span></div>
         </section>
 
         <aside>
           <section id="room-card" class="room-card" aria-label="好友房间"></section>
-          <section id="practice-team-card" class="practice-team-card" aria-label="练习规则"><h2>练习规则</h2><p>对局开始后规则锁定；好友房以房主选择为准。</p><label>玩法<select id="practice-rule" aria-label="练习玩法"><option value="ffa">自由混战（默认）</option><option value="teams">阵营组队 3v3</option></select></label><label id="practice-team-field" hidden>你的阵营<select id="practice-team" aria-label="练习阵营"><option value="0">国模队</option><option value="1">美模队</option></select></label></section>
+          <section id="practice-team-card" class="practice-team-card" aria-label="练习规则"><h2>练习规则</h2><p>可随时调整设置，新人数和人机名单在下一局生效。</p><div id="practice-settings"></div><label id="practice-team-field" hidden>你的阵营<select id="practice-team" aria-label="练习阵营"><option value="0">国模队</option><option value="1">美模队</option></select></label></section>
           <section id="standings-card" class="standings-card" aria-labelledby="standings-heading"><p class="eyebrow">LIVE STANDINGS</p><h2 id="standings-heading">这一局，谁更 Q 弹？</h2><div id="team-standings" class="team-standings" hidden aria-label="阵营排名"></div><div class="standings-labels"><span>名次</span><span>选手</span><span>击飞 / 落水</span></div><ol id="standings"></ol><p id="standings-note">同分时，落水更少者领先。<br>练习对手均为脚本人机。</p></section>
           <section class="brief-card"><p class="eyebrow">THE GOOD PART</p><h2 id="mode-tagline">把烦恼撞出去</h2><p class="brief-intro" id="instructions">移动、冲刺、反弹。你只需要站到最后。</p><ol id="goals"></ol><div class="best-row"><span>这款的本机最佳</span><strong id="best">0</strong></div></section>
           <section class="tasting-card"><div class="tasting-art"><canvas id="crew-art" width="480" height="130" aria-hidden="true"></canvas></div><p class="eyebrow">YOUR PICK</p><h2>哪款，还想再来？</h2><p>试过以后，给喜欢的留颗星。<br>你的选择只记在这个浏览器。</p><div class="favorites" role="group" aria-label="喜欢的小游戏"><button type="button" data-favorite="bumper" aria-pressed="false">☆ 擂台</button><button type="button" data-favorite="kitchen" aria-pressed="false">☆ 厨房</button><button type="button" data-favorite="survival" aria-pressed="false">☆ 幸存者</button></div></section>
@@ -59,7 +59,7 @@
       </div>
       <p id="announcer" class="sr-only" role="status" aria-live="polite"></p>
     </main>
-    <footer><a href="https://oua.wolfoxlabs.xyz:8443/" target="_blank" rel="noopener">Wolfox Labs · OUA 中转站 ↗</a><span>免费摸鱼，保持 Q 弹。</span></footer>
+    <footer><a href="https://oua-cdn.wolfoxlabs.xyz/" target="_blank" rel="noopener">Wolfox Labs · OUA 中转站 ↗</a><span>免费摸鱼，保持 Q 弹。</span></footer>
   </div>
   <dialog id="wardrobe-dialog" aria-label="账户衣柜"></dialog>
   <script type="module" src="./src/main.js"></script>
