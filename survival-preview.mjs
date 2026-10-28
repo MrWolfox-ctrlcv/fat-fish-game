@@ -6,7 +6,7 @@ const base=process.env.SURVIVOR_BASE||'/';
 if(!/^\/(?:[a-z-]+\/)*$/.test(base))throw new Error('Invalid survivor base');
 const paths=new Map([
  ['/', ['survival/index.html','text/html']],
- ...['main.js','engine.js','render.js','roster.js','heroes.js','style.css'].map(n=>['/'+n,['survival/'+n,n.endsWith('.css')?'text/css':'text/javascript']]),
+ ...['main.js','engine.js','render.js','roster.js','heroes.js','loot.js','style.css'].map(n=>['/'+n,['survival/'+n,n.endsWith('.css')?'text/css':'text/javascript']]),
  ['/survival-avatar.png',['data/art-prepared/01.png','image/png']],
  ['/super-fat.png',['data/art-prepared/21.png','image/png']],
  ['/map-floor.png',['survival/assets/map-floor.webp','image/webp']],
@@ -30,7 +30,7 @@ const server=createServer(async(req,res)=>{
  if(!entry){res.writeHead(404).end();return;}
  try{
    const data=await readFile(new URL(entry[0],import.meta.url));const etag='"'+createHash('sha256').update(data).digest('hex')+'"';
-   const headers={'Content-Type':entry[1]+'; charset=utf-8','Cache-Control':'public, no-cache','ETag':etag,'X-Content-Type-Options':'nosniff','Referrer-Policy':'strict-origin-when-cross-origin'};
+   const headers={'Content-Type':entry[1]+'; charset=utf-8','Cache-Control':entry[1].startsWith('image/')?'public, max-age=86400':'public, no-cache','ETag':etag,'X-Content-Type-Options':'nosniff','Referrer-Policy':'strict-origin-when-cross-origin'};
    if(req.headers['if-none-match']===etag){res.writeHead(304,headers).end();return;}
    res.writeHead(200,{...headers,'Content-Length':data.length});res.end(req.method==='HEAD'?undefined:data);
  }catch{res.writeHead(404).end();}

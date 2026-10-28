@@ -2,14 +2,14 @@
 <html lang="zh-CN">
 <head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"><title>肥鱼幸存者</title><link rel="stylesheet" href="./style.css"></head>
 <body>
- <header class="topbar"><a class="brand" href="./"><img src="./survival-avatar.png" alt=""><span>肥鱼幸存者<small>今天也要，吃饱再打。</small></span></a><nav><a href="https://oua-cdn.wolfoxlabs.xyz/games/">小游戏大厅 ↗</a><a href="https://oua-cdn.wolfoxlabs.xyz/">OUA 中转站 ↗</a><button id="choose-hero">选择主角</button><button id="focus-enter">专注模式 ↗</button><button id="pause">暂停</button><button id="restart">重新开始</button></nav></header>
+ <header class="topbar"><a class="brand" href="./"><img src="./survival-avatar.png" alt=""><span>肥鱼幸存者<small>今天也要，吃饱再打。</small></span></a><nav><a href="https://oua-cdn.wolfoxlabs.xyz/games/">小游戏大厅 ↗</a><a href="https://oua-cdn.wolfoxlabs.xyz/">OUA 中转站 ↗</a><button id="choose-hero">选择主角</button><button id="focus-enter">专注模式 ↗</button><button id="show-stats">属性</button><button id="pause">暂停</button><button id="restart">重新开始</button></nav></header>
  <main class="layout">
   <section class="game-panel" aria-label="生存战斗">
    <div class="hud"><div><small>当前轮次</small><strong id="round">01 / 10</strong></div><div><small>本轮剩余</small><strong id="timer">20 秒</strong></div><div><small>成长等级</small><strong id="level">Lv.1</strong></div><div><small>击破</small><strong id="kills">0</strong></div></div>
    <div class="vitals"><div><span id="health-label">生命</span><div class="meter health"><i id="health-fill"></i></div></div><div><span id="xp-label">经验</span><div class="meter xp"><i id="xp-fill"></i></div></div></div>
    <div class="hero-resource"><span id="resource-label">肥胖等级 1 · 0 / 2 碗</span><div class="meter resource"><i id="resource-fill"></i></div></div>
    <div class="metabolic"><span id="fatness">小肥鱼 · 成长等级 1</span><span id="momentum">滑行 0.3 秒 · 减伤 40%</span><span id="food-hint">小心，肥鱼会偷吃白饭。</span></div>
-   <div class="stage" id="stage"><canvas id="field" tabindex="0" aria-label="WASD 或方向键移动，空格肉蛋冲击。触屏左侧拖动移动，右下角按钮冲击。"></canvas><div class="focus-tools"><button id="focus-pause">暂停</button><button id="focus-exit">退出专注 ↙</button><a href="https://oua-cdn.wolfoxlabs.xyz/" target="_blank" rel="noopener">OUA ↗</a></div><div id="notice" class="notice" aria-live="polite"></div><div id="stick" class="stick" hidden><i></i></div><div class="overlay" id="overlay" role="dialog" aria-modal="true" aria-labelledby="overlay-title"><div class="overlay-content"><span id="overlay-kicker" class="eyebrow"></span><h1 id="overlay-title"></h1><p id="overlay-description"></p><div id="hero-picker" class="hero-picker" aria-label="选择主角"></div><div id="choices" class="choices"></div></div></div></div>
+   <div class="stage" id="stage"><canvas id="field" tabindex="0" aria-label="WASD 或方向键移动，空格肉蛋冲击。触屏左侧拖动移动，右下角按钮冲击。"></canvas><div class="focus-tools"><button id="focus-stats">属性</button><button id="focus-pause">暂停</button><button id="focus-exit">退出专注 ↙</button><a href="https://oua-cdn.wolfoxlabs.xyz/" target="_blank" rel="noopener">OUA ↗</a></div><div id="notice" class="notice" aria-live="polite"></div><div id="stick" class="stick" hidden><i></i></div><div class="overlay" id="overlay" role="dialog" aria-modal="true" aria-labelledby="overlay-title"><div class="overlay-content"><span id="overlay-kicker" class="eyebrow"></span><h1 id="overlay-title"></h1><p id="overlay-description"></p><section id="pause-stats" class="pause-stats" hidden aria-label="当前属性"></section><div id="hero-picker" class="hero-picker" aria-label="选择主角"></div><div id="choices" class="choices"></div></div></div></div>
    <div class="controlbar"><span>移动 <kbd>WASD</kbd> / 方向键 · 自动攻击</span><button id="rice-item" class="item-slot" aria-label="按数字 1 使用白饭"><kbd>1</kbd><span>🍚 白饭 <b id="rice-count">0</b></span><small id="rice-effect">恢复 30 生命</small></button><button id="skill"><span>肉蛋冲击</span><small id="skill-status">空格 / E</small></button></div>
   </section>
   <aside>
@@ -20,3 +20,4 @@
   </aside>
  </main><script type="module" src="./main.js"></script>
 </body></html>
+

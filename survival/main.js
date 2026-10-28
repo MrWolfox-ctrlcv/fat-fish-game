@@ -1,4 +1,4 @@
-import { createGame, stepGame, performAction, choose, continueRound, useItem, itemInfo, CATALOG } from './engine.js';
+import { createGame, stepGame, performAction, choose, continueRound, useItem, itemInfo, getStats, CATALOG } from './engine.js';
 import { HEROES } from './heroes.js';
 import { createRenderer } from './render.js';
 
@@ -54,6 +54,7 @@ function button(label, action, choice) {
   const b = document.createElement('button');
   if (choice) {
     b.className = 'choice';
+    if(choice.rarity){b.dataset.rarity=choice.rarity.id;b.style.borderColor=choice.rarity.color;const badge=document.createElement('span');badge.className='rarity-badge';badge.style.color=choice.rarity.color;badge.textContent=choice.rarity.label;b.append(badge);}
     const icon = document.createElement('span'); icon.className = game.phase === 'reward' ? 'symbol loot-reward' : 'symbol'; icon.textContent = game.phase === 'reward' ? '' : choice.icon || '✦';
     const title = document.createElement('strong'); title.textContent = choice.name;
     const details = document.createElement('small'); details.textContent = choice.description;
@@ -61,6 +62,14 @@ function button(label, action, choice) {
   } else b.textContent = label;
   b.onclick = () => { action(); clearInput(); accumulator = 0; overlayKey = ''; refreshOverlay(); updateHud(); if ($('overlay').hidden) canvas.focus({preventScroll:true}); };
   return b;
+}
+function renderStats() {
+  const stats=getStats(game),panel=$('pause-stats');panel.replaceChildren();
+  const heading=document.createElement('h2');heading.textContent='当前角色属性';panel.append(heading);
+  const grid=document.createElement('dl');grid.className='stats-grid';
+  for(const item of stats.entries){const pair=document.createElement('div'),label=document.createElement('dt'),value=document.createElement('dd');label.textContent=item.label;value.textContent=`${typeof item.value==='number'?Math.round(item.value*100)/100:item.value}${item.unit||''}`;pair.append(label,value);grid.append(pair);}panel.append(grid);
+  const odds=document.createElement('p');odds.className='rarity-odds';odds.textContent=`当前幸运 ${Math.round(game.player.luck)} · 抽选概率：${stats.weights.map(w=>`${w.label} ${w.percent}%`).join(' / ')}`;panel.append(odds);
+  const weapons=document.createElement('p');weapons.textContent=stats.weapons.length?`已装备武器：${stats.weapons.map(w=>`${w.name} Lv.${w.level}`).join('、')}`:'尚未装备额外武器。';panel.append(weapons);
 }
 function refreshOverlay() {
   if(game.phase==='won'&&game.heroId==='gpt'&&!astraUnlocked){astraUnlocked=true;try{localStorage.setItem('survivor.astra-unlocked.v1','1');}catch{}}
@@ -71,6 +80,7 @@ function refreshOverlay() {
   $('overlay').hidden = phase === 'playing';
   $('pause').textContent = paused ? '继续' : '暂停';
   $('focus-pause').textContent = paused ? '继续' : '暂停';
+  $('pause-stats').hidden=phase!=='paused';if(phase==='paused')renderStats();
   if (phase === 'playing') return;
   clearInput();
   $('hero-picker').hidden=phase!=='welcome';if(phase==='welcome')renderHeroPicker();
@@ -111,7 +121,7 @@ function updateHud() {
   $('rice-count').textContent = `${info.count} / 9`;
   $('rice-item').querySelector('span').firstChild.textContent=`${hero.itemIcon} ${info.name} `;
   $('rice-item').setAttribute('aria-label',`按数字1使用${info.name}`);
-  $('rice-effect').textContent = game.heroId==='deepseek'?`恢复 ${30 + (game.equipment.ricebox || 0)*10} 生命`:game.heroId==='gemini'?'3 次护盾 · 8 秒':game.heroId==='gpt'?'回满能量':'重置技能冷却';
+  $('rice-effect').textContent = game.heroId==='deepseek'?`恢复 ${30 + (game.equipmentPower?.ricebox || 0)*10} 生命`:game.heroId==='gemini'?'3 次护盾 · 8 秒':game.heroId==='gpt'?'回满能量':'重置技能冷却';
   $('rice-item').disabled = !active() || !info.canUse;
   const isFish=game.heroId==='deepseek',isGpt=game.heroId==='gpt';
   $('fatness').textContent=isFish?`${p.superFat?'超级大肥鱼 · ':''}成长 ${p.fatLevel}/30 · 外观 ${p.fishStage}/11`:isGpt?`${p.transformed?'正常':'降智'} GPT`:hero.name;
@@ -125,9 +135,10 @@ function updateHud() {
   $('notice').classList.toggle('visible', performance.now() < noticeUntil && $('overlay').hidden);
   $('route-title').textContent = game.round < 3 ? '第三轮，模型精英来袭。' : game.round < 10 ? '组合升级，备战首领。' : '最后一轮，全力以赴。';
   $('route-detail').textContent = `本轮 ${game.roundDuration} 秒。${info.name}最多携带9份，可留到后续轮次使用。`;
-  const signature = JSON.stringify([game.traits,game.equipment]);
+  const signature = JSON.stringify([game.traits,game.equipment,game.buildLog?.length]);
   if ($('build').dataset.signature !== signature) {
     $('build').dataset.signature = signature; $('build').replaceChildren();
+    if(game.buildLog?.length){for(const item of game.buildLog.slice(-20).reverse()){const row=document.createElement('div');row.className='build-line';const name=document.createElement('span');name.textContent=`${item.name} · ${item.rarity}`;name.title=item.description;row.append(name);$('build').append(row);}return;}
     for (const [title, entries] of [['特性', game.traits], ['装备', game.equipment]]) for (const [key,value] of Object.entries(entries || {})) if (value) {
       const row = document.createElement('div'); row.className='build-line';
       const name = document.createElement('span'); name.textContent = `${title} · ${CATALOG[key]?.name || key}`;
@@ -146,6 +157,8 @@ $('focus-enter').onclick = () => setFocus(true);
 $('focus-exit').onclick = () => setFocus(false);
 $('focus-pause').onclick = () => $('pause').click();
 $('pause').onclick = () => { if (!started || game.phase !== 'playing') return; paused = !paused; clearInput(); accumulator=0; refreshOverlay(); updateHud(); };
+$('show-stats').onclick = () => {if(started&&game.phase==='playing'){paused=true;clearInput();overlayKey='';refreshOverlay();}};
+$('focus-stats').onclick=()=>$('show-stats').click();
 $('restart').onclick = reset;
 $('choose-hero').onclick = reset;
 const moves = new Set(['w','a','s','d','arrowup','arrowdown','arrowleft','arrowright']);
