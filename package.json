@@ -5,6 +5,7 @@
   "type": "module",
   "scripts": {
     "start": "node --env-file-if-exists=.env production.mjs",
+    "preview:survival": "node survival-preview.mjs 4185",
     "test": "node --test tests/*.test.js tests/playroom/*.test.js",
     "prepare:art": "node scripts/prepare-art.mjs"
   },
