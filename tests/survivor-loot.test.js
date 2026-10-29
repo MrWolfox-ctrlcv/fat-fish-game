@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { createGame, choose, stepGame, getStats, grantExperience, CATALOG, limits } from '../survival/engine.js';
+import { createGame, choose, stepGame, getStats, getOrbitStats, grantExperience, CATALOG, limits } from '../survival/engine.js';
 import { RARITIES, rarityWeights, rollRarity } from '../survival/loot.js';
 
 function offer(g, phase, id, rarity) {
@@ -8,6 +8,10 @@ function offer(g, phase, id, rarity) {
   g.pendingLevels = phase === 'trait' ? 1 : 0;
   g.choices = [{ id, name: CATALOG[id.split(':')[1]].name, icon: 'x', description: '', rarity,
     rarityId: rarity.id, rarityLabel: rarity.label, rarityColor: rarity.color, multiplier: rarity.multiplier }];
+}
+function generatedOrbitCard(level=0,power=0) {
+  const g=createGame({seed:1});g.weapons.orbit=level;g.weaponPower.orbit=power;g.roundTime=g.roundDuration;g.spawnTimer=g.chestTimer=100;
+  stepGame(g,{},.001);return g.choices.find(c=>c.id==='gear:orbit');
 }
 
 test('rarity weights sum to one, clamp luck, and smoothly increase higher tiers', () => {
@@ -82,6 +86,26 @@ test('weapon offers scale power by rarity and stat panel reports tier weights an
   const stats=getStats(g);assert.equal(stats.weapons[0].power,1.65);assert.equal(stats.effects.orbit,1.65);
   assert.equal(stats.weights.reduce((sum,x)=>sum+x.percent,0),100);
   assert.equal(limits.enemies,64);
+});
+
+test('orbit upgrades add a visible orb and increase aggregate pulse damage up to the seven orb cap', () => {
+  const g=createGame();
+  offer(g,'reward','gear:orbit',RARITIES[0]);choose(g,'gear:orbit');
+  g.phase='playing';
+  assert.deepEqual(getOrbitStats(g),{count:3,damage:10,interval:.9,radius:150});
+  const first=stepGame(g,{},.01).find(e=>e.type==='orbit-pulse');assert.equal(first.count,3);assert.equal(first.damage,10);
+  offer(g,'reward','gear:orbit',RARITIES[0]);
+  assert.match(generatedOrbitCard(0,0).description,/获得 3 枚环刃/);
+  assert.match(generatedOrbitCard(1,1).description,/数量增加 1 枚/);
+  choose(g,'gear:orbit');g.phase='playing';
+  assert.deepEqual(getOrbitStats(g),{count:4,damage:20,interval:.9,radius:150});
+  g.player.orbitTimer=0;
+  const second=stepGame(g,{},.01).find(e=>e.type==='orbit-pulse');assert.equal(second.count,4);assert.equal(second.damage,20);
+  for(let i=2;i<5;i++){offer(g,'reward','gear:orbit',RARITIES[0]);choose(g,'gear:orbit');}
+  assert.deepEqual(getOrbitStats(g),{count:7,damage:50,interval:.9,radius:150});
+  const stats=getStats(g);assert.equal(stats.entries.find(e=>e.key==='orbitCount').value,7);assert.equal(stats.weapons[0].count,7);
+  const rare=createGame();offer(rare,'reward','gear:orbit',RARITIES[3]);choose(rare,'gear:orbit');
+  assert.equal(getOrbitStats(rare).count,3);assert.equal(getOrbitStats(rare).damage,21);
 });
 
 test('enemy slow state, orbit angle, and damage stay deterministic and bounded', () => {

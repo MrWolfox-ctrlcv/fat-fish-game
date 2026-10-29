@@ -1,6 +1,8 @@
-import { createGame, stepGame, performAction, choose, continueRound, useItem, itemInfo, getStats, CATALOG } from './engine.js';
+import { createGame, stepGame, performAction, choose, continueRound, useItem, itemInfo, getStats, DIFFICULTIES, CATALOG } from './engine.js';
 import { HEROES } from './heroes.js';
 import { createRenderer } from './render.js';
+import { createCloudSaves } from './cloud-saves.js';
+import { createMusic } from './music.js';
 
 const $ = (id) => document.getElementById(id);
 const canvas = $('field');
@@ -9,23 +11,26 @@ const asset = path => new URL(path,import.meta.url).href;
 let astraUnlocked = false;
 try { astraUnlocked = localStorage.getItem('survivor.astra-unlocked.v1') === '1'; } catch {}
 let selectedHero = 'deepseek';
+let selectedDifficulty='standard',cloudLocked=false;
+const music=createMusic();
 const heroCopy = {
   deepseek: {portrait:'survival-avatar.png',title:'从小肥鱼，慢慢吃大。',description:'吃饭填满肥胖条才会长大。越肥越耐打、冲撞越狠，滑行也越难控制。偷吃只有一半回血。'},
   gemini: {portrait:'enemy/gemini.png',title:'故障机器猫，闪一下。',description:'跑得快，射得快，生命较少。闪现穿过危险；宝箱开出 Chrome 球，使用后获得三次护盾，持续八秒。'},
   gpt: {portrait:'enemy/gptSilly.png',title:'先攒能量，再恢复正常。',description:'基础形态很弱。经验同时充能与升级，20 能量起可变身正常 GPT，保留当前血量；正常形态可调用防御工具。重置卷回满能量。'},
   astra: {portrait:'enemy/astra.png',title:'满血 Astra，登场。',description:'以 GPT 通关后的奖励角色。高伤害、厚血量，移速稍慢；星爆打击身边敌人，核心道具可以重置冷却。'},
 };
-let game = createGame({ seed: Date.now() >>> 0, hero:selectedHero });
+let game = createGame({ seed: Date.now() >>> 0, hero:selectedHero,difficulty:selectedDifficulty });
 let started = false, paused = false, last = 0, accumulator = 0, lastHud = 0, lastDraw = 0, overlayKey = '';
 let aim = null, touch = null, noticeUntil = 0;
 const keys = new Set();
 let focusMode = false;
+let musicActive=false;
 function setFocus(value) {
   focusMode = value; document.body.classList.toggle('focus-mode',value); clearInput();
   requestAnimationFrame(()=>renderer.resize());
 }
 const input = () => ({ moveX: touch?.x ?? ((keys.has('d') || keys.has('arrowright') ? 1 : 0) - (keys.has('a') || keys.has('arrowleft') ? 1 : 0)), moveY: touch?.y ?? ((keys.has('s') || keys.has('arrowdown') ? 1 : 0) - (keys.has('w') || keys.has('arrowup') ? 1 : 0)), ...(aim ? { aimX: aim.x, aimY: aim.y } : {}) });
-const active = () => started && !paused && !document.hidden && game.phase === 'playing';
+const active = () => started && !paused && !cloudLocked && !document.hidden && game.phase === 'playing';
 const clearInput = () => { keys.clear(); touch = null; aim = null; $('stick').hidden = true; };
 function eventFeedback(events = []) {
   if (!Array.isArray(events)) return;
@@ -38,7 +43,7 @@ function skill() { if (active()) { eventFeedback(performAction(game, { type: 'pr
 function eatRice() { if (active()) { eventFeedback(useItem(game,1)); updateHud(); } }
 function reset() {
   if (started && !['won','lost'].includes(game.phase) && !confirm('结束当前局，重新开始？')) return;
-  game = createGame({ seed: Date.now() >>> 0, hero:selectedHero }); started = false; paused = false; clearInput(); overlayKey = ''; refreshOverlay(); updateHud();
+  game = createGame({ seed: Date.now() >>> 0, hero:selectedHero,difficulty:selectedDifficulty }); started = false; paused = false; clearInput(); overlayKey = ''; refreshOverlay(); updateHud();
 }
 function renderHeroPicker() {
   const picker=$('hero-picker');picker.replaceChildren();
@@ -47,7 +52,7 @@ function renderHeroPicker() {
     b.disabled=id==='astra'&&!astraUnlocked;
     const name=document.createElement('strong');name.textContent=hero.name;
     const desc=document.createElement('small');desc.textContent=b.disabled?'使用 GPT 通关解锁':heroCopy[id].title;
-    b.append(name,desc);b.onclick=()=>{selectedHero=id;game=createGame({seed:Date.now()>>>0,hero:id});overlayKey='';refreshOverlay();updateHud();};picker.append(b);
+    b.append(name,desc);b.onclick=()=>{selectedHero=id;game=createGame({seed:Date.now()>>>0,hero:id,difficulty:selectedDifficulty});overlayKey='';refreshOverlay();updateHud();};picker.append(b);
   }
 }
 function button(label, action, choice) {
@@ -84,6 +89,7 @@ function refreshOverlay() {
   if (phase === 'playing') return;
   clearInput();
   $('hero-picker').hidden=phase!=='welcome';if(phase==='welcome')renderHeroPicker();
+  $('difficulty-picker').hidden=phase!=='welcome';
   const texts = {
     welcome: [`${HEROES[game.heroId].name} · ${game.playerFaction==='cn'?'国模':'美国模型'}阵营`, heroCopy[game.heroId].title, heroCopy[game.heroId].description],
     paused: ['歇一会儿', '饭可以慢慢吃。', '战斗已暂停。准备好了就继续。'],
@@ -159,11 +165,17 @@ $('focus-pause').onclick = () => $('pause').click();
 $('pause').onclick = () => { if (!started || game.phase !== 'playing') return; paused = !paused; clearInput(); accumulator=0; refreshOverlay(); updateHud(); };
 $('show-stats').onclick = () => {if(started&&game.phase==='playing'){paused=true;clearInput();overlayKey='';refreshOverlay();}};
 $('focus-stats').onclick=()=>$('show-stats').click();
+const cloud=createCloudSaves({getState:()=>game,applyState:state=>{if(!state||!HEROES[state.heroId]||!state.player||!Array.isArray(state.enemies))throw Error('存档结构不兼容。');game=structuredClone(state);selectedHero=game.heroId;selectedDifficulty=game.difficulty||'standard';$('difficulty-select').value=selectedDifficulty;started=true;paused=true;clearInput();overlayKey='';refreshOverlay();updateHud();},onBusy:value=>{cloudLocked=value;clearInput();}});
+$('cloud-open').onclick=()=>cloud.open();$('focus-save').onclick=()=>cloud.open();
+async function toggleMusic(){try{const enabled=await music.toggle();$('music-toggle').textContent=$('focus-music').textContent=enabled?'音乐：开':'音乐：关';}catch{$('music-toggle').textContent='音乐暂不可用';}}
+$('music-toggle').onclick=toggleMusic;$('focus-music').onclick=toggleMusic;
+$('difficulty-select').onchange=e=>{selectedDifficulty=e.target.value;game=createGame({seed:Date.now()>>>0,hero:selectedHero,difficulty:selectedDifficulty});overlayKey='';refreshOverlay();updateHud();};
 $('restart').onclick = reset;
 $('choose-hero').onclick = reset;
 const moves = new Set(['w','a','s','d','arrowup','arrowdown','arrowleft','arrowright']);
 window.addEventListener('keydown', event => {
   const key = event.key.toLowerCase();
+  if(document.querySelector('.cloud-save-dialog[open]'))return;
   if (key === 'escape') { if(focusMode)setFocus(false);else $('pause').click();return; }
   if (!active()) return;
   if ((event.code === 'Digit1' || event.code === 'Numpad1' || key === '1') && !event.repeat) { event.preventDefault(); eatRice(); return; }
@@ -189,11 +201,12 @@ canvas.addEventListener('pointermove', event => {
   $('stick').firstElementChild.style.transform=`translate(${touch.x*25}px,${touch.y*25}px)`;
 });
 for (const name of ['pointerup','pointercancel','lostpointercapture']) canvas.addEventListener(name,event=>{if(touch?.id===event.pointerId){touch=null;$('stick').hidden=true;}});
-function suspend() { clearInput(); accumulator=0; if(started&&game.phase==='playing'){paused=true;refreshOverlay();} }
+function suspend() { clearInput(); accumulator=0;void music.pause(); if(started&&game.phase==='playing'){paused=true;refreshOverlay();} }
 window.addEventListener('blur',suspend);document.addEventListener('visibilitychange',()=>{if(document.hidden)suspend();last=0;});
 window.addEventListener('resize',()=>renderer.resize());
 function frame(now) {
   const dt=last?Math.min(.1,(now-last)/1000):0;last=now;
+  if(active()!==musicActive){musicActive=active();void(musicActive?music.resume():music.pause());}
   if(active()){
     accumulator+=dt;let steps=0;
     while(accumulator>=1/60&&steps++<5&&active()){eventFeedback(stepGame(game,input(),1/60));accumulator-=1/60;}

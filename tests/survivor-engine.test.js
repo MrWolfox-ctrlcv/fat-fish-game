@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { createGame, stepGame, performAction, choose, continueRound, grantExperience, openChest, useItem, itemInfo, useHeroSkill, limits, WIDTH, HEIGHT, CATALOG } from '../survival/engine.js';
+import { createGame, stepGame, performAction, choose, continueRound, grantExperience, openChest, useItem, itemInfo, useHeroSkill, limits, WIDTH, HEIGHT, CATALOG, DIFFICULTIES, getHud } from '../survival/engine.js';
 import { ENEMY_ROSTERS, ELITE_ROSTERS } from '../survival/roster.js';
 import { HEROES } from '../survival/heroes.js';
 
@@ -279,4 +279,37 @@ test('starts at DeepSeek fat level one; stage and body grow at calorie threshold
     assert.equal(p.fatLevel,level);assert.equal(p.fishStage,Math.min(11,1+Math.ceil((level-1)/3)));
   }
   assert.ok(Math.abs(p.radius-91.8)<1e-8);assert.equal(g.level,1);
+});
+
+test('difficulty presets change enemy toughness, damage, spawn cadence, and XP without altering heroes', () => {
+  assert.deepEqual(Object.keys(DIFFICULTIES),['relaxed','standard','hard']);
+  const games=['relaxed','standard','hard'].map(difficulty=>createGame({seed:24,difficulty}));
+  for(const g of games){g.spawnTimer=0;g.chestTimer=100;g.player.invulnerable=0;g.bullets=[{x:g.player.x,y:g.player.y,vx:0,vy:0,life:1,hostile:true,damage:8,radius:3}];}
+  const before=games.map(g=>({health:g.player.maxHealth,damage:g.player.damage,speed:g.player.speed}));
+  for(const g of games)stepGame(g,{},.01);
+  assert.deepEqual(before.map(x=>[x.health,x.damage,x.speed]),[[140,18,135],[140,18,135],[140,18,135]]);
+  const [easy,normal,hard]=games;
+  assert.ok(easy.enemies[0].hp<normal.enemies[0].hp&&normal.enemies[0].hp<hard.enemies[0].hp);
+  assert.ok(easy.damageTaken<normal.damageTaken&&normal.damageTaken<hard.damageTaken);
+  assert.ok(easy.spawnTimer>normal.spawnTimer&&normal.spawnTimer>hard.spawnTimer);
+  assert.ok(easy.enemies[0].xp>normal.enemies[0].xp&&normal.enemies[0].xp===3&&hard.enemies[0].xp===3);
+  assert.equal(getHud(easy).difficulty,'relaxed');assert.equal(createGame({difficulty:'invalid'}).difficulty,'standard');
+  for(const g of games){const selected=g.difficulty;for(let i=0;i<10;i++)stepGame(g,{},.05);assert.equal(g.difficulty,selected);}
+  const bosses=['relaxed','standard','hard'].map(difficulty=>{const g=createGame({difficulty});g.round=10;g.spawnTimer=g.chestTimer=100;stepGame(g,{},.01);return g.enemies.find(e=>e.kind==='boss').hp;});
+  assert.ok(bosses[0]<bosses[1]&&bosses[1]<bosses[2]);
+});
+
+test('nova blasts and cosmetic particles are bounded, pause with phases, and survive JSON snapshots', () => {
+  function popOne(g,id){const target={id,x:g.player.x+200,y:g.player.y,radius:20,hp:1,maxHp:1,speed:0,kind:'chaser',xp:1};g.enemies=[target];g.bullets=[{x:target.x,y:target.y,vx:0,vy:0,life:1,damage:10,radius:9,hits:1,hitIds:[]}];stepGame(g,{},.01);}
+  const g=createGame({seed:87});g.spawnTimer=g.chestTimer=100;g.player.shotTimer=100;g.weaponPower.nova=1;
+  const control=structuredClone(g);popOne(g,1);control.weaponPower.nova=0;popOne(control,1);
+  assert.equal(g.rng,control.rng);assert.notEqual(g.visualRng,control.visualRng);
+  assert.equal(g.blasts.length,1);assert.equal(g.blasts[0].kind,'nova');assert.ok(g.particles.length<=limits.particles);
+  const age=g.blasts[0].age;g.phase='trait';assert.deepEqual(stepGame(g,{},1),[]);assert.equal(g.blasts[0].age,age);
+  g.phase='playing';
+  for(let i=0;i<12;i++)popOne(g,i+2);
+  assert.equal(g.blasts.length,limits.blasts);assert.ok(g.particles.length<=limits.particles);
+  const restored=Object.assign(createGame({difficulty:g.difficulty}),JSON.parse(JSON.stringify(g)));
+  stepGame(g,{},.03);stepGame(restored,{},.03);assert.deepEqual(restored,g);
+  for(let i=0;i<12;i++)stepGame(g,{},.05);assert.equal(g.blasts.length,0);
 });

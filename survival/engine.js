@@ -5,7 +5,12 @@ export { RARITIES, rarityWeights, rollRarity } from './loot.js';
 
 export const WIDTH = 2560;
 export const HEIGHT = 1600;
-export const limits = Object.freeze({ enemies: 64, bullets: 96, orbs: 96, particles: 80, chests: 4, pickups: 8, events: 32, rice: 9, chromeOrb: 9, resetScroll: 9, astraCore: 9 });
+export const limits = Object.freeze({ enemies: 64, bullets: 96, orbs: 96, particles: 80, blasts: 12, chests: 4, pickups: 8, events: 32, rice: 9, chromeOrb: 9, resetScroll: 9, astraCore: 9 });
+export const DIFFICULTIES = Object.freeze({
+  relaxed: Object.freeze({ label: '轻松', description: '敌人更弱、进场更慢，经验略多。', enemyHealth: .75, enemyDamage: .7, spawnInterval: 1.2, xp: 1.15 }),
+  standard: Object.freeze({ label: '标准', description: '标准敌人强度与出现速度。', enemyHealth: 1, enemyDamage: 1, spawnInterval: 1, xp: 1 }),
+  hard: Object.freeze({ label: '困难', description: '敌人更强、出现更快。', enemyHealth: 1.25, enemyDamage: 1.25, spawnInterval: .8, xp: 1 }),
+});
 
 const clamp = (n, lo, hi) => Math.max(lo, Math.min(hi, n));
 const dist2 = (a, b) => (a.x - b.x) ** 2 + (a.y - b.y) ** 2;
@@ -31,13 +36,13 @@ const gptTraitPool = [
 ];
 export const CATALOG = Object.fromEntries([...traitPool, ...gptTraitPool, ...equipmentPool].map(([id, name, description, icon]) => [id, { name, description, icon }]));
 
-export function createGame({ seed = 1, hero = 'deepseek', faction } = {}) {
+export function createGame({ seed = 1, hero = 'deepseek', faction, difficulty = 'standard' } = {}) {
   const s = (Number(seed) >>> 0) || 1;
   const heroId = Object.hasOwn(HEROES, hero) ? hero : 'deepseek'; const heroConfig = HEROES[heroId];
   const playerFaction = Object.hasOwn(ENEMY_ROSTERS, faction) ? faction : heroConfig.faction;
   const stats = heroConfig.stats;
   return {
-    rng: s, visualRng: s, phase: 'playing', round: 1, maxRounds: 10, roundTime: 0, roundDuration: 20, time: 0, playerFaction, heroId,
+    rng: s, visualRng: s, difficulty: Object.hasOwn(DIFFICULTIES,difficulty)?difficulty:'standard', phase: 'playing', round: 1, maxRounds: 10, roundTime: 0, roundDuration: 20, time: 0, playerFaction, heroId,
     score: 0, level: 1, xp: 0, xpNeed: 8, pendingLevels: 0,
     player: { x: WIDTH / 2, y: HEIGHT / 2, radius: 28, fishStage: 1, health: stats.health, maxHealth: stats.health, vx: 0, vy: 0, facing: 1,
       fatLevel: 1, fatXp: 0, fatXpNeed: 2, fatness: 0, superFat: false, slideTimer: 0, slideDuration: 0,
@@ -45,7 +50,7 @@ export function createGame({ seed = 1, hero = 'deepseek', faction } = {}) {
       shotTimer: 0, invulnerable: 0, magnet: 95, crit: 0, vampirism: 0, vampirismTimer: 0, chargeDirection: 0,
       energy: 0, energyMax: 100, transformed: false, transformTimer: 0, skillCooldown: 0, toolNodeTimer: 0,
       chromeShieldTimer: 0, chromeShieldCharges: 0 },
-    enemies: [], bullets: [], orbs: [], chests: [], pickups: [], particles: [], choices: [],
+    enemies: [], bullets: [], orbs: [], chests: [], pickups: [], particles: [], blasts: [], choices: [],
     traits: {}, traitPower: {}, equipment: {}, equipmentPower: {}, weapons: {}, weaponPower: {}, effects: { frost: 0, ricochet: 0, orbit: 0, nova: 0 }, buildLog: [], novaActive: false, inventory: { rice: 0, chromeOrb: 0, resetScroll: 0, astraCore: 0 }, notice: '', events: [], spawnTimer: 0, chestTimer: 2, eliteSpawned: false, bossSpawned: false,
     kills: 0, damageTaken: 0, nextEnemyId: 1, bossDefeated: false, nextAutoRiceAt: 8,
   };
@@ -54,6 +59,15 @@ export function createGame({ seed = 1, hero = 'deepseek', faction } = {}) {
 function rand(g) { g.rng = (Math.imul(g.rng, 1664525) + 1013904223) >>> 0; return g.rng / 4294967296; }
 function visualRand(g) { g.visualRng = (Math.imul(g.visualRng, 1664525) + 1013904223) >>> 0; return g.visualRng / 4294967296; }
 function event(g, type, data = {}) { g.events.push({ type, ...data }); if (g.events.length > limits.events) g.events.shift(); }
+function addBlast(g,x,y,kind='nova') {
+  g.blasts ||= [];g.particles ||= [];g.visualRng ??= 1;
+  if(g.blasts.length>=limits.blasts)g.blasts.shift();
+  g.blasts.push({x,y,radius:80,age:0,duration:.45,kind});
+  for(let i=0;i<24&&g.particles.length<limits.particles;i++){
+    const angle=visualRand(g)*Math.PI*2,speed=35+visualRand(g)*135,life=.22+visualRand(g)*.28;
+    g.particles.push({x,y,vx:Math.cos(angle)*speed,vy:Math.sin(angle)*speed,radius:2+visualRand(g)*3,color:visualRand(g)<.5?'#ffb44f':'#fff0a6',life,maxLife:life});
+  }
+}
 function recordBuild(g, choice) {
   g.buildLog.push({ name: choice.name, id: choice.id, rarity: choice.rarity.label, rarityId: choice.rarity.id, description: choice.description });
   if (g.buildLog.length > 100) g.buildLog.shift();
@@ -89,7 +103,11 @@ function powerDescription(id, rarity, g) {
   if (id === 'impact') return `冲锋伤害提高 ${Math.round(40 * m)}%。`;
   if (id === 'frost') return `水弹命中后额外造成 ${(10*m).toFixed(1)}% 伤害，并减速 ${Math.round(40*m)}%，持续 ${Math.min(3,1.5+.2*(m-1)).toFixed(1)} 秒。`;
   if (id === 'ricochet') return `命中后最多弹射 ${Math.min(2,Math.floor(m))} 次，每次造成 ${(35*m).toFixed(1)}% 伤害。`;
-  if (id === 'orbit') return `每 0.9 秒对半径 150 内敌人造成 ${(10*m).toFixed(1)} 点伤害。`;
+  if (id === 'orbit') {
+    const oldLevel=g.weapons.orbit||0, oldCount=oldLevel?Math.min(7,oldLevel+2):0, count=Math.min(7,Math.max(3,oldLevel+1+2));
+    const addedDamage=10*m,totalDamage=10*((g.weaponPower.orbit||0)+m);
+    return oldLevel?`环刃数量增加 ${count-oldCount} 枚（共 ${count} 枚）；每 0.9 秒脉冲伤害增加 ${addedDamage.toFixed(1)} 点（共 ${totalDamage.toFixed(1)} 点），半径 150。`:`获得 ${count} 枚环刃；每 0.9 秒对半径 150 内敌人造成 ${totalDamage.toFixed(1)} 点脉冲伤害。`;
+  }
   if (id === 'nova') return `击杀爆破半径 80，造成 ${(24*m).toFixed(1)} 点伤害。`;
   return CATALOG[id]?.description || '';
 }
@@ -147,8 +165,10 @@ function spawnEnemy(g, kind = 'chaser') {
   const identity = elite || opponent;
   if(elite?.behavior==='tank'){hp=Math.round(hp*1.35);speed*=.8;}
   if(elite?.behavior==='burst'){hp=Math.round(hp*.85);speed*=1.6;}
+  const difficulty=DIFFICULTIES[g.difficulty]||DIFFICULTIES.standard;
+  hp=Math.max(1,Math.round(hp*difficulty.enemyHealth));
   g.enemies.push({ id: g.nextEnemyId++, x, y, radius, hp, maxHp: hp, speed, kind, modelId: identity.modelId, name: identity.name, tier: identity.tier, portrait: identity.portrait, color: identity.color, behavior: elite?.behavior || null,
-    shotTimer: 1.5, dashTimer: 1.2, hitFlash: 0, slowTimer: 0, xp: kind === 'boss' ? 50 : kind === 'elite' ? 12 : 3 });
+    shotTimer: 1.5, dashTimer: 1.2, hitFlash: 0, slowTimer: 0, xp: (kind === 'boss' ? 50 : kind === 'elite' ? 12 : 3)*difficulty.xp });
   return true;
 }
 function fire(g, target) {
@@ -168,6 +188,7 @@ export function openChest(g, chest) { if (g.chests.includes(chest)) damageChest(
 function hurt(g, amount) {
   const p = g.player; if (p.invulnerable > 0 || g.phase !== 'playing') return;
   if(p.chromeShieldTimer>0&&p.chromeShieldCharges>0){p.chromeShieldCharges--;p.invulnerable=Math.max(p.invulnerable,0.45);if(!p.chromeShieldCharges)p.chromeShieldTimer=0;event(g,'chrome-shield-hit',{charges:p.chromeShieldCharges});return;}
+  amount *= (DIFFICULTIES[g.difficulty]||DIFFICULTIES.standard).enemyDamage;
   let reduced = Math.max(1, amount - (g.equipmentPower.armor || 0));
   if(g.heroId==='gpt'&&p.transformed)reduced=Math.max(1,Math.ceil(reduced*0.5));
   const damage = p.slideTimer > 0 ? Math.max(1, Math.ceil(reduced * 0.6)) : reduced;
@@ -179,6 +200,7 @@ function killEnemy(g, e) {
   addXpOrb(g, e.x, e.y, e.xp); if (e.kind === 'boss') g.bossDefeated = true;
   const nova = 24 * (g.weaponPower.nova || 0);
   if (nova > 0 && !g.novaActive) {
+    addBlast(g,e.x,e.y,'nova');
     g.novaActive = true;
     for (const other of [...g.enemies]) if (dist2(e, other) <= 80 ** 2) {
       other.hp -= nova; other.hitFlash = 0.18; if (other.hp <= 0) killEnemy(g, other);
@@ -333,7 +355,8 @@ export function stepGame(g, input = {}, dt = 1 / 60) {
   } else { p.vx += (move.x * p.speed * magnitude - p.vx) * Math.min(1, dt * 8); p.vy += (move.y * p.speed * magnitude - p.vy) * Math.min(1, dt * 8); }
   p.x = clamp(p.x + p.vx * dt, p.radius, WIDTH - p.radius); p.y = clamp(p.y + p.vy * dt, p.radius, HEIGHT - p.radius);
   if ((input.command === 'primary' || input.type === 'primary') && p.slideTimer <= 0) useHeroSkill(g);
-  g.spawnTimer -= dt; if (g.spawnTimer <= 0 && g.enemies.length < limits.enemies) { spawnEnemy(g, g.round >= 4 && rand(g) < 0.25 ? 'ranged' : g.round >= 2 && rand(g) < 0.3 ? 'dash' : 'chaser'); g.spawnTimer = Math.max(0.22, 1.1 - g.round * 0.06); }
+  const difficulty=DIFFICULTIES[g.difficulty]||DIFFICULTIES.standard;
+  g.spawnTimer -= dt; if (g.spawnTimer <= 0 && g.enemies.length < limits.enemies) { spawnEnemy(g, g.round >= 4 && rand(g) < 0.25 ? 'ranged' : g.round >= 2 && rand(g) < 0.3 ? 'dash' : 'chaser'); g.spawnTimer = Math.max(0.22, 1.1 - g.round * 0.06)*difficulty.spawnInterval; }
   if ([3, 5, 7, 9].includes(g.round) && !g.eliteSpawned) g.eliteSpawned = spawnEnemy(g, 'elite');
   if (g.round === 10 && !g.bossSpawned) g.bossSpawned = spawnEnemy(g, 'boss');
     g.chestTimer -= dt; if (g.chestTimer <= 0 && g.chests.length < limits.chests) { const a=rand(g)*Math.PI*2, r=200+rand(g)*300; g.chests.push({ x: clamp(p.x+Math.cos(a)*r,70,WIDTH-70), y:clamp(p.y+Math.sin(a)*r,70,HEIGHT-70),hp:24,maxHp:24,radius:20 }); g.chestTimer = 7; }
@@ -356,7 +379,7 @@ export function stepGame(g, input = {}, dt = 1 / 60) {
   }
   g.bullets = g.bullets.filter(b => b.life > 0 && b.x >= 0 && b.x <= WIDTH && b.y >= 0 && b.y <= HEIGHT).slice(0, limits.bullets);
   p.orbitAngle=(p.orbitAngle||0)+dt*2; p.orbitTimer-=dt;
-  if(g.weaponPower.orbit>0&&p.orbitTimer<=0){p.orbitTimer=.9;const orbitDamage=10*g.weaponPower.orbit;for(const e of [...g.enemies])if(dist2(p,e)<=150**2){e.hp-=orbitDamage;e.hitFlash=.12;if(e.hp<=0)killEnemy(g,e);}event(g,'orbit-pulse',{x:p.x,y:p.y,radius:150,damage:orbitDamage,angle:p.orbitAngle});}
+  if(g.weaponPower.orbit>0&&p.orbitTimer<=0){const orbit=getOrbitStats(g);p.orbitTimer=orbit.interval;const orbitDamage=orbit.damage;for(const e of [...g.enemies])if(dist2(p,e)<=orbit.radius**2){e.hp-=orbitDamage;e.hitFlash=.12;if(e.hp<=0)killEnemy(g,e);}event(g,'orbit-pulse',{x:p.x,y:p.y,radius:orbit.radius,damage:orbitDamage,count:orbit.count,angle:p.orbitAngle});}
   for (const e of [...g.enemies]) {
     e.hitFlash = Math.max(0, (e.hitFlash || 0) - dt); e.slowTimer = Math.max(0,(e.slowTimer||0)-dt); const speedScale=e.slowTimer>0?(e.slowFactor||0.6):1; const d = unit(p.x - e.x, p.y - e.y);
     if (e.kind === 'ranged' || e.behavior === 'sniper') { if (dist2(p, e) < 360 ** 2) { e.x -= d.x * e.speed * speedScale * dt; e.y -= d.y * e.speed * speedScale * dt; } else if (dist2(p, e) > 520 ** 2) { e.x += d.x * e.speed * speedScale * dt; e.y += d.y * e.speed * speedScale * dt; }
@@ -378,8 +401,12 @@ export function stepGame(g, input = {}, dt = 1 / 60) {
   for (const item of [...g.pickups]) { const key=item.itemKey||item.kind; if(key===HEROES[g.heroId].itemKey&&(g.inventory[key]||0)<limits[key]&&dist2(p,item)<(p.radius+item.radius)**2){g.inventory[key]++;g.pickups=g.pickups.filter(v=>v!==item);event(g,'item-collected',{item:key,count:g.inventory[key]});} }
   while (g.heroId==='deepseek'&&g.time>=g.nextAutoRiceAt){g.nextAutoRiceAt+=8;if(g.inventory.rice>0&&rand(g)<0.35)eatRice(g,true);}
   if (g.equipmentPower.regen) p.health = Math.min(p.maxHealth, p.health + 0.6 * g.equipmentPower.regen * dt);
+  for(const blast of g.blasts||[])blast.age+=dt;
+  g.blasts=(g.blasts||[]).filter(blast=>blast.age<blast.duration).slice(-limits.blasts);
+  for(const particle of g.particles||[]){particle.x+=particle.vx*dt;particle.y+=particle.vy*dt;particle.vx*=Math.exp(-2.5*dt);particle.vy*=Math.exp(-2.5*dt);particle.life-=dt;}
+  g.particles=(g.particles||[]).filter(particle=>particle.life>0).slice(-limits.particles);
   if (g.roundTime >= g.roundDuration && (g.round < 10 || (g.bossSpawned && g.bossDefeated))) endRound(g);
-  g.particles.length = Math.min(g.particles.length, limits.particles); return g.events.splice(0);
+  return g.events.splice(0);
 }
 export function getStats(g) {
   const p=g.player, weights=rarityWeights(p.luck);
@@ -395,8 +422,14 @@ export function getStats(g) {
     {key:'lifesteal',label:'击杀回血',value:p.vampirism?Math.min(8,Math.round(2*(g.traitPower.vampirism||p.vampirism))):0,unit:'点'},
     {key:'luck',label:'幸运',value:p.luck,unit:'点'},
   ];
+  const orbit=getOrbitStats(g);
+  if(orbit.count)entries.push({key:'orbitCount',label:'环绕水弹',value:orbit.count,unit:'枚'},{key:'orbitDamage',label:'环刃脉冲伤害',value:orbit.damage,unit:'点/脉冲'});
   const hero=g.heroId==='deepseek'?{fatLevel:p.fatLevel,fatXp:p.fatXp,fatXpNeed:p.fatXpNeed,fatness:p.fatness,fishStage:p.fishStage}:g.heroId==='gpt'?{energy:p.energy,energyMax:p.energyMax,transformed:p.transformed}:{};
-  const weapons=Object.entries(g.weapons).map(([id,level])=>({id,name:CATALOG[id]?.name||id,level,power:g.weaponPower[id]||0}));
+  const weapons=Object.entries(g.weapons).map(([id,level])=>({id,name:CATALOG[id]?.name||id,level,power:g.weaponPower[id]||0,count:id==='orbit'?orbit.count:level}));
   return {entries,weights:weights.map((weight,i)=>({id:RARITIES[i].id,label:RARITIES[i].label,percent:percents[i],color:RARITIES[i].color})),weapons,effects:{...g.effects},hero};
 }
-export function getHud(g) { return { phase: g.phase, round: g.round, maxRounds: g.maxRounds, roundTime: g.roundTime, roundDuration: g.roundDuration, score: g.score, level: g.level, xp: g.xp, xpNeed: g.xpNeed, health: g.player.health, maxHealth: g.player.maxHealth, enemies: g.enemies.length, kills: g.kills, notice: g.notice }; }
+export function getOrbitStats(g) {
+  const power=g.weaponPower?.orbit||0, level=g.weapons?.orbit||0;
+  return {count:power>0?Math.min(7,Math.max(3,level+2)):0,damage:10*power,interval:.9,radius:150};
+}
+export function getHud(g) { return { phase: g.phase, round: g.round, maxRounds: g.maxRounds, roundTime: g.roundTime, roundDuration: g.roundDuration, score: g.score, level: g.level, xp: g.xp, xpNeed: g.xpNeed, health: g.player.health, maxHealth: g.player.maxHealth, enemies: g.enemies.length, kills: g.kills, notice: g.notice, difficulty: g.difficulty }; }
