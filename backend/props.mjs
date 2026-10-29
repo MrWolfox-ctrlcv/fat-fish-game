@@ -4,7 +4,7 @@ import { snapshot } from './replay.mjs';
 
 export const PROP_PRICE_USD = '0.01';
 export const PROP_PRICE_QUOTA = 5000;
-export const PROP_KINDS = new Set(['remove', 'merge', 'swap', 'pack']);
+export const PROP_KINDS = new Set(['remove', 'merge', 'swap', 'pack', 'revive']);
 
 const invalid = (message = '道具选择无效。') => Object.assign(new Error(message), { status: 422, code: 'INVALID_PROP' });
 
@@ -13,7 +13,7 @@ export function validatePropInput(input) {
       !Number.isSafeInteger(input.step) || input.step < 0 ||
       !Array.isArray(input.moves) || !/^[a-zA-Z0-9_-]{8,128}$/.test(input.request_id || '') ||
       !PROP_KINDS.has(input.kind) || input.confirm_quota !== PROP_PRICE_QUOTA || !Array.isArray(input.body_ids)) throw invalid();
-  const validCount = input.kind === 'pack'
+  const validCount = input.kind === 'revive' ? input.body_ids.length === 0 : input.kind === 'pack'
     ? input.body_ids.length >= 1 && input.body_ids.length <= 3
     : input.body_ids.length === (input.kind === 'remove' ? 1 : 2);
   if (!validCount || input.body_ids.some((id) => typeof id !== 'string' && !Number.isSafeInteger(id)) ||
@@ -39,6 +39,10 @@ export function hydrateState(state) {
 
 export function validatePropBodies(state, kind, bodyIds) {
   if (!Array.isArray(bodyIds)) throw invalid('所选鱼不符合道具使用条件。');
+  if (kind === 'revive') {
+    if (state.over !== true || bodyIds.length !== 0) throw invalid('只能在本局结束后续玩。');
+    return [];
+  }
   const validCount = kind === 'remove' ? bodyIds.length === 1
     : kind === 'pack' ? bodyIds.length >= 1 && bodyIds.length <= 3
       : ['merge', 'swap'].includes(kind) && bodyIds.length === 2;

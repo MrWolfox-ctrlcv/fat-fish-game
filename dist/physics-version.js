@@ -1,2 +1,2 @@
 // Bump when physics changes so an older open page cannot start a mismatched run.
-export const PHYSICS_VERSION = 3;
+export const PHYSICS_VERSION = 4;

@@ -17,6 +17,8 @@ export const MAX_LEVEL = 11;
 export const GIFT_LEVEL = 6;
 export const FIELD_WIDTH = 480;
 export const BASE_FIELD_HEIGHT = 620;
+export const WARNING_LINE_Y = 96;
+export const FAILURE_LINE_Y = 44;
 export const LEVEL_RADII = Object.freeze([0, 23, 30, 38, 47, 57, 68, 79, 90, 101, 112, 123]);
 
 export function formatRewardQuota(quota) {
@@ -66,7 +68,7 @@ export function radiusForLevel(level) {
   return LEVEL_RADII[Math.max(1, Math.min(MAX_LEVEL, Math.floor(level)))] ?? LEVEL_RADII[1];
 }
 
-const fishRenderer = createFishRenderer({ MAX_LEVEL, FIELD_WIDTH, radiusForLevel, getEasterEgg, getEasterImageKey, isEasterEggId });
+const fishRenderer = createFishRenderer({ MAX_LEVEL, FIELD_WIDTH, WARNING_LINE_Y, FAILURE_LINE_Y, radiusForLevel, getEasterEgg, getEasterImageKey, isEasterEggId });
 function clamp(value, min, max) { return Math.max(min, Math.min(max, value)); }
 export const clearRegisteredArt = fishRenderer.clearRegisteredArt;
 export const registerCharacterImage = fishRenderer.registerCharacterImage;
@@ -173,7 +175,12 @@ export function applyFishProp(game, kind, bodyIds) {
   if (!game || !Array.isArray(game.bodies) || !Array.isArray(bodyIds) || new Set(bodyIds).size !== bodyIds.length) throw new RangeError("道具参数不合法");
   let selected;
   const chosen = bodyIds.map((id) => game.bodies.find((body) => body.id === id));
-  if (kind === "remove") {
+  if (kind === "revive") {
+    if (!game.over || bodyIds.length !== 0) throw new RangeError("续玩只能在本局结束后使用");
+    // Clear the entire warning zone, leaving a real margin below the failure line.
+    game.bodies = game.bodies.filter((body) => body.y - body.r >= WARNING_LINE_Y + 12);
+    game.dropCooldown = Math.max(game.dropCooldown, 0.36);
+  } else if (kind === "remove") {
     if (bodyIds.length !== 1) throw new RangeError("捞鱼网需要选择一条鱼");
     selected = chosen[0];
     if (!selected) throw new RangeError("所选鱼已不存在");
@@ -421,7 +428,7 @@ export function stepGame(game, dt) {
   for (const p of game.particles) p.age += delta;
   game.particles = game.particles.filter((p) => p.age < p.life);
 
-  const dangerLine = 96;
+  const dangerLine = FAILURE_LINE_Y;
   let threatening = false;
   for (const body of game.bodies) {
     const aboveLine = body.y - body.r < dangerLine;
@@ -1691,6 +1698,7 @@ function setupUI() {
         document.querySelector("#final-score").textContent = String(game.score);
         drawMini(gameoverCanvas, Math.max(...game.unlocked));
         overlay.hidden = false;
+        fishProps.render();
         if (activeRun) void flushCheckpoint();
       }
       accumulator -= fixedStep;

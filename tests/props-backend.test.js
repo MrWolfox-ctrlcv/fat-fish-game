@@ -30,6 +30,34 @@ async function fixture(t, extra = {}) {
   return { store, request };
 }
 
+test('revive rejects an active run before charging and charges a failed saved run once', async (t) => {
+  let charges = 0;
+  const { request, store } = await fixture(t, { propWallet: { enabled: true, debit: async () => { charges++; } } });
+  const started = await (await request('api/run', { physics_version: PHYSICS_VERSION })).json();
+  const payload = { run_id: started.run.id, step: 0, moves: [], request_id: 'revive-request-001', kind: 'revive', body_ids: [], confirm_quota: 5000 };
+  assert.equal((await request('api/run/prop', payload)).status, 422);
+  assert.equal(charges, 0);
+  const failed = initialState(123, 456);
+  failed.over = true; failed.overTimer = 2; failed.score = 360;
+  failed.bodies = [{ id: 1, level: 1, r: 23, x: 200, y: 30, vx: 0, vy: 0, age: 4, angle: 0, angularVelocity: 0, mergeCooldown: 0, dangerTime: 2 }];
+  const summary = { score: 360, max_level: 1, over: true, unlocked: [1], egg_stages: [] };
+  const at = Date.now();
+  store.db.prepare(`INSERT INTO game_saves(user_id,slot,kind,expires_at,updated_at,state,summary,lineage_id,week_id,physics_version)
+    VALUES(42,1,'free',?,?,?,?,?,?,?)`).run(at + 86400000, at, JSON.stringify(failed), JSON.stringify(summary), 'revive-lineage', weekFor(at).id, PHYSICS_VERSION);
+  const loaded = await (await request('api/saves/load', { slot: 1, physics_version: PHYSICS_VERSION })).json();
+  assert.equal(loaded.state.over, true);
+  const revive = { ...payload, run_id: loaded.run.id, request_id: 'revive-request-002' };
+  const response = await request('api/run/prop', revive);
+  assert.equal(response.status, 200);
+  const result = await response.json();
+  assert.equal(result.state.over, false); assert.equal(result.state.bodies.length, 0);
+  assert.equal(result.state.score, 360); assert.equal(result.receipt.used_props, true);
+  assert.equal(charges, 1);
+  assert.deepEqual(await (await request('api/run/prop', revive)).json(), result);
+  assert.equal(charges, 1);
+  assert.equal((await request('api/run/checkpoint', { run_id: loaded.run.id, step: 60, moves: [] })).status, 200);
+});
+
 test('legacy weekly scores migrate to normal entries and each account keeps separate normal/prop records', () => {
   const directory = mkdtempSync(join(tmpdir(), 'fatfish-prop-'));
   const path = join(directory, 'game.sqlite');

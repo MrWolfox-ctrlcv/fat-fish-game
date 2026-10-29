@@ -43,7 +43,7 @@
         <div class="board-wrap">
           <canvas id="game-canvas" width="480" height="620" tabindex="0" aria-label="合成大肥鱼游戏画布。鼠标移动或触屏拖动选择位置，鼠标点击或触屏松手投放；聚焦后可用左右方向键选择位置，空格或 Enter 投放。"></canvas>
           <div class="game-overlay" id="overlay" hidden>
-            <div class="overlay-card"><span class="overlay-whale" aria-hidden="true"><canvas id="gameover-avatar" width="128" height="128"></canvas></span><h2>鱼缸满啦！</h2><p>这局得分 <strong id="final-score">0</strong></p><button id="play-again" type="button">再合一局</button></div>
+            <div class="overlay-card"><span class="overlay-whale" aria-hidden="true"><canvas id="gameover-avatar" width="128" height="128"></canvas></span><h2>鱼缸满啦！</h2><p>这局得分 <strong id="final-score">0</strong></p><button id="prop-revive" type="button" hidden>清空顶部继续 · $0.01</button><p id="revive-status" role="status" aria-live="polite"></p><button id="play-again" type="button">再合一局</button></div>
           </div>
           <div class="toast" id="toast" role="status" aria-live="polite"></div>
         </div>
@@ -61,6 +61,7 @@
         <details class="controls-hint">
           <summary>操作提示 · 触屏拖动选位置，松手放下</summary>
           <p>电脑：移动鼠标选位置，点击投放。键盘：Tab 聚焦鱼缸，按 <kbd>←</kbd> <kbd>→</kbd> 选位置，再按 <kbd>空格</kbd> 或 Enter 投放。</p>
+          <p>虚线是警戒线，越过后仍可继续；在更高处的红色上限线持续停留才会结束。续玩会清除顶部区域的鱼，账户扣 $0.01，并按使用道具的对局计榜。</p>
         </details>
       </section>
 

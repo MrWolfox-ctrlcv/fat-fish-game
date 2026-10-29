@@ -66,6 +66,30 @@ function writePayload(run, slot = 1, requestId = 'save-write-request-1', extra =
     request_id: requestId, ...extra };
 }
 
+test('physics 3 paid saves migrate to the new warning line without losing time, RNG, score or failed status', async (t) => {
+  let charges = 0;
+  const { current, store } = await serverFixture(t, { wallet: { enabled: true, debit: async () => { charges++; } } });
+  const { request } = current();
+  const run = await newRun(request);
+  await request('api/saves/write', writePayload(run, 2, 'legacy-paid-save', { confirm_quota: 5000 }));
+  const saved = store().activeSave(42, 2, Date.now());
+  const original = structuredClone(saved.state); original.score = 120; original.overTimer = 1.4;
+  original.bodies = [{ id: 1, level: 1, r: 23, x: 200, y: 100, vx: 0, vy: 0, age: 4, angle: 0, angularVelocity: 0, mergeCooldown: 0, dangerTime: 1.4 }];
+  for (const ended of [false, true]) {
+    original.over = ended;
+    store().db.prepare('UPDATE game_saves SET physics_version=3,state=? WHERE user_id=42 AND slot=2').run(JSON.stringify(original));
+    const response = await request('api/saves/load', { slot: 2, physics_version: PHYSICS_VERSION });
+    assert.equal(response.status, 200);
+    const loaded = await response.json();
+    assert.equal(loaded.state.over, ended);
+    assert.equal(loaded.state.overTimer, ended ? 1.4 : 0);
+    assert.equal(loaded.state.bodies[0].dangerTime, ended ? 1.4 : 0);
+    for (const key of ['randomState', 'variantState', 'score', 'stepIndex']) assert.deepEqual(loaded.state[key], original[key]);
+    assert.equal(store().activeSave(42, 2, Date.now()).expires_at, saved.expires_at);
+  }
+  assert.equal(charges, 1);
+});
+
 test('save listing is authenticated, account-isolated, and expired saves cannot be loaded', async (t) => {
   let at = 1_800_000_000_000;
   const { current } = await serverFixture(t, { now: () => at });

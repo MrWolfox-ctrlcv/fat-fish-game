@@ -135,6 +135,8 @@ button:focus-visible, a:focus-visible, summary:focus-visible, #game-canvas:focus
   background: #2d83ae; box-shadow: 0 3px 0 #1e638c; color: white; cursor: pointer; font-weight: 900;
 }
 .overlay-card button:active, .gift-dialog button:active { transform: translateY(2px); box-shadow: 0 1px 0 #1e638c; }
+.overlay-card #prop-revive { margin-bottom: 10px; font-size: 14px; padding: 10px 12px; }
+.overlay-card #revive-status { font-size: 12px; line-height: 1.5; margin: 0 0 12px; }
 .toast { position: absolute; z-index: 3; top: 45%; left: 50%; transform: translate(-50%,-50%) scale(.94); opacity: 0; pointer-events: none; padding: 10px 16px; border: 1px solid #c6e0e5; border-radius: 999px; background: #fffef5; color: #205f7c; font-size: 14px; font-weight: 900; box-shadow: 0 6px 20px rgba(33,91,114,.2); transition: opacity .18s, transform .18s; white-space: nowrap; }
 .toast.show { opacity: 1; transform: translate(-50%,-50%) scale(1); }
 .controls-hint { margin: 11px 2px 0; color: #48667d; font-size: 13px; }

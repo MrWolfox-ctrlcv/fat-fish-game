@@ -11,6 +11,8 @@ export function createFishPropsUI({
   const packButton = document.querySelector("#prop-pack");
   const packFinishButton = document.querySelector("#prop-pack-finish");
   const retryButton = document.querySelector("#prop-retry");
+  const reviveButton = document.querySelector("#prop-revive");
+  const reviveStatus = document.querySelector("#revive-status");
   const status = document.querySelector("#prop-status");
   const overlay = document.querySelector("#overlay");
   const selected = (game) => { game.propSelectionIds = [...selection]; };
@@ -23,6 +25,9 @@ export function createFishPropsUI({
     swapButton.disabled = busy || Boolean(pending); packButton.disabled = busy || Boolean(pending);
     packFinishButton.disabled = busy || Boolean(pending) || selection.length < 1 || selection.length > 3;
     retryButton.disabled = busy;
+    reviveButton.hidden = !getGame().over || (!canUse && !pending);
+    reviveButton.disabled = busy || (Boolean(pending) && pending.payload.kind !== "revive");
+    reviveButton.textContent = pending?.payload.kind === "revive" ? "重试确认续玩订单" : "清空顶部继续 · $0.01";
     if (pending) status.textContent = busy
       ? "正在确认同一笔道具请求，请稍候。"
       : `道具结果暂未确认。游戏已暂停；使用同一请求重试。${pending.receiptId ? `订单号：${pending.receiptId}` : `请求号：${pending.payload.request_id}`}`;
@@ -35,6 +40,8 @@ export function createFishPropsUI({
     else if (!enabled) status.textContent = reason || "道具暂不可用。";
     else if (!gameReady()) status.textContent = "本局就绪后可用，每次从中转站账户扣 $0.01；每局最多 20 次。";
     else status.textContent = "每次从中转站账户扣 $0.01；每局最多 20 次。";
+    reviveStatus.textContent = pending ? status.textContent
+      : !canUse ? status.textContent : "清除警戒线附近及上方的鱼，保留分数；计入道具榜，仍可领取奖励。";
     selected(getGame());
   };
 
@@ -109,10 +116,12 @@ export function createFishPropsUI({
 
   const confirmSelection = async () => {
     const kind = mode, bodyIds = [...selection];
-    if (!kind || !bodyIds.length || (kind !== "remove" && bodyIds.length !== 2 && kind !== "pack") ||
+    if (!kind || (kind === "revive" ? !getGame().over || bodyIds.length !== 0 : !bodyIds.length) ||
+        (kind !== "revive" && kind !== "remove" && bodyIds.length !== 2 && kind !== "pack") ||
         (kind === "pack" && (bodyIds.length < 1 || bodyIds.length > 3))) return;
-    const label = ({ remove: "捞鱼网", merge: "牵线合成", swap: "交换位置", pack: "打包小鱼" })[kind];
-    const action = ({ remove: "移走这条鱼", merge: "合成这两条鱼", swap: "交换这两条鱼的位置", pack: `打包所选 ${bodyIds.length} 条小鱼` })[kind];
+    const label = ({ remove: "捞鱼网", merge: "牵线合成", swap: "交换位置", pack: "打包小鱼", revive: "续玩" })[kind];
+    const action = ({ remove: "移走这条鱼", merge: "合成这两条鱼", swap: "交换这两条鱼的位置", pack: `打包所选 ${bodyIds.length} 条小鱼`,
+      revive: "清除警戒线附近及上方的鱼并继续本局（保留分数，计入道具榜，仍可领奖）" })[kind];
     if (!window.confirm(`确认使用“${label}”${action}？本次从中转站账户扣 $0.01；未成功生效不收费。`)) { clearSelection(); return; }
     const run = activeRun();
     pending = { ownerId: account().id, runId: run.id, receiptId: null, payload: { run_id: run.id, step: getGame().stepIndex, moves: [],
@@ -131,6 +140,10 @@ export function createFishPropsUI({
   const begin = (kind) => {
     if (pending) { void submit(); return; }
     if (!enabled || !account() || !gameReady() || guestRun() || busy || getBlocked()) return;
+    if (kind === "revive") {
+      if (!getGame().over) return;
+      mode = kind; selection = []; paused = true; render(); void confirmSelection(); return;
+    }
     mode = kind; selection = []; paused = true; overlay.hidden = true; render(); focusCanvas();
   };
 
@@ -165,6 +178,7 @@ export function createFishPropsUI({
   packButton.addEventListener("click", () => begin("pack"));
   packFinishButton.addEventListener("click", () => { if (mode === "pack" && selection.length >= 1 && selection.length <= 3) void confirmSelection(); });
   retryButton.addEventListener("click", () => { void submit(); });
+  reviveButton.addEventListener("click", () => begin("revive"));
   render();
   return {
     load, render, begin, selectFish, retry: submit, cancelSelection: clearSelection, isPaused: () => paused,

@@ -425,8 +425,13 @@ export async function createGameServer(options = {}) {
         if (store.hasPendingPayment(user.id)) throw fail(409, '付费订单仍在确认，请先确认订单再读档。', 'PAYMENT_PENDING');
         const saved = store.activeSave(user.id, input.slot, now());
         if (!saved) throw fail(404, '这个存档已过期或不存在。', 'SAVE_EXPIRED');
-        if (saved.physics_version !== PHYSICS_VERSION) throw fail(409, '游戏已更新，当前存档与此版本不兼容。', 'GAME_UPDATED');
+        const migrateWarningLine = saved.physics_version === 3 && PHYSICS_VERSION === 4;
+        if (saved.physics_version !== PHYSICS_VERSION && !migrateWarningLine) throw fail(409, '游戏已更新，当前存档与此版本不兼容。', 'GAME_UPDATED');
         if (!isValidSnapshot(saved.state)) throw fail(409, '存档数据无法读取。', 'INVALID_SAVE');
+        if (migrateWarningLine && !saved.state.over) {
+          saved.state.overTimer = 0;
+          for (const fish of saved.state.bodies) fish.dangerTime = 0;
+        }
         const oldId = currentRun.get(user.id);
         if (oldId) runs.delete(oldId);
         const id = randomUUID();

@@ -1,6 +1,6 @@
 // Game renderer and runtime art registry. The factory receives game rules so
 // the rendering module stays independent of the physics implementation.
-export function createFishRenderer({ MAX_LEVEL, FIELD_WIDTH, radiusForLevel, getEasterEgg, getEasterImageKey, isEasterEggId }) {
+export function createFishRenderer({ MAX_LEVEL, FIELD_WIDTH, WARNING_LINE_Y = 96, FAILURE_LINE_Y = 44, radiusForLevel, getEasterEgg, getEasterImageKey, isEasterEggId }) {
   const characterImages = new Map();
   const easterImages = new Map();
 
@@ -99,11 +99,14 @@ export function createFishRenderer({ MAX_LEVEL, FIELD_WIDTH, radiusForLevel, get
 
   function drawGame(ctx, game, { width = FIELD_WIDTH, height = game.height, showAim = true } = {}) {
     ctx.clearRect(0, 0, width, height);
-    const lineY = 96;
+    const lineY = WARNING_LINE_Y;
     ctx.save();
     ctx.setLineDash([5, 7]); ctx.strokeStyle = "rgba(239,153,130,.57)"; ctx.lineWidth = 1.5;
     ctx.beginPath(); ctx.moveTo(8, lineY); ctx.lineTo(width - 8, lineY); ctx.stroke(); ctx.setLineDash([]);
-    ctx.fillStyle = "rgba(187,111,99,.68)"; ctx.font = "10px system-ui, sans-serif"; ctx.fillText("水面警戒线", 12, lineY - 7);
+    ctx.fillStyle = "rgba(187,111,99,.85)"; ctx.font = "10px system-ui, sans-serif"; ctx.fillText("警戒线 · 仍可继续", 12, lineY - 7);
+    ctx.strokeStyle = "rgba(190,65,76,.78)"; ctx.lineWidth = 1.5;
+    ctx.beginPath(); ctx.moveTo(8, FAILURE_LINE_Y); ctx.lineTo(width - 8, FAILURE_LINE_Y); ctx.stroke();
+    ctx.fillStyle = "#a6374c"; ctx.fillText("上限线 · 持续越线才结束", 12, FAILURE_LINE_Y - 7);
     if (showAim && !game.over) {
       const r = radiusForLevel(game.currentLevel);
       const x = clamp(game.aimX, r + 6, width - r - 6);
