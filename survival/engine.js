@@ -1,11 +1,13 @@
 import { ENEMY_ROSTERS, ELITE_ROSTERS, DOUBAO_BOSS, opposingRoster } from './roster.js';
 import { HEROES } from './heroes.js';
 import { RARITIES, rarityWeights, rollRarity } from './loot.js';
+import { SHOP_ITEMS } from './shop-items.js';
 export { RARITIES, rarityWeights, rollRarity } from './loot.js';
+export { SHOP_ITEMS } from './shop-items.js';
 
 export const WIDTH = 2560;
 export const HEIGHT = 1600;
-export const limits = Object.freeze({ enemies: 64, bullets: 96, orbs: 96, particles: 80, blasts: 12, allies: 8, allyBullets: 8, beams: 16, chests: 4, pickups: 8, events: 32, rice: 9, chromeOrb: 9, resetScroll: 9, astraCore: 9, doubaoSnack: 9, computeCell: 9, kimiLens: 9 });
+export const limits = Object.freeze({ enemies: 64, bullets: 96, orbs: 96, particles: 80, blasts: 12, allies: 8, allyBullets: 8, beams: 16, chests: 2, pickups: 8, events: 32, rice: 9, chromeOrb: 9, resetScroll: 9, astraCore: 9, doubaoSnack: 9, computeCell: 9, kimiLens: 9 });
 export const DIFFICULTIES = Object.freeze({
   relaxed: Object.freeze({ label: '轻松', description: '敌人更弱、进场更慢，经验略多。', enemyHealth: .75, enemyDamage: .7, spawnInterval: 1.2, xp: 1.15 }),
   standard: Object.freeze({ label: '标准', description: '标准敌人强度与出现速度。', enemyHealth: 1, enemyDamage: 1, spawnInterval: 1, xp: 1 }),
@@ -52,7 +54,7 @@ export function createGame({ seed = 1, hero = 'deepseek', faction, difficulty = 
       chromeShieldTimer: 0, chromeShieldCharges: 0, shieldTimer: 0, shieldCharges: 0, shieldCooldown: 0,
       compute: heroId==='qwen'?heroConfig.computeMax:0, computeMax: heroConfig.computeMax||0, laserTimer: 0 },
     enemies: [], bullets: [], beams: [], allies: [], orbs: [], chests: [], pickups: [], particles: [], blasts: [], choices: [],
-    traits: {}, traitPower: {}, equipment: {}, equipmentPower: {}, weapons: {}, weaponPower: {}, effects: { frost: 0, ricochet: 0, orbit: 0, nova: 0 }, buildLog: [], novaActive: false, inventory: { rice: 0, chromeOrb: 0, resetScroll: 0, astraCore: 0, doubaoSnack: 0, computeCell: 0, kimiLens: 0 }, notice: '', events: [], spawnTimer: 0, chestTimer: 2, eliteSpawned: false, bossSpawned: false,
+    traits: {}, traitPower: {}, equipment: {}, equipmentPower: {}, weapons: {}, weaponPower: {}, effects: { frost: 0, ricochet: 0, orbit: 0, nova: 0 }, buildLog: [], novaActive: false, inventory: { rice: 0, chromeOrb: 0, resetScroll: 0, astraCore: 0, doubaoSnack: 0, computeCell: 0, kimiLens: 0 }, appliedShopReceipts: [], notice: '', events: [], spawnTimer: 0, chestTimer: 12, eliteSpawned: false, bossSpawned: false,
     kills: 0, damageTaken: 0, nextEnemyId: 1, nextAllyId: 1, bossDefeated: false, nextAutoRiceAt: 8,
   };
 }
@@ -67,17 +69,19 @@ export function normalizeGameSnapshot(snapshot){
   result.player={...defaults.player,...(raw.player||{})};
   for(const key of ['inventory','traits','traitPower','equipment','equipmentPower','weapons','weaponPower','effects'])result[key]={...defaults[key],...(raw[key]||{})};
   for(const key of ['enemies','bullets','beams','allies','orbs','chests','pickups','particles','blasts','choices','buildLog','events'])result[key]=Array.isArray(raw[key])?raw[key]:defaults[key];
+  result.appliedShopReceipts=Array.isArray(raw.appliedShopReceipts)?raw.appliedShopReceipts.filter(id=>typeof id==='string').slice(-128):[];
   result.nextAllyId=Math.max(Number.isInteger(raw.nextAllyId)&&raw.nextAllyId>0?raw.nextAllyId:1,Math.max(0,...result.allies.map(a=>Number(a.id)||0))+1);
+  result.allies=result.allies.slice(0,limits.allies).map(normalizeAlly);
   return result;
 }
 
 function rand(g) { g.rng = (Math.imul(g.rng, 1664525) + 1013904223) >>> 0; return g.rng / 4294967296; }
 function visualRand(g) { g.visualRng = (Math.imul(g.visualRng, 1664525) + 1013904223) >>> 0; return g.visualRng / 4294967296; }
 function event(g, type, data = {}) { g.events.push({ type, ...data }); if (g.events.length > limits.events) g.events.shift(); }
-function addBlast(g,x,y,kind='nova') {
+function addBlast(g,x,y,kind='nova',radius=80) {
   g.blasts ||= [];g.particles ||= [];g.visualRng ??= 1;
   if(g.blasts.length>=limits.blasts)g.blasts.shift();
-  g.blasts.push({x,y,radius:80,age:0,duration:.45,kind});
+  g.blasts.push({x,y,radius,age:0,duration:.45,kind});
   for(let i=0;i<24&&g.particles.length<limits.particles;i++){
     const angle=visualRand(g)*Math.PI*2,speed=35+visualRand(g)*135,life=.22+visualRand(g)*.28;
     g.particles.push({x,y,vx:Math.cos(angle)*speed,vy:Math.sin(angle)*speed,radius:2+visualRand(g)*3,color:visualRand(g)<.5?'#ffb44f':'#fff0a6',life,maxLife:life});
@@ -171,9 +175,9 @@ function addXpOrb(g, x, y, value = 1) {
 }
 function spawnEnemy(g, kind = 'chaser', { identity:forcedIdentity=null, lifetime=0 } = {}) {
   if (g.enemies.length >= limits.enemies) return false;
-  const angle = rand(g) * Math.PI * 2, radiusFromPlayer = 480 + rand(g) * 220;
+  const angle = rand(g) * Math.PI * 2, radiusFromPlayer = 320 + rand(g) * 180;
   const x = clamp(g.player.x + Math.cos(angle) * radiusFromPlayer, 30, WIDTH - 30), y = clamp(g.player.y + Math.sin(angle) * radiusFromPlayer, 30, HEIGHT - 30);
-  const defs = { chaser: [26, 38 + g.round * 5, 48 + g.round * 2], summon: [17, 24 + g.round * 3, 72 + g.round * 2], dash: [20, 30 + g.round * 4, 85 + g.round * 2], ranged: [22, 38 + g.round * 5, 42 + g.round], elite: [38, 180 + g.round * 25, 32 + g.round], boss: [62, 1250, 26] };
+  const defs = { chaser: [26, 28 + g.round * 7, 48 + g.round * 2], summon: [17, 24 + g.round * 3, 72 + g.round * 2], dash: [20, 30 + g.round * 4, 85 + g.round * 2], ranged: [22, 38 + g.round * 5, 42 + g.round], elite: [38, 180 + g.round * 25, 32 + g.round], boss: [62, 1250, 26] };
   let [radius, hp, speed] = defs[kind]||defs.chaser;
   const opponent = opposingRoster(g.playerFaction)[kind];
   const elite = kind === 'elite' ? ELITE_ROSTERS[g.playerFaction][Math.floor(rand(g) * ELITE_ROSTERS[g.playerFaction].length)] : null;
@@ -204,9 +208,9 @@ function fire(g, target) {
 }
 function pointSegmentDistance2(point,ax,ay,bx,by){const dx=bx-ax,dy=by-ay,len=dx*dx+dy*dy||1,t=clamp(((point.x-ax)*dx+(point.y-ay)*dy)/len,0,1),x=ax+t*dx,y=ay+t*dy;return {distance2:(point.x-x)**2+(point.y-y)**2,t};}
 function addBeam(g,beam){g.beams||=[];if(g.beams.length>=limits.beams)g.beams.shift();g.beams.push({...beam,life:.16,maxLife:.16});}
-function dealEnemyDamage(g,e,amount){
+function dealEnemyDamage(g,e,amount,{ignoreShield=false}={}){
   if(!g.enemies.includes(e))return 0;
-  const effective=e.kind==='boss'&&e.behavior==='egg'&&e.shieldTimer>0?amount*.5:amount;
+  const effective=!ignoreShield&&e.kind==='boss'&&e.behavior==='egg'&&e.shieldTimer>0?amount*.5:amount;
   e.hp-=effective;e.hitFlash=.12;if(e.hp<=0)killEnemy(g,e);return effective;
 }
 function chainRicochet(g,from,hitIds,damage,power){let left=Math.min(2,Math.floor(power)),origin=from;
@@ -230,27 +234,40 @@ function fireLaser(g,length,width,damage,maxHits,color,aimTarget=null){
     for(const chest of [...g.chests])if(pointSegmentDistance2(chest,p.x,p.y,toX,toY).distance2<=(chest.radius+width/2)**2)damageChest(g,chest,damage);
   }
 }
+function normalizeAlly(a){
+  const max=a.kind==='qwenMax',maxHp=Number.isFinite(a.maxHp)?a.maxHp:max?420:80;
+  const result={...a,maxHp,hp:Number.isFinite(a.hp)?a.hp:maxHp,radius:max?38:(a.radius||17),speed:Number.isFinite(a.speed)?a.speed:max?68:125,fireRate:Number.isFinite(a.fireRate)?a.fireRate:max?.75:.95,range:Number.isFinite(a.range)?a.range:max?600:470,armor:max?4:0,invulnerable:Number.isFinite(a.invulnerable)?a.invulnerable:0};
+  delete result.life;delete result.maxLife;return result;
+}
+function hurtAlly(g,a,amount){
+  if(a.hp<=0||a.invulnerable>0)return;
+  a.hp=Math.max(0,a.hp-Math.max(1,amount*(DIFFICULTIES[g.difficulty]||DIFFICULTIES.standard).enemyDamage-(a.armor||0)));a.invulnerable=.55;
+  if(!a.hp)event(g,'ally-defeated',{id:a.id,kind:a.kind});
+}
 function summonAlly(g,kind){
   if(g.heroId!=='qwen'||g.phase!=='playing'||g.allies.length>=limits.allies)return false;
-  const p=g.player,cost=kind==='qwenMax'?60:20;if(p.compute<cost)return false;p.compute-=cost;
+  const p=g.player,max=kind==='qwenMax',cost=max?HEROES.qwen.maxCost:HEROES.qwen.smallCost;if(p.compute<cost)return false;p.compute-=cost;
   const index=g.allies.length,angle=(index%8)*Math.PI/4;
-  const ally={id:g.nextAllyId++,x:clamp(p.x+Math.cos(angle)*55,25,WIDTH-25),y:clamp(p.y+Math.sin(angle)*55,25,HEIGHT-25),radius:kind==='qwenMax'?20:13,kind,life:kind==='qwenMax'?12:10,maxLife:kind==='qwenMax'?12:10,shotTimer:.35,damage:kind==='qwenMax'?28:12,modelId:kind==='qwenMax'?'qwenMax':'qwenSmall',name:kind==='qwenMax'?'Qwen Max':'Qwen小兵',color:kind==='qwenMax'?'#26b482':'#71c7a0'};
+  const maxHp=max?420:Math.round(55+rand(g)*55),speed=max?68:Math.round(95+rand(g)*70),damage=max?38:Math.round(8+rand(g)*10),fireRate=max?.75:.7+rand(g)*.55;
+  const ally=normalizeAlly({id:g.nextAllyId++,x:clamp(p.x+Math.cos(angle)*75,40,WIDTH-40),y:clamp(p.y+Math.sin(angle)*75,40,HEIGHT-40),radius:max?38:16+Math.round(rand(g)*4),kind,hp:maxHp,maxHp,speed,damage,fireRate,shotTimer:.35,modelId:max?'qwenMax':'qwenSmall',name:max?'Qwen Max':'Qwen小兵',color:max?'#26b482':'#71c7a0'});
   g.allies.push(ally);event(g,'ally-summoned',{kind,cost,compute:p.compute,id:ally.id});return ally;
 }
 function updateAllies(g,dt){
   const p=g.player;g.allies=(g.allies||[]).slice(0,limits.allies);
   for(let index=0;index<g.allies.length;index++){
-    const ally=g.allies[index];ally.life-=dt;if(ally.life<=0)continue;
-    const desiredX=p.x-Math.cos(p.facing)*(40+index*9)+Math.sin(p.facing)*(index%2?28:-28),desiredY=p.y-Math.sin(p.facing)*(40+index*9)-Math.cos(p.facing)*(index%2?28:-28);
-    const follow=unit(desiredX-ally.x,desiredY-ally.y),distance=Math.hypot(desiredX-ally.x,desiredY-ally.y),move=Math.min(distance,130*dt);
-    ally.x=clamp(ally.x+follow.x*move,ally.radius,WIDTH-ally.radius);ally.y=clamp(ally.y+follow.y*move,ally.radius,HEIGHT-ally.radius);
+    let ally=g.allies[index];if(!Number.isFinite(ally.hp))ally=g.allies[index]=normalizeAlly(ally);if(ally.hp<=0)continue;ally.invulnerable=Math.max(0,(ally.invulnerable||0)-dt);
     let target=null,nearest=Infinity;for(const e of g.enemies){const d=dist2(ally,e);if(d<nearest){nearest=d;target=e;}}
+    let desiredX=p.x+Math.cos(index*Math.PI/4)*90,desiredY=p.y+Math.sin(index*Math.PI/4)*90;
+    if(target&&nearest<750**2&&dist2(ally,p)<850**2){const toward=unit(target.x-ally.x,target.y-ally.y),standOff=ally.kind==='qwenMax'?220:160;desiredX=target.x-toward.x*standOff;desiredY=target.y-toward.y*standOff;}
+    const follow=unit(desiredX-ally.x,desiredY-ally.y),distance=Math.hypot(desiredX-ally.x,desiredY-ally.y),move=Math.min(distance,ally.speed*dt);
+    ally.x=clamp(ally.x+follow.x*move,ally.radius,WIDTH-ally.radius);ally.y=clamp(ally.y+follow.y*move,ally.radius,HEIGHT-ally.radius);
+    for(let j=0;j<index;j++){const other=g.allies[j],distance=Math.hypot(ally.x-other.x,ally.y-other.y),minimum=ally.radius+other.radius+5;if(distance<minimum){const d=distance>.01?unit(ally.x-other.x,ally.y-other.y):{x:1,y:0},push=Math.min((minimum-distance)*.5,45*dt);ally.x=clamp(ally.x+d.x*push,ally.radius,WIDTH-ally.radius);ally.y=clamp(ally.y+d.y*push,ally.radius,HEIGHT-ally.radius);}}
     ally.shotTimer-=dt;
-    if(target&&nearest<520**2&&ally.shotTimer<=0&&g.bullets.length<limits.bullets-limits.allyBullets){
-      const aim=unit(target.x-ally.x,target.y-ally.y);g.bullets.push({x:ally.x,y:ally.y,vx:aim.x*460,vy:aim.y*460,damage:ally.damage,radius:6,life:1.6,hits:1,hitIds:[],owner:'ally'});ally.shotTimer=ally.kind==='qwenMax'?.55:.9;
+    if(target&&nearest<ally.range**2&&ally.shotTimer<=0&&g.bullets.length<limits.bullets-limits.allyBullets){
+      const aim=unit(target.x-ally.x,target.y-ally.y);g.bullets.push({x:ally.x,y:ally.y,vx:aim.x*460,vy:aim.y*460,damage:ally.damage,radius:6,life:1.6,hits:1,hitIds:[],owner:'ally'});ally.shotTimer=ally.fireRate;
     }
   }
-  g.allies=g.allies.filter(ally=>ally.life>0);
+  g.allies=g.allies.filter(ally=>ally.hp>0);
 }
 function damageChest(g, chest, amount) {
   chest.hp -= amount;
@@ -365,9 +382,52 @@ export function useItem(g, slot = 1) {
   if(key==='kimiLens'){g.player.skillCooldown=0;return [{type:'item-used',item:key,slot:1,cooldown:0,remaining:g.inventory[key]}];}
   return [];
 }
+export function getShopItemStatus(g,id) {
+  const item=SHOP_ITEMS[id];
+  if(!item)return {available:false,reason:'没有这个商品。'};
+  if(g.phase!=='playing')return {available:false,reason:'请在战斗中使用商品。'};
+  if(id==='medkit'&&g.player.health>=g.player.maxHealth)return {available:false,reason:'生命值已满，暂时用不上医疗包。'};
+  if(id==='supplies'){
+    const key=HEROES[g.heroId]?.itemKey, count=Number(g.inventory?.[key]||0);
+    if(!key||count>7||count+2>(limits[key]||0))return {available:false,reason:'背包至少需要 2 个空位。'};
+  }
+  if(id==='pulse'&&!g.enemies.some(e=>dist2(g.player,e)<=420**2))return {available:false,reason:'范围内没有可命中的敌人。'};
+  if(id==='magnet'&&(!g.orbs.length||!g.orbs.some(o=>Number(o.value)>0)))return {available:false,reason:'场上没有可吸取的经验米粒。'};
+  return {available:true,reason:'可使用。'};
+}
+export function applyShopItem(g,id,requestId) {
+  g.appliedShopReceipts=Array.isArray(g.appliedShopReceipts)?g.appliedShopReceipts:[];
+  const receiptKey=`${id}:${requestId}`;
+  if(typeof requestId!=='string'||!requestId.trim()||requestId.length>128)return {applied:false,reason:'请求编号无效。',events:[]};
+  if(g.appliedShopReceipts.includes(receiptKey))return {applied:false,reason:'这笔购买已处理过。',events:[]};
+  const status=getShopItemStatus(g,id);
+  if(!status.available)return {applied:false,reason:status.reason,events:[]};
+  g.events=[];const p=g.player;let payload;
+  if(id==='medkit'){
+    const before=p.health, amount=Math.round(p.maxHealth*.4);p.health=Math.min(p.maxHealth,p.health+amount);
+    payload={type:'shop-item-used',item:id,healed:p.health-before};
+  }else if(id==='supplies'){
+    const key=HEROES[g.heroId].itemKey;g.inventory[key]=(g.inventory[key]||0)+2;
+    payload={type:'shop-item-used',item:id,inventoryItem:key,count:g.inventory[key],added:2};
+  }else if(id==='pulse'){
+    const targets=g.enemies.filter(e=>dist2(p,e)<=420**2);
+    addBlast(g,p.x,p.y,'shop-pulse',420);let hit=0,damage=0,pushed=0;
+    for(const e of targets){if(!g.enemies.includes(e))continue;const amount=e.kind==='boss'?60:120;damage+=dealEnemyDamage(g,e,amount,{ignoreShield:true});hit++;
+      if(g.enemies.includes(e)){const d=unit(e.x-p.x,e.y-p.y);e.x=clamp(e.x+d.x*120,e.radius,WIDTH-e.radius);e.y=clamp(e.y+d.y*120,e.radius,HEIGHT-e.radius);pushed++;}}
+    payload={type:'shop-item-used',item:id,hit,damage,pushed,radius:420,knockback:120};
+  }else if(id==='magnet'){
+    const count=g.orbs.length,totalXp=g.orbs.reduce((sum,o)=>sum+Math.max(0,Number(o.value)||0),0);
+    if(!count||!totalXp)return {applied:false,reason:'场上没有可吸取的经验米粒。',events:[]};
+    g.orbs=[];grantExperience(g,totalXp);payload={type:'shop-item-used',item:id,collected:count,xp:totalXp};
+  }
+  if(!payload)return {applied:false,reason:'商品暂时无法使用。',events:[]};
+  g.appliedShopReceipts.push(receiptKey);if(g.appliedShopReceipts.length>128)g.appliedShopReceipts.splice(0,g.appliedShopReceipts.length-128);
+  event(g,payload.type,payload);
+  return {applied:true,reason:'使用成功。',events:g.events.splice(0)};
+}
 export function itemInfo(g) {
   const hero=HEROES[g.heroId]; const key=hero.itemKey; const available=(g.inventory[key]||0)>0;
-  const ready=key==='rice'||key==='doubaoSnack'?g.player.health<g.player.maxHealth:key==='computeCell'?g.player.compute<g.player.computeMax:key==='resetScroll'?g.player.energy<g.player.energyMax:key==='astraCore'||key==='kimiLens'?g.player.skillCooldown>0:key==='chromeOrb'?g.player.chromeShieldTimer<=0:true;
+  const ready=key==='rice'?(g.player.health<g.player.maxHealth||g.player.fatLevel<30):key==='doubaoSnack'?g.player.health<g.player.maxHealth:key==='computeCell'?g.player.compute<g.player.computeMax:key==='resetScroll'?g.player.energy<g.player.energyMax:key==='astraCore'||key==='kimiLens'?g.player.skillCooldown>0:key==='chromeOrb'?g.player.chromeShieldTimer<=0:true;
   return { key,name:hero.itemName,icon:hero.itemIcon,description:hero.itemDescription,count:g.inventory[key]||0,canUse:g.phase==='playing'&&available&&ready };
 }
 function recomputeFatStats(g) {
@@ -378,10 +438,11 @@ function recomputeFatStats(g) {
   p.chargeDamage=HEROES.deepseek.stats.chargeDamage*(1+0.07*p.fatness)*(1+0.4*(g.equipmentPower.impact||0));
 }
 function eatRice(g, automatic) {
-  const p = g.player; if (g.heroId!=='deepseek'||g.phase !== 'playing' || !g.inventory.rice || (!automatic && p.health >= p.maxHealth)) return [];
+  const p = g.player; if (g.heroId!=='deepseek'||g.phase !== 'playing' || !g.inventory.rice || (!automatic && p.health >= p.maxHealth && p.fatLevel >= 30)) return [];
+  const fullAtStart=p.health>=p.maxHealth;
   g.inventory.rice--;
-  if(p.fatLevel<30){p.fatXp++;if(p.fatXp>=p.fatXpNeed){p.fatXp-=p.fatXpNeed;p.fatLevel++;p.fatXpNeed=2+Math.floor((p.fatLevel-1)*1.5);recomputeFatStats(g);}}
-  const normalHeal = 30 + (g.equipmentPower.ricebox || g.equipment.ricebox || 0) * 10; const requested = automatic ? Math.floor(normalHeal / 2) : normalHeal;
+  if(p.fatLevel<30){p.fatXp++;if(p.fatXp>=p.fatXpNeed){p.fatXp-=p.fatXpNeed;p.fatLevel++;p.fatXpNeed=2+Math.floor((p.fatLevel-1)*.65);recomputeFatStats(g);}}
+  const normalHeal = 30 + (g.equipmentPower.ricebox || g.equipment.ricebox || 0) * 10; const requested = fullAtStart ? 0 : automatic ? Math.floor(normalHeal / 2) : normalHeal;
   const before = p.health; p.health = Math.min(p.maxHealth, p.health + requested);
   if (p.fatLevel >= 5 && !p.superFat && visualRand(g) < 0.04) p.superFat = true;
   const payload = { type: automatic ? 'auto-rice' : 'item-used', item: 'rice', slot: 1, healed: p.health - before, remaining: g.inventory.rice, fatness: p.fatness, fatLevel:p.fatLevel, fatXp:p.fatXp, fatXpNeed:p.fatXpNeed };
@@ -421,7 +482,7 @@ export function choose(g, choiceId) {
 export function continueRound(g) {
   if (g.phase !== 'rest') return false;
   if (g.round >= g.maxRounds) { g.phase = 'won'; g.notice = '你征服了深海！'; if(g.heroId==='gpt')event(g,'game-won',{hero:'gpt'});else event(g,'won',{hero:g.heroId}); return true; }
-  g.round++; g.roundTime = 0; g.roundDuration = 20 + 5 * (g.round - 1); g.spawnTimer = 0; g.chestTimer = 2; g.eliteSpawned = false; g.bossSpawned = false; g.phase = 'playing'; g.notice = `第 ${g.round} 轮`; return true;
+  g.round++; g.roundTime = 0; g.roundDuration = 20 + 5 * (g.round - 1); g.spawnTimer = 0; g.chestTimer = 10; g.eliteSpawned = false; g.bossSpawned = false; g.phase = 'playing'; g.notice = `第 ${g.round} 轮`; return true;
 }
 function endRound(g) {
   g.enemies = []; g.bullets = []; g.roundEnding = true; g.orbs.forEach(o => grantExperience(g, o.value)); g.orbs = []; if (g.phase === 'trait') return;
@@ -453,17 +514,23 @@ export function stepGame(g, input = {}, dt = 1 / 60) {
   if ((input.command === 'primary' || input.type === 'primary') && p.slideTimer <= 0) useHeroSkill(g);
   if ((input.command === 'secondary' || input.type === 'secondary') && p.slideTimer <= 0) useHeroSecondary(g);
   const difficulty=DIFFICULTIES[g.difficulty]||DIFFICULTIES.standard;
-  g.spawnTimer -= dt; if (g.spawnTimer <= 0 && g.enemies.length < limits.enemies) { spawnEnemy(g, g.round >= 4 && rand(g) < 0.25 ? 'ranged' : g.round >= 2 && rand(g) < 0.3 ? 'dash' : 'chaser'); g.spawnTimer = Math.max(0.22, 1.1 - g.round * 0.06)*difficulty.spawnInterval; }
+  g.spawnTimer -= dt; if (g.spawnTimer <= 0 && g.enemies.length < limits.enemies) {
+    const interval = Math.max(0.2, 0.85 - 0.05 * g.round) * difficulty.spawnInterval * (g.difficulty === 'relaxed' ? 1.5 : 1);
+    const count = g.difficulty === 'relaxed' ? 1 : g.round >= 7 ? 3 : g.round >= 3 ? 2 : 1;
+    for (let i = 0; i < count && g.enemies.length < limits.enemies; i++)
+      spawnEnemy(g, g.round >= 4 && rand(g) < 0.25 ? 'ranged' : g.round >= 2 && rand(g) < 0.3 ? 'dash' : 'chaser');
+    g.spawnTimer = interval;
+  }
   if ([3, 5, 7, 9].includes(g.round) && !g.eliteSpawned) g.eliteSpawned = spawnEnemy(g, 'elite');
   if (g.round === 10 && !g.bossSpawned) g.bossSpawned = spawnEnemy(g, 'boss');
-    g.chestTimer -= dt; if (g.chestTimer <= 0 && g.chests.length < limits.chests) { const a=rand(g)*Math.PI*2, r=200+rand(g)*300; g.chests.push({ x: clamp(p.x+Math.cos(a)*r,70,WIDTH-70), y:clamp(p.y+Math.sin(a)*r,70,HEIGHT-70),hp:24,maxHp:24,radius:20 }); g.chestTimer = 7; }
+    g.chestTimer -= dt; if (g.chestTimer <= 0 && g.chests.length < 2) { const a=rand(g)*Math.PI*2, r=200+rand(g)*300; g.chests.push({ x: clamp(p.x+Math.cos(a)*r,70,WIDTH-70), y:clamp(p.y+Math.sin(a)*r,70,HEIGHT-70),hp:24,maxHp:24,radius:20 }); g.chestTimer = 18; }
   updateAllies(g,dt);
   // Auto-fire chooses the nearest chest only when it is closer than the nearest enemy.
   let target = null, targetD = Infinity; for (const candidate of [...g.enemies, ...g.chests]) { const d = dist2(p, candidate); if (d < targetD) { target = candidate; targetD = d; } }
   p.shotTimer -= dt; if (target && p.shotTimer <= 0) { fire(g, target); p.shotTimer = p.fireRate; }
   for (const b of g.bullets) {
     b.x += b.vx * dt; b.y += b.vy * dt; b.life -= dt;
-    if (b.hostile) { if(p.toolNodeTimer>0&&dist2(b,p)<=360**2)b.life=0;else if (dist2(b, p) < (b.radius + p.radius) ** 2) { hurt(g, b.damage); b.life = 0; } continue; }
+    if (b.hostile) { if(p.toolNodeTimer>0&&dist2(b,p)<=360**2)b.life=0;else {const ally=g.allies.find(a=>a.hp>0&&dist2(b,a)<(b.radius+a.radius)**2);if(ally){hurtAlly(g,ally,b.damage);b.life=0;}else if (dist2(b, p) < (b.radius + p.radius) ** 2) { hurt(g, b.damage); b.life = 0; }} continue; }
     let struck = false; for (const e of [...g.enemies]) if (!b.hitIds.includes(e.id) && dist2(b, e) < (b.radius + e.radius) ** 2) {
       const damage = (rand(g) < p.crit ? b.damage * 2 : b.damage)*(1+.1*(g.weaponPower.frost||0)); dealEnemyDamage(g,e,damage); b.hitIds.push(e.id);
       if(g.weaponPower.frost>0){e.slowTimer=Math.max(e.slowTimer||0,Math.min(3,1.5+.2*(g.weaponPower.frost-1)));e.slowFactor=Math.max(.2,1-.4*g.weaponPower.frost);}
@@ -477,7 +544,8 @@ export function stepGame(g, input = {}, dt = 1 / 60) {
   if(g.weaponPower.orbit>0&&p.orbitTimer<=0){const orbit=getOrbitStats(g);p.orbitTimer=orbit.interval;const orbitDamage=orbit.damage;for(const e of [...g.enemies])if(dist2(p,e)<=orbit.radius**2)dealEnemyDamage(g,e,orbitDamage);event(g,'orbit-pulse',{x:p.x,y:p.y,radius:orbit.radius,damage:orbitDamage,count:orbit.count,angle:p.orbitAngle});}
   for (const e of [...g.enemies]) {
     if(e.summoned){e.life-=dt;if(e.life<=0){g.enemies=g.enemies.filter(other=>other!==e);continue;}}
-    e.hitFlash = Math.max(0, (e.hitFlash || 0) - dt); e.slowTimer = Math.max(0,(e.slowTimer||0)-dt); const speedScale=e.slowTimer>0?(e.slowFactor||0.6):1; const d = unit(p.x - e.x, p.y - e.y);
+    let victim=p,nearestVictim=dist2(p,e);for(const ally of g.allies)if(ally.hp>0&&dist2(ally,e)<nearestVictim){victim=ally;nearestVictim=dist2(ally,e);}
+    e.hitFlash = Math.max(0, (e.hitFlash || 0) - dt); e.slowTimer = Math.max(0,(e.slowTimer||0)-dt); const speedScale=e.slowTimer>0?(e.slowFactor||0.6):1; const d = unit(victim.x - e.x, victim.y - e.y);
     if(e.behavior==='summoner'){
       e.summonTimer=(e.summonTimer??5)-dt;e.telegraph=e.summonTimer>0&&e.summonTimer<=1?Math.min(1,e.summonTimer):0;
       if(e.summonTimer<=0){for(let i=0;i<6&&g.enemies.length<limits.enemies;i++)spawnEnemy(g,'summon',{lifetime:10});e.summonTimer=5;e.telegraph=0;}
@@ -486,18 +554,21 @@ export function stepGame(g, input = {}, dt = 1 / 60) {
       e.shieldTimer=Math.max(0,(e.shieldTimer||0)-dt);e.shieldCooldown=(e.shieldCooldown||0)-dt;
       if(e.shieldCooldown<=0){e.shieldTimer=3;e.shieldCooldown=8;if(dist2(e,p)<=180**2){const away=unit(p.x-e.x,p.y-e.y);p.x=clamp(p.x+away.x*180,p.radius,WIDTH-p.radius);p.y=clamp(p.y+away.y*180,p.radius,HEIGHT-p.radius);event(g,'egg-push',{distance:180});}}
     }
-    if (e.kind === 'ranged' || e.behavior === 'sniper') { if (dist2(p, e) < 360 ** 2) { e.x -= d.x * e.speed * speedScale * dt; e.y -= d.y * e.speed * speedScale * dt; } else if (dist2(p, e) > 520 ** 2) { e.x += d.x * e.speed * speedScale * dt; e.y += d.y * e.speed * speedScale * dt; }
-      e.shotTimer -= dt; if (e.shotTimer <= 0 && g.bullets.length < limits.bullets) { const aim = unit(p.x - e.x, p.y - e.y); g.bullets.push({ x:e.x, y:e.y, vx:aim.x*210, vy:aim.y*210, damage:8, radius:7, life:3, hostile:true, hitIds:[] }); e.shotTimer = 2.2; }
-    } else if (e.kind === 'dash' || e.behavior === 'burst') { e.dashTimer -= dt; if (e.dashTimer <= 0) { e.dashTimer = e.behavior === 'burst' ? 2.2 : 1.6; e.dashWindup = e.behavior === 'burst' ? 0.2 : 0.36; e.dashDir = unit(p.x-e.x,p.y-e.y); }
+    if (e.kind === 'ranged' || e.behavior === 'sniper') { if (dist2(victim, e) < 360 ** 2) { e.x -= d.x * e.speed * speedScale * dt; e.y -= d.y * e.speed * speedScale * dt; } else if (dist2(victim, e) > 520 ** 2) { e.x += d.x * e.speed * speedScale * dt; e.y += d.y * e.speed * speedScale * dt; }
+      e.shotTimer -= dt; if (e.shotTimer <= 0 && g.bullets.length < limits.bullets) { const aim = unit(victim.x - e.x, victim.y - e.y); g.bullets.push({ x:e.x, y:e.y, vx:aim.x*210, vy:aim.y*210, damage:8, radius:7, life:3, hostile:true, hitIds:[] }); e.shotTimer = 2.2; }
+    } else if (e.kind === 'dash' || e.behavior === 'burst') { e.dashTimer -= dt; if (e.dashTimer <= 0) { e.dashTimer = e.behavior === 'burst' ? 2.2 : 1.6; e.dashWindup = e.behavior === 'burst' ? 0.2 : 0.36; e.dashDir = unit(victim.x-e.x,victim.y-e.y); }
       if (e.dashWindup > 0) e.dashWindup -= dt; else if (e.dashDir) { e.x += e.dashDir.x * e.speed * speedScale * 3.2 * dt; e.y += e.dashDir.y * e.speed * speedScale * 3.2 * dt; if (e.dashTimer < 0.3) e.dashDir = null; }
       else { e.x += d.x*e.speed*speedScale*dt; e.y += d.y*e.speed*speedScale*dt; }
     } else { e.x += d.x * e.speed * speedScale * dt; e.y += d.y * e.speed * speedScale * dt; }
       e.x = clamp(e.x, e.radius, WIDTH-e.radius); e.y = clamp(e.y, e.radius, HEIGHT-e.radius);
+    for(const ally of g.allies)if(ally.hp>0&&dist2(ally,e)<(ally.radius+e.radius)**2)hurtAlly(g,ally,e.kind==='boss'?24:e.kind==='elite'?16:9);
     if (dist2(p, e) < (p.radius + e.radius) ** 2 && p.chargeTimer <= 0) {
-      hurt(g, e.kind === 'boss' ? 20 : e.kind === 'elite' ? 14 : 8);
+      const laterPressure = Math.floor(Math.max(0, g.round - 1) / 4);
+      hurt(g, e.kind === 'boss' ? 20 + laterPressure * 2 : e.kind === 'elite' ? 14 + laterPressure : 8 + laterPressure);
       if (p.slideTimer > 0) { const away = unit(e.x-p.x,e.y-p.y); e.x=clamp(e.x+away.x*36,e.radius,WIDTH-e.radius); e.y=clamp(e.y+away.y*36,e.radius,HEIGHT-e.radius); }
     }
   }
+  g.allies=g.allies.filter(a=>a.hp>0);
   if (g.phase !== 'playing') return g.events.splice(0);
   if (p.chargeTimer > 0) for (const e of [...g.enemies]) if (!p.chargeHits.includes(e.id) && dist2(p, e) < (p.radius + e.radius + 14) ** 2) { dealEnemyDamage(g,e,p.chargeDamage); e.x += Math.cos(p.chargeDirection) * 22; e.y += Math.sin(p.chargeDirection) * 22; p.chargeHits.push(e.id); }
   for (const c of [...g.chests]) if (p.chargeTimer > 0 && dist2(p, c) < (p.radius + c.radius + 14) ** 2) damageChest(g, c, p.chargeDamage);
@@ -530,6 +601,7 @@ export function getStats(g) {
   if(orbit.count)entries.push({key:'orbitCount',label:'环绕水弹',value:orbit.count,unit:'枚'},{key:'orbitDamage',label:'环刃脉冲伤害',value:orbit.damage,unit:'点/脉冲'});
   const hero=g.heroId==='deepseek'?{fatLevel:p.fatLevel,fatXp:p.fatXp,fatXpNeed:p.fatXpNeed,fatness:p.fatness,fishStage:p.fishStage}:g.heroId==='gpt'?{energy:p.energy,energyMax:p.energyMax,transformed:p.transformed}:g.heroId==='qwen'?{compute:p.compute,computeMax:p.computeMax,computeRegen:HEROES.qwen.computeRegen,allies:g.allies.length}:g.heroId==='doubao'?{shieldTimer:p.shieldTimer,shieldCharges:p.shieldCharges,shieldCooldown:p.shieldCooldown}:g.heroId==='kimi'?{skillCooldown:p.skillCooldown,piercing:p.piercing,beams:g.beams.length}:{};
   if(g.heroId==='qwen')entries.push({key:'compute',label:'算力',value:p.compute,max:p.computeMax,unit:'点'},{key:'allies',label:'召唤物',value:g.allies.length,max:limits.allies,unit:'个'});
+  if(g.heroId==='qwen')for(const ally of g.allies){entries.push({key:'allyHp'+ally.id,label:`${ally.name} #${ally.id} 生命`,value:ally.hp,max:ally.maxHp,unit:'点'},{key:'allyDamage'+ally.id,label:`#${ally.id} 伤害 / 移速`,value:ally.damage,unit:`点 · ${ally.speed}速度`},{key:'allyRate'+ally.id,label:`#${ally.id} 射击间隔`,value:ally.fireRate,unit:'秒'});}
   if(g.heroId==='doubao')entries.push({key:'shield',label:'护盾',value:p.shieldCharges,max:2,unit:'次'},{key:'shieldCooldown',label:'护盾冷却',value:p.shieldCooldown,unit:'秒'});
   if(g.heroId==='kimi')entries.push({key:'laserPiercing',label:'光束穿透',value:p.piercing,unit:'名敌人'},{key:'laserCooldown',label:'聚焦冷却',value:p.skillCooldown,unit:'秒'});
   const weapons=Object.entries(g.weapons).map(([id,level])=>({id,name:CATALOG[id]?.name||id,level,power:g.weaponPower[id]||0,count:id==='orbit'?orbit.count:level}));

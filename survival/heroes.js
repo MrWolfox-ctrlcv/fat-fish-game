@@ -12,7 +12,7 @@ export const HEROES = Object.freeze({
   },
   qwen: {
     id: 'qwen', name: 'Qwen', faction: 'cn', itemKey: 'computeCell', itemName: '算力电池', itemIcon: '🔋', itemDescription: '恢复 40 点算力，最多 100。',
-    skillName: '召唤小兵', secondarySkillName: '召唤 Qwen Max', computeMax: 100, computeRegen: 6, smallCost: 20, maxCost: 60,
+    skillName: '召唤小兵', secondarySkillName: '召唤 Qwen Max', computeMax: 100, computeRegen: 6, smallCost: 12, maxCost: 60,
     stats: { health: 125, speed: 135, damage: 16, fireRate: .9, chargeDamage: 0 },
   },
   kimi: {

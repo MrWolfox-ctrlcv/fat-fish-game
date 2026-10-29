@@ -30,10 +30,10 @@ test('Qwen compute pays summon costs, regenerates in active play, and compute ce
   const g=createGame({hero:'qwen'}),p=g.player;
   assert.equal(p.compute,100);assert.equal(p.computeMax,100);
   assert.ok(performAction(g,{type:'primary'}).some(e=>e.type==='ally-summoned'));
-  assert.equal(p.compute,80);assert.equal(g.allies[0].kind,'qwenSmall');assert.equal(g.allies[0].life,10);
+  assert.equal(p.compute,88);assert.equal(g.allies[0].kind,'qwenSmall');assert.ok(g.allies[0].hp>0);
   assert.ok(performAction(g,{type:'secondary'}).some(e=>e.type==='ally-summoned'));
-  assert.equal(p.compute,20);assert.equal(g.allies[1].kind,'qwenMax');assert.equal(g.allies[1].life,12);
-  g.inventory.computeCell=1;assert.equal(itemInfo(g).canUse,true);assert.equal(useItem(g)[0].compute,60);
+  assert.equal(p.compute,28);assert.equal(g.allies[1].kind,'qwenMax');assert.equal(g.allies[1].hp,420);
+  g.inventory.computeCell=1;assert.equal(itemInfo(g).canUse,true);assert.equal(useItem(g)[0].compute,68);
   const frozen=p.compute;g.phase='trait';stepGame(g,{},1);assert.equal(p.compute,frozen);
   g.phase='playing';stepGame(g,{},.05);assert.ok(p.compute>frozen);
   assert.ok(useHeroSecondary(g).some(e=>e.kind==='qwenMax'));assert.equal(g.allies.length,3);

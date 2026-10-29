@@ -21,3 +21,5 @@ private/
 *.key
 *.p12
 *.pfx
+
+/artifacts/

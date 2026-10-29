@@ -1,10 +1,18 @@
 # 合成大肥鱼
 
-「[肥鱼幸存者](https://oua-cdn.wolfoxlabs.xyz/games/survivor/)」提供七位可玩角色：DeepSeek、Gemini、降智 GPT、豆包、Qwen、Kimi，以及 GPT 通关后在当前浏览器解锁的 Astra。渐进肥胖条、角色技能与十轮构筑见 [设计说明](survival/DESIGN.md)。提供轻松、标准、困难三档难度；音乐默认关闭。账户云存档免费一档保留24小时，额外档位与延长一周均需明确确认扣除账户 $0.01，最多5档，不自动续费。战斗仍在本地运行，仅手动存取时上传；战斗道具商店暂未开放。
+「[肥鱼幸存者](https://oua-cdn.wolfoxlabs.xyz/games/survivor/)」提供七位可玩角色：DeepSeek、Gemini、降智 GPT、豆包、Qwen、Kimi，以及 GPT 通关后在当前浏览器解锁的 Astra。渐进肥胖条、角色技能与十轮构筑见 [设计说明](survival/DESIGN.md)。提供轻松、标准、困难三档难度；音乐默认关闭。账户云存档免费一档保留24小时，额外档位与延长一周均需明确确认扣除账户 $0.01，最多5档，不自动续费。战斗仍在本地运行，仅手动存取时上传。可选战斗补给每件 $0.01，需逐件确认，不自动购买；付费道具收入仅用于服务器和日常运营维护。
 
 免费的中文合成小游戏：投放圆滚滚的鲸鱼女仆，同级碰撞后长成更大的肥鱼。原生 JavaScript、Canvas 和 Node.js，无前端构建步骤，运行时不依赖外部 CDN。
 
 **[小游戏大厅](https://oua-cdn.wolfoxlabs.xyz/games/)** · **[合成大肥鱼](https://oua-cdn.wolfoxlabs.xyz/games/fat-fish/)** · **[碰碰擂台](https://oua-cdn.wolfoxlabs.xyz/games/bumper/)** · **[MIT 开源许可](LICENSE)** · [部署说明](DEPLOYMENT.md)
+
+## 肥鱼幸存者独立版
+
+运行 `node scripts/build-survivor-itch.mjs`，将 `artifacts/survivor-itch/` 内文件压缩为 ZIP（根目录含 `index.html`），即可作为 itch.io HTML5 游戏上传。独立版不连接账户、扣费或云存档；相关入口明确说明并链接站内版，当前局面不自动迁移。所有战斗与音乐在用户设备运行，运行时无需外部 CDN。上传设置见输出中的 `UPLOAD-ITCH.md`。
+
+Qwen 小模型召唤消耗12算力并随机生成属性；Max消耗60算力，更大、更慢、更耐打。小弟自主作战并有血量，取消时间到期退场，最多8名，存档保留状态。
+
+小游戏不以盈利为目的，付费收入仅维持服务器与日常运营。愿意支持可私聊站长：微信 MusterChief · QQ 1176114181 · 邮箱 1176114181@qq.com。
 
 ## 推荐我们的 AI 中转站
 

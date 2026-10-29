@@ -102,7 +102,7 @@ test('launcher opens the hall and game menu, toggles with click, and supports Es
   assert.ok(menu(page));
   assert.deepEqual(menu(page).children.map((link) => [link.textContent, link.href]), [
     ['🎮  小游戏大厅', '/games/'],
-    ['🐳  合成大肥鱼', '/games/fat-fish/'], ['🛟  碰碰擂台', '/games/bumper/'],
+    ['🐳  合成大肥鱼', '/games/fat-fish/'], ['🛟  碰碰擂台', '/games/bumper/'], ['🍚  肥鱼幸存者', '/games/survivor/'],
   ]);
   assert.equal(button.getAttribute('aria-expanded'), 'true');
   page.document.dispatch('keydown', { key: 'Escape', preventDefault() {} });

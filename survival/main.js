@@ -3,6 +3,7 @@ import { HEROES } from './heroes.js';
 import { createRenderer } from './render.js';
 import { createCloudSaves } from './cloud-saves.js';
 import { createMusic } from './music.js';
+import { createSurvivorShop } from './shop.js';
 
 const $ = (id) => document.getElementById(id);
 const canvas = $('field');
@@ -11,14 +12,14 @@ const asset = path => new URL(path,import.meta.url).href;
 let astraUnlocked = false;
 try { astraUnlocked = localStorage.getItem('survivor.astra-unlocked.v1') === '1'; } catch {}
 let selectedHero = 'deepseek';
-let selectedDifficulty='standard',cloudLocked=false;
+let selectedDifficulty='standard',cloudLocked=false,shopLocked=false;
 const music=createMusic();
 const heroCopy = {
   deepseek: {portrait:'survival-avatar.png',title:'从小肥鱼，慢慢吃大。',description:'吃饭填满肥胖条才会长大。越肥越耐打、冲撞越狠，滑行也越难控制。偷吃只有一半回血。'},
   gemini: {portrait:'enemy/gemini.png',title:'故障机器猫，闪一下。',description:'跑得快，射得快，生命较少。闪现穿过危险；宝箱开出 Chrome 球，使用后获得三次护盾，持续八秒。'},
   gpt: {portrait:'enemy/gptSilly.png',title:'先攒能量，再恢复正常。',description:'基础形态很弱。经验同时充能与升级，20 能量起可变身正常 GPT，保留当前血量；正常形态可调用防御工具。重置卷回满能量。'},
   doubao: {portrait:'enemy/doubao.png',title:'豆包轻量版，护盾推开包围。',description:'均衡的生命与速度。护盾推击暂时保护自己，并把近身敌人震开；豆包零食恢复生命。'},
-  qwen: {portrait:'enemy/qwen.png',title:'Qwen 快速版，召唤模型队友。',description:'持续积攒算力。按空格召唤小型模型，按 2 消耗更多算力召唤 Qwen Max；算力会自动恢复。算力电池可补充算力。'},
+  qwen: {portrait:'enemy/qwen.png',title:'Qwen 快速版，召唤模型队友。',description:'小模型消耗12算力，血量、伤害、射速与移速随机；Max消耗60算力，更大、更慢、更耐打。小弟自主作战，血量耗尽才退场，最多8名。'},
   kimi: {portrait:'enemy/kimi.png',title:'Kimi 推理版，脆弱但火力强。',description:'生命偏低、移速较慢，普通攻击发射可穿透的激光。主动聚焦激光造成高额伤害；Kimi 镜片可重置技能冷却。'},
   astra: {portrait:'enemy/astra.png',title:'满血 Astra，登场。',description:'以 GPT 通关后的奖励角色。高伤害、厚血量，移速稍慢；星爆打击身边敌人，核心道具可以重置冷却。'},
 };
@@ -33,12 +34,13 @@ function setFocus(value) {
   requestAnimationFrame(()=>renderer.resize());
 }
 const input = () => ({ moveX: touch?.x ?? ((keys.has('d') || keys.has('arrowright') ? 1 : 0) - (keys.has('a') || keys.has('arrowleft') ? 1 : 0)), moveY: touch?.y ?? ((keys.has('s') || keys.has('arrowdown') ? 1 : 0) - (keys.has('w') || keys.has('arrowup') ? 1 : 0)), ...(aim ? { aimX: aim.x, aimY: aim.y } : {}) });
-const active = () => started && !paused && !cloudLocked && !document.hidden && game.phase === 'playing';
+const active = () => started && !paused && !cloudLocked && !shopLocked && !document.hidden && game.phase === 'playing';
 const clearInput = () => { keys.clear(); touch = null; aim = null; $('stick').hidden = true; };
 function eventFeedback(events = []) {
   if (!Array.isArray(events)) return;
   for (const event of events) {
-    const message = event.text || (event.type === 'item-collected' ? `${HEROES[game.heroId].itemName}已收好，按 1 使用` : event.type === 'auto-rice' ? `偷吃白饭！恢复 ${Math.ceil(event.healed)} 点生命` : event.type === 'item-used' ? event.healed != null ? `恢复 ${Math.ceil(event.healed)} 点生命` : `${HEROES[game.heroId].itemName}已使用` : event.type==='gpt-transform'?'正常 GPT，恢复上线！':'');
+    const shopNames={medkit:'深海医疗包',supplies:'补给箱',pulse:'深海脉冲',magnet:'经验磁场'};
+    const message = event.text || (event.type === 'item-collected' ? `${HEROES[game.heroId].itemName}已收好，按 1 使用` : event.type === 'auto-rice' ? `偷吃白饭！恢复 ${Math.ceil(event.healed)} 点生命` : event.type === 'item-used' ? event.healed != null ? `恢复 ${Math.ceil(event.healed)} 点生命` : `${HEROES[game.heroId].itemName}已使用` : event.type==='shop-item-used'?`${shopNames[event.item]||'战斗补给'}已用于本局` : event.type==='gpt-transform'?'正常 GPT，恢复上线！':'');
     if (message && !['hit','kill','serve'].includes(event.type)) { $('notice').textContent = message; noticeUntil = performance.now() + 2200; }
   }
 }
@@ -125,9 +127,9 @@ function updateHud() {
   $('health-fill').style.width = `${Math.max(0,p.health/p.maxHealth*100)}%`;
   $('xp-fill').style.width = `${Math.min(100,game.xp/game.xpNeed*100)}%`;
   const cd=game.heroId==='deepseek'?p.dashCooldown:game.heroId==='doubao'?p.shieldCooldown:p.skillCooldown;
-  const energyReady=game.heroId==='gpt'?(p.transformed||p.energy>=20):game.heroId==='qwen'?p.compute>=20:true;
+  const energyReady=game.heroId==='gpt'?(p.transformed||p.energy>=20):game.heroId==='qwen'?p.compute>=HEROES.qwen.smallCost:true;
   $('skill').firstElementChild.textContent=game.heroId==='gpt'?(p.transformed?'工具调用':'恢复正常 GPT'):game.heroId==='qwen'?'召唤小型模型':hero.skillName;
-  $('skill-status').textContent = !energyReady?(game.heroId==='qwen'?'需要 20 算力':'需要 20 能量'):cd > 0 ? `${cd.toFixed(1)} 秒` : game.heroId==='qwen'?'20 算力 · 空格 / E':'空格 / E · 就绪';
+  $('skill-status').textContent = !energyReady?(game.heroId==='qwen'?'需要 12 算力':'需要 20 能量'):cd > 0 ? `${cd.toFixed(1)} 秒` : game.heroId==='qwen'?'12 算力 · 空格 / E':'空格 / E · 就绪';
   $('skill').disabled = !active() || cd > 0 || !energyReady || p.slideTimer>0 || (game.heroId==='qwen'&&game.allies.length>=8);
   const secondary=$('secondary-skill');secondary.hidden=game.heroId!=='qwen';
   if(game.heroId==='qwen'){secondary.querySelector('span').textContent='召唤 Qwen Max';secondary.querySelector('small').textContent=p.compute<60?'需要 60 算力':`60 算力 · 按 2 · 余 ${Math.floor(p.compute)}`;secondary.disabled=!active()||p.compute<60||game.allies.length>=8;}
@@ -175,6 +177,8 @@ $('show-stats').onclick = () => {if(started&&game.phase==='playing'){paused=true
 $('focus-stats').onclick=()=>$('show-stats').click();
 const cloud=createCloudSaves({getState:()=>normalizeGameSnapshot(game),applyState:state=>{if(!state||!HEROES[state.heroId]||!state.player||!Array.isArray(state.enemies))throw Error('存档结构不兼容。');game=normalizeGameSnapshot(structuredClone(state));selectedHero=game.heroId;selectedDifficulty=game.difficulty||'standard';$('difficulty-select').value=selectedDifficulty;started=true;paused=true;clearInput();overlayKey='';refreshOverlay();updateHud();},onBusy:value=>{cloudLocked=value;clearInput();}});
 $('cloud-open').onclick=()=>cloud.open();$('focus-save').onclick=()=>cloud.open();
+const shop=createSurvivorShop({getGame:()=>game,isStarted:()=>started,onEvents:eventFeedback,onUpdate:updateHud,onBusy:value=>{shopLocked=value;if(value){clearInput();accumulator=0;}updateHud();}});
+$('shop-open').onclick=()=>shop.open();$('focus-shop').onclick=()=>shop.open();
 async function toggleMusic(){try{const enabled=await music.toggle();$('music-toggle').textContent=$('focus-music').textContent=enabled?'音乐：开':'音乐：关';}catch{$('music-toggle').textContent='音乐暂不可用';}}
 $('music-toggle').onclick=toggleMusic;$('focus-music').onclick=toggleMusic;
 $('difficulty-select').onchange=e=>{selectedDifficulty=e.target.value;game=createGame({seed:Date.now()>>>0,hero:selectedHero,difficulty:selectedDifficulty});overlayKey='';refreshOverlay();updateHud();};

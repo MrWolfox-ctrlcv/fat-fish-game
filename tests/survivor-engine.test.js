@@ -121,8 +121,8 @@ test('rice pickups enter bounded inventory and use heals only on a valid manual 
   assert.deepEqual(performAction(g, { type:'use-item', slot:1 }), [{ type:'item-used',item:'rice',slot:1,healed:50,remaining:0,fatness:0,fatLevel:1,fatXp:1,fatXpNeed:2 }]);
   assert.equal(g.player.health, 70);
   assert.deepEqual(useItem(g, 2), []); assert.equal(g.inventory.rice, 0);
-  g.inventory.rice = 1; g.player.health = g.player.maxHealth; assert.deepEqual(useItem(g), []); assert.equal(g.inventory.rice, 1);
-  g.player.health = 20; g.phase = 'trait'; assert.deepEqual(useItem(g), []); assert.equal(g.inventory.rice, 1);
+  g.inventory.rice = 1; g.player.health = g.player.maxHealth; assert.equal(useItem(g)[0].healed, 0); assert.equal(g.inventory.rice, 0); assert.equal(g.player.fatXp, 0); assert.equal(g.player.fatLevel, 2);
+  g.inventory.rice = 1; g.player.health = 20; g.phase = 'trait'; assert.deepEqual(useItem(g), []); assert.equal(g.inventory.rice, 1);
   g.phase = 'playing'; g.inventory.rice = 0; assert.deepEqual(useItem(g), []); assert.equal(g.player.health, 20);
 });
 
@@ -135,7 +135,7 @@ test('full rice inventory leaves collected pickup on the ground', () => {
 test('fatness levels only grow when calorie bar fills and cap at level 30', () => {
   const g=createGame(),p=g.player;p.health=0;
   g.inventory.rice=1;useItem(g);assert.equal(p.fatLevel,1);assert.equal(p.fatXp,1);assert.equal(p.radius,28);
-  g.inventory.rice=1;useItem(g);assert.equal(p.fatLevel,2);assert.equal(p.fatXp,0);assert.equal(p.fatXpNeed,3);
+  g.inventory.rice=1;useItem(g);assert.equal(p.fatLevel,2);assert.equal(p.fatXp,0);assert.equal(p.fatXpNeed,2);
   for(let i=0;i<2000&&p.fatLevel<30;i++){g.inventory.rice=1;p.health=0;useItem(g);}
   assert.equal(p.fatLevel,30);assert.equal(p.fatness,29);assert.ok(Math.abs(p.radius-91.8)<1e-8);assert.equal(p.maxHealth,488);assert.equal(p.chargeDamage,166.65);
   const size=p.radius,hp=p.maxHealth,dmg=p.chargeDamage;g.inventory.rice=1;p.health=0;useItem(g);
