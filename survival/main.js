@@ -1,4 +1,4 @@
-import { createGame, stepGame, performAction, choose, continueRound, useItem, itemInfo, getStats, DIFFICULTIES, CATALOG } from './engine.js';
+import { createGame, stepGame, performAction, choose, continueRound, useItem, itemInfo, getStats, DIFFICULTIES, CATALOG, normalizeGameSnapshot } from './engine.js';
 import { HEROES } from './heroes.js';
 import { createRenderer } from './render.js';
 import { createCloudSaves } from './cloud-saves.js';
@@ -17,6 +17,9 @@ const heroCopy = {
   deepseek: {portrait:'survival-avatar.png',title:'从小肥鱼，慢慢吃大。',description:'吃饭填满肥胖条才会长大。越肥越耐打、冲撞越狠，滑行也越难控制。偷吃只有一半回血。'},
   gemini: {portrait:'enemy/gemini.png',title:'故障机器猫，闪一下。',description:'跑得快，射得快，生命较少。闪现穿过危险；宝箱开出 Chrome 球，使用后获得三次护盾，持续八秒。'},
   gpt: {portrait:'enemy/gptSilly.png',title:'先攒能量，再恢复正常。',description:'基础形态很弱。经验同时充能与升级，20 能量起可变身正常 GPT，保留当前血量；正常形态可调用防御工具。重置卷回满能量。'},
+  doubao: {portrait:'enemy/doubao.png',title:'豆包轻量版，护盾推开包围。',description:'均衡的生命与速度。护盾推击暂时保护自己，并把近身敌人震开；豆包零食恢复生命。'},
+  qwen: {portrait:'enemy/qwen.png',title:'Qwen 快速版，召唤模型队友。',description:'持续积攒算力。按空格召唤小型模型，按 2 消耗更多算力召唤 Qwen Max；算力会自动恢复。算力电池可补充算力。'},
+  kimi: {portrait:'enemy/kimi.png',title:'Kimi 推理版，脆弱但火力强。',description:'生命偏低、移速较慢，普通攻击发射可穿透的激光。主动聚焦激光造成高额伤害；Kimi 镜片可重置技能冷却。'},
   astra: {portrait:'enemy/astra.png',title:'满血 Astra，登场。',description:'以 GPT 通关后的奖励角色。高伤害、厚血量，移速稍慢；星爆打击身边敌人，核心道具可以重置冷却。'},
 };
 let game = createGame({ seed: Date.now() >>> 0, hero:selectedHero,difficulty:selectedDifficulty });
@@ -39,7 +42,7 @@ function eventFeedback(events = []) {
     if (message && !['hit','kill','serve'].includes(event.type)) { $('notice').textContent = message; noticeUntil = performance.now() + 2200; }
   }
 }
-function skill() { if (active()) { eventFeedback(performAction(game, { type: 'primary', ...input() })); updateHud(); } }
+function skill(type='primary') { if (active()) { eventFeedback(performAction(game, { type, ...input() })); updateHud(); } }
 function eatRice() { if (active()) { eventFeedback(useItem(game,1)); updateHud(); } }
 function reset() {
   if (started && !['won','lost'].includes(game.phase) && !confirm('结束当前局，重新开始？')) return;
@@ -112,6 +115,8 @@ function refreshOverlay() {
 function updateHud() {
   const p = game.player;
   const hero=HEROES[game.heroId],copy=heroCopy[game.heroId],info=itemInfo(game);
+  $('field').setAttribute('aria-label',game.heroId==='qwen'?'方向键移动，空格召唤小型模型，数字2召唤Qwen Max。触屏摇杆移动，按钮使用技能。':'方向键移动，空格或E使用技能，数字1使用道具。触屏摇杆移动，按钮使用技能。');
+  document.querySelector('.controlbar>span').innerHTML=game.heroId==='qwen'?'移动 <kbd>WASD</kbd> / 方向键 · 技能 <kbd>空格</kbd> / <kbd>2</kbd>':'移动 <kbd>WASD</kbd> / 方向键 · 自动攻击';
   $('round').textContent = `${String(game.round).padStart(2,'0')} / 10`;
   $('timer').textContent = `${Math.max(0, Math.ceil(game.roundDuration - game.roundTime))} 秒`;
   $('level').textContent = `Lv.${game.level}`; $('kills').textContent = game.kills;
@@ -119,24 +124,26 @@ function updateHud() {
   $('xp-label').textContent = `经验 ${game.xp} / ${game.xpNeed}`;
   $('health-fill').style.width = `${Math.max(0,p.health/p.maxHealth*100)}%`;
   $('xp-fill').style.width = `${Math.min(100,game.xp/game.xpNeed*100)}%`;
-  const cd=game.heroId==='deepseek'?p.dashCooldown:p.skillCooldown;
-  const energyReady=game.heroId!=='gpt'||p.transformed||p.energy>=20;
-  $('skill').firstElementChild.textContent=game.heroId==='gpt'?(p.transformed?'工具调用':'恢复正常 GPT'):hero.skillName;
-  $('skill-status').textContent = !energyReady?'需要 20 能量':cd > 0 ? `${cd.toFixed(1)} 秒` : '空格 / E · 就绪';
-  $('skill').disabled = !active() || cd > 0 || !energyReady || p.slideTimer>0;
+  const cd=game.heroId==='deepseek'?p.dashCooldown:game.heroId==='doubao'?p.shieldCooldown:p.skillCooldown;
+  const energyReady=game.heroId==='gpt'?(p.transformed||p.energy>=20):game.heroId==='qwen'?p.compute>=20:true;
+  $('skill').firstElementChild.textContent=game.heroId==='gpt'?(p.transformed?'工具调用':'恢复正常 GPT'):game.heroId==='qwen'?'召唤小型模型':hero.skillName;
+  $('skill-status').textContent = !energyReady?(game.heroId==='qwen'?'需要 20 算力':'需要 20 能量'):cd > 0 ? `${cd.toFixed(1)} 秒` : game.heroId==='qwen'?'20 算力 · 空格 / E':'空格 / E · 就绪';
+  $('skill').disabled = !active() || cd > 0 || !energyReady || p.slideTimer>0 || (game.heroId==='qwen'&&game.allies.length>=8);
+  const secondary=$('secondary-skill');secondary.hidden=game.heroId!=='qwen';
+  if(game.heroId==='qwen'){secondary.querySelector('span').textContent='召唤 Qwen Max';secondary.querySelector('small').textContent=p.compute<60?'需要 60 算力':`60 算力 · 按 2 · 余 ${Math.floor(p.compute)}`;secondary.disabled=!active()||p.compute<60||game.allies.length>=8;}
   $('rice-count').textContent = `${info.count} / 9`;
   $('rice-item').querySelector('span').firstChild.textContent=`${hero.itemIcon} ${info.name} `;
   $('rice-item').setAttribute('aria-label',`按数字1使用${info.name}`);
-  $('rice-effect').textContent = game.heroId==='deepseek'?`恢复 ${30 + (game.equipmentPower?.ricebox || 0)*10} 生命`:game.heroId==='gemini'?'3 次护盾 · 8 秒':game.heroId==='gpt'?'回满能量':'重置技能冷却';
+  $('rice-effect').textContent = game.heroId==='deepseek'?`恢复 ${30 + (game.equipmentPower?.ricebox || 0)*10} 生命`:game.heroId==='gemini'?'3 次护盾 · 8 秒':game.heroId==='gpt'?'回满能量':game.heroId==='doubao'?'恢复 25 生命':game.heroId==='qwen'?'补充 40 算力':'重置技能冷却';
   $('rice-item').disabled = !active() || !info.canUse;
   const isFish=game.heroId==='deepseek',isGpt=game.heroId==='gpt';
   $('fatness').textContent=isFish?`${p.superFat?'超级大肥鱼 · ':''}成长 ${p.fatLevel}/30 · 外观 ${p.fishStage}/11`:isGpt?`${p.transformed?'正常':'降智'} GPT`:hero.name;
   $('momentum').textContent=isFish?(p.slideTimer>0?`惯性滑行 ${p.slideTimer.toFixed(1)} 秒 · 减伤 40%`:`滑行 ${(0.3+p.fatness*.045).toFixed(1)} 秒`):isGpt?'经验同时充能与升级':`速度 ${Math.round(p.speed)} · 伤害 ${Math.round(p.damage)}`;
   $('food-hint').textContent=isFish?`冲撞 ${Math.round(p.chargeDamage)} 伤害 · 偷吃回血 50%`:info.description;
-  $('resource-label').textContent=isFish?(p.fatLevel>=30?'肥胖成长已满级':`肥胖等级 ${p.fatLevel} · ${p.fatXp} / ${p.fatXpNeed} 碗`):isGpt?`能量 ${Math.floor(p.energy)} / ${p.energyMax}${p.transformed?' · 变身消耗中':''}`:game.heroId==='gemini'?`护盾 ${p.chromeShieldCharges} 次 · ${p.chromeShieldTimer.toFixed(1)} 秒`:'星爆技能';
-  $('resource-fill').style.width=`${Math.min(100,isFish?(p.fatLevel>=30?100:p.fatXp/p.fatXpNeed*100):isGpt?p.energy/p.energyMax*100:game.heroId==='gemini'?p.chromeShieldTimer/8*100:(1-cd/7)*100)}%`;
+  $('resource-label').textContent=isFish?(p.fatLevel>=30?'肥胖成长已满级':`肥胖等级 ${p.fatLevel} · ${p.fatXp} / ${p.fatXpNeed} 碗`):isGpt?`能量 ${Math.floor(p.energy)} / ${p.energyMax}${p.transformed?' · 变身消耗中':''}`:game.heroId==='gemini'?`护盾 ${p.chromeShieldCharges} 次 · ${p.chromeShieldTimer.toFixed(1)} 秒`:game.heroId==='doubao'?`护盾 ${p.shieldCharges} 次 · ${p.shieldTimer.toFixed(1)} 秒`:game.heroId==='qwen'?`算力 ${Math.floor(p.compute)} / ${p.computeMax} · 每秒恢复 6`:`${hero.skillName}冷却 ${Math.max(0,cd).toFixed(1)} 秒`;
+  $('resource-fill').style.width=`${Math.min(100,isFish?(p.fatLevel>=30?100:p.fatXp/p.fatXpNeed*100):isGpt?p.energy/p.energyMax*100:game.heroId==='gemini'?p.chromeShieldTimer/8*100:game.heroId==='doubao'?p.shieldTimer/3*100:game.heroId==='qwen'?p.compute/p.computeMax*100:(1-cd/(hero.skillCooldown||8))*100)}%`;
   $('opponent-faction').textContent=`对手阵营 · ${game.playerFaction==='cn'?'美国模型':'国模'}`;
-  $('opponent-roster').textContent=game.playerFaction==='cn'?'GPT、Gemini Flash Lite、Claude；精英 sol、Opus、Flash；首领 Astra。':'豆包、Qwen、Kimi；精英 Qwen Max、Kimi Thinking、DeepSeek Reasoner；首领满血 DeepSeek。';
+  $('opponent-roster').textContent=game.playerFaction==='cn'?'GPT、Gemini Flash Lite、Claude；精英 sol、Opus、Flash；首领 Astra。':'豆包、Qwen、Kimi；精英 Qwen Max、Kimi Thinking、DeepSeek Reasoner；首领主要为 Qwen Max 召唤师，偶尔出现豆包首领。';
   if($('hero-portrait').dataset.hero!==game.heroId){$('hero-portrait').dataset.hero=game.heroId;$('hero-portrait').src=asset(copy.portrait);$('hero-title').textContent=copy.title;$('hero-description').textContent=copy.description;$('hero-eyebrow').textContent=`本局角色 · ${hero.name}`;$('hero-tags').textContent=hero.skillName;}
   $('notice').classList.toggle('visible', performance.now() < noticeUntil && $('overlay').hidden);
   $('route-title').textContent = game.round < 3 ? '第三轮，模型精英来袭。' : game.round < 10 ? '组合升级，备战首领。' : '最后一轮，全力以赴。';
@@ -158,6 +165,7 @@ function updateHud() {
   }
 }
 $('skill').addEventListener('pointerdown', event => { event.preventDefault(); skill(); });
+$('secondary-skill').addEventListener('pointerdown', event => { event.preventDefault(); skill('secondary'); });
 $('rice-item').addEventListener('click', eatRice);
 $('focus-enter').onclick = () => setFocus(true);
 $('focus-exit').onclick = () => setFocus(false);
@@ -165,7 +173,7 @@ $('focus-pause').onclick = () => $('pause').click();
 $('pause').onclick = () => { if (!started || game.phase !== 'playing') return; paused = !paused; clearInput(); accumulator=0; refreshOverlay(); updateHud(); };
 $('show-stats').onclick = () => {if(started&&game.phase==='playing'){paused=true;clearInput();overlayKey='';refreshOverlay();}};
 $('focus-stats').onclick=()=>$('show-stats').click();
-const cloud=createCloudSaves({getState:()=>game,applyState:state=>{if(!state||!HEROES[state.heroId]||!state.player||!Array.isArray(state.enemies))throw Error('存档结构不兼容。');game=structuredClone(state);selectedHero=game.heroId;selectedDifficulty=game.difficulty||'standard';$('difficulty-select').value=selectedDifficulty;started=true;paused=true;clearInput();overlayKey='';refreshOverlay();updateHud();},onBusy:value=>{cloudLocked=value;clearInput();}});
+const cloud=createCloudSaves({getState:()=>normalizeGameSnapshot(game),applyState:state=>{if(!state||!HEROES[state.heroId]||!state.player||!Array.isArray(state.enemies))throw Error('存档结构不兼容。');game=normalizeGameSnapshot(structuredClone(state));selectedHero=game.heroId;selectedDifficulty=game.difficulty||'standard';$('difficulty-select').value=selectedDifficulty;started=true;paused=true;clearInput();overlayKey='';refreshOverlay();updateHud();},onBusy:value=>{cloudLocked=value;clearInput();}});
 $('cloud-open').onclick=()=>cloud.open();$('focus-save').onclick=()=>cloud.open();
 async function toggleMusic(){try{const enabled=await music.toggle();$('music-toggle').textContent=$('focus-music').textContent=enabled?'音乐：开':'音乐：关';}catch{$('music-toggle').textContent='音乐暂不可用';}}
 $('music-toggle').onclick=toggleMusic;$('focus-music').onclick=toggleMusic;
@@ -179,6 +187,7 @@ window.addEventListener('keydown', event => {
   if (key === 'escape') { if(focusMode)setFocus(false);else $('pause').click();return; }
   if (!active()) return;
   if ((event.code === 'Digit1' || event.code === 'Numpad1' || key === '1') && !event.repeat) { event.preventDefault(); eatRice(); return; }
+  if ((event.code === 'Digit2' || event.code === 'Numpad2' || key === '2') && game.heroId==='qwen' && !event.repeat) { event.preventDefault(); skill('secondary'); return; }
   if (moves.has(key)) { event.preventDefault(); keys.add(key); }
   if ((key === ' ' || key === 'e') && !event.repeat) { event.preventDefault(); skill(); }
 });

@@ -1,6 +1,6 @@
 # 合成大肥鱼
 
-「[肥鱼幸存者](https://oua-cdn.wolfoxlabs.xyz/games/survivor/)」提供 DeepSeek、Gemini、降智 GPT 三种玩法，以及 GPT 通关后在当前浏览器解锁的 Astra。渐进肥胖条、经验特性、十轮装备构筑与移动端专注布局见 [设计说明](survival/DESIGN.md)。提供轻松、标准、困难三档难度；音乐默认关闭。账户云存档免费一档保留24小时，额外档位与延长一周均需明确确认扣除账户 $0.01，最多5档，不自动续费。战斗仍在本地运行，仅手动存取时上传；战斗道具商店暂未开放。开发预览可执行 `npm run preview:survival`。
+「[肥鱼幸存者](https://oua-cdn.wolfoxlabs.xyz/games/survivor/)」提供七位可玩角色：DeepSeek、Gemini、降智 GPT、豆包、Qwen、Kimi，以及 GPT 通关后在当前浏览器解锁的 Astra。渐进肥胖条、角色技能与十轮构筑见 [设计说明](survival/DESIGN.md)。提供轻松、标准、困难三档难度；音乐默认关闭。账户云存档免费一档保留24小时，额外档位与延长一周均需明确确认扣除账户 $0.01，最多5档，不自动续费。战斗仍在本地运行，仅手动存取时上传；战斗道具商店暂未开放。
 
 免费的中文合成小游戏：投放圆滚滚的鲸鱼女仆，同级碰撞后长成更大的肥鱼。原生 JavaScript、Canvas 和 Node.js，无前端构建步骤，运行时不依赖外部 CDN。
 

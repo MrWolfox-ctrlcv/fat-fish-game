@@ -190,7 +190,7 @@ test('world bounds and near-player spawns use the expanded arena', () => {
 });
 
 test('hero catalog and items bind to DeepSeek, Gemini, GPT and locally-previewable Astra', () => {
-  assert.deepEqual(Object.keys(HEROES),['deepseek','gemini','gpt','astra']);
+  assert.deepEqual(Object.keys(HEROES),['deepseek','doubao','qwen','kimi','gemini','gpt','astra']);
   for(const hero of Object.keys(HEROES)){const g=createGame({hero});assert.equal(g.heroId,hero);assert.equal(g.playerFaction,HEROES[hero].faction);assert.ok(g.inventory[HEROES[hero].itemKey]===0);assert.equal(itemInfo(g).key,HEROES[hero].itemKey);}
   assert.equal(HEROES.deepseek.skillName,'肉蛋冲击');assert.equal(HEROES.gemini.name,'Gemini');assert.equal(HEROES.gemini.nickname,'故障机器猫');assert.equal(HEROES.gpt.name,'降智 GPT');
   assert.equal(HEROES.gemini.faction,'us');assert.equal(HEROES.gpt.faction,'us');assert.equal(HEROES.astra.faction,'us');

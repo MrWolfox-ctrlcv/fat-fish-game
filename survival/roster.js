@@ -11,8 +11,10 @@ const usOpponents = {
   dash: { modelId: 'qwen', name: 'Qwen 快速版', tier: 2, portrait: 'qwen', color: '#6cc990' },
   ranged: { modelId: 'kimi', name: 'Kimi 推理版', tier: 3, portrait: 'kimi', color: '#6688db' },
   elite: { modelId: 'deepseek', name: 'DeepSeek 常规版', tier: 4, portrait: 'deepseek', color: '#438ed0' },
-  boss: { modelId: 'deepseekFull', name: 'DeepSeek 满血版', tier: 5, portrait: 'deepseekFull', color: '#245ac3' },
+  boss: { modelId: 'qwenMax', name: 'Qwen Max', tier: 5, portrait: 'qwen', color: '#2bb582', behavior: 'summoner' },
 };
+
+export const DOUBAO_BOSS = Object.freeze({ modelId: 'doubaoBoss', name: '豆包·彩蛋首领', tier: 5, portrait: 'doubaoBoss', color: '#f0aa6b', behavior: 'egg' });
 
 export const ENEMY_ROSTERS = Object.freeze({ cn: cnOpponents, us: usOpponents });
 

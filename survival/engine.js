@@ -1,11 +1,11 @@
-import { ENEMY_ROSTERS, ELITE_ROSTERS, opposingRoster } from './roster.js';
+import { ENEMY_ROSTERS, ELITE_ROSTERS, DOUBAO_BOSS, opposingRoster } from './roster.js';
 import { HEROES } from './heroes.js';
 import { RARITIES, rarityWeights, rollRarity } from './loot.js';
 export { RARITIES, rarityWeights, rollRarity } from './loot.js';
 
 export const WIDTH = 2560;
 export const HEIGHT = 1600;
-export const limits = Object.freeze({ enemies: 64, bullets: 96, orbs: 96, particles: 80, blasts: 12, chests: 4, pickups: 8, events: 32, rice: 9, chromeOrb: 9, resetScroll: 9, astraCore: 9 });
+export const limits = Object.freeze({ enemies: 64, bullets: 96, orbs: 96, particles: 80, blasts: 12, allies: 8, allyBullets: 8, beams: 16, chests: 4, pickups: 8, events: 32, rice: 9, chromeOrb: 9, resetScroll: 9, astraCore: 9, doubaoSnack: 9, computeCell: 9, kimiLens: 9 });
 export const DIFFICULTIES = Object.freeze({
   relaxed: Object.freeze({ label: '轻松', description: '敌人更弱、进场更慢，经验略多。', enemyHealth: .75, enemyDamage: .7, spawnInterval: 1.2, xp: 1.15 }),
   standard: Object.freeze({ label: '标准', description: '标准敌人强度与出现速度。', enemyHealth: 1, enemyDamage: 1, spawnInterval: 1, xp: 1 }),
@@ -46,14 +46,29 @@ export function createGame({ seed = 1, hero = 'deepseek', faction, difficulty = 
     score: 0, level: 1, xp: 0, xpNeed: 8, pendingLevels: 0,
     player: { x: WIDTH / 2, y: HEIGHT / 2, radius: 28, fishStage: 1, health: stats.health, maxHealth: stats.health, vx: 0, vy: 0, facing: 1,
       fatLevel: 1, fatXp: 0, fatXpNeed: 2, fatness: 0, superFat: false, slideTimer: 0, slideDuration: 0,
-      damage: stats.damage, fireRate: stats.fireRate, shots: 1, speed: stats.speed, dashCooldown: 0, dashTimer: 0, chargeCooldown: 0, chargeTimer: 0, chargeDamage: stats.chargeDamage, chargeHits: [], orbitTimer: 0, orbitAngle: 0, luck: 0,
+      damage: stats.damage, fireRate: stats.fireRate, shots: 1, piercing: stats.piercing||1, speed: stats.speed, dashCooldown: 0, dashTimer: 0, chargeCooldown: 0, chargeTimer: 0, chargeDamage: stats.chargeDamage, chargeHits: [], orbitTimer: 0, orbitAngle: 0, luck: 0,
       shotTimer: 0, invulnerable: 0, magnet: 95, crit: 0, vampirism: 0, vampirismTimer: 0, chargeDirection: 0,
       energy: 0, energyMax: 100, transformed: false, transformTimer: 0, skillCooldown: 0, toolNodeTimer: 0,
-      chromeShieldTimer: 0, chromeShieldCharges: 0 },
-    enemies: [], bullets: [], orbs: [], chests: [], pickups: [], particles: [], blasts: [], choices: [],
-    traits: {}, traitPower: {}, equipment: {}, equipmentPower: {}, weapons: {}, weaponPower: {}, effects: { frost: 0, ricochet: 0, orbit: 0, nova: 0 }, buildLog: [], novaActive: false, inventory: { rice: 0, chromeOrb: 0, resetScroll: 0, astraCore: 0 }, notice: '', events: [], spawnTimer: 0, chestTimer: 2, eliteSpawned: false, bossSpawned: false,
-    kills: 0, damageTaken: 0, nextEnemyId: 1, bossDefeated: false, nextAutoRiceAt: 8,
+      chromeShieldTimer: 0, chromeShieldCharges: 0, shieldTimer: 0, shieldCharges: 0, shieldCooldown: 0,
+      compute: heroId==='qwen'?heroConfig.computeMax:0, computeMax: heroConfig.computeMax||0, laserTimer: 0 },
+    enemies: [], bullets: [], beams: [], allies: [], orbs: [], chests: [], pickups: [], particles: [], blasts: [], choices: [],
+    traits: {}, traitPower: {}, equipment: {}, equipmentPower: {}, weapons: {}, weaponPower: {}, effects: { frost: 0, ricochet: 0, orbit: 0, nova: 0 }, buildLog: [], novaActive: false, inventory: { rice: 0, chromeOrb: 0, resetScroll: 0, astraCore: 0, doubaoSnack: 0, computeCell: 0, kimiLens: 0 }, notice: '', events: [], spawnTimer: 0, chestTimer: 2, eliteSpawned: false, bossSpawned: false,
+    kills: 0, damageTaken: 0, nextEnemyId: 1, nextAllyId: 1, bossDefeated: false, nextAutoRiceAt: 8,
   };
+}
+
+export function normalizeGameSnapshot(snapshot){
+  const raw=snapshot&&typeof snapshot==='object'?JSON.parse(JSON.stringify(snapshot)):{};
+  const hero=Object.hasOwn(HEROES,raw.heroId)?raw.heroId:'deepseek';
+  const defaults=createGame({seed:raw.rng??1,hero,faction:raw.playerFaction,difficulty:raw.difficulty});
+  const result={...defaults,...raw};
+  result.heroId=hero;result.playerFaction=Object.hasOwn(ENEMY_ROSTERS,raw.playerFaction)?raw.playerFaction:defaults.playerFaction;
+  result.difficulty=Object.hasOwn(DIFFICULTIES,result.difficulty)?result.difficulty:'standard';
+  result.player={...defaults.player,...(raw.player||{})};
+  for(const key of ['inventory','traits','traitPower','equipment','equipmentPower','weapons','weaponPower','effects'])result[key]={...defaults[key],...(raw[key]||{})};
+  for(const key of ['enemies','bullets','beams','allies','orbs','chests','pickups','particles','blasts','choices','buildLog','events'])result[key]=Array.isArray(raw[key])?raw[key]:defaults[key];
+  result.nextAllyId=Math.max(Number.isInteger(raw.nextAllyId)&&raw.nextAllyId>0?raw.nextAllyId:1,Math.max(0,...result.allies.map(a=>Number(a.id)||0))+1);
+  return result;
 }
 
 function rand(g) { g.rng = (Math.imul(g.rng, 1664525) + 1013904223) >>> 0; return g.rng / 4294967296; }
@@ -154,31 +169,88 @@ function addXpOrb(g, x, y, value = 1) {
   if (g.orbs.length < limits.orbs) g.orbs.push({ x, y, value, radius: 7 });
   else { const nearest = g.orbs.reduce((a, b) => dist2(a, { x, y }) < dist2(b, { x, y }) ? a : b); nearest.value += value; }
 }
-function spawnEnemy(g, kind = 'chaser') {
+function spawnEnemy(g, kind = 'chaser', { identity:forcedIdentity=null, lifetime=0 } = {}) {
   if (g.enemies.length >= limits.enemies) return false;
   const angle = rand(g) * Math.PI * 2, radiusFromPlayer = 480 + rand(g) * 220;
   const x = clamp(g.player.x + Math.cos(angle) * radiusFromPlayer, 30, WIDTH - 30), y = clamp(g.player.y + Math.sin(angle) * radiusFromPlayer, 30, HEIGHT - 30);
-  const defs = { chaser: [26, 38 + g.round * 5, 48 + g.round * 2], dash: [20, 30 + g.round * 4, 85 + g.round * 2], ranged: [22, 38 + g.round * 5, 42 + g.round], elite: [38, 180 + g.round * 25, 32 + g.round], boss: [62, 1250, 26] };
-  let [radius, hp, speed] = defs[kind];
+  const defs = { chaser: [26, 38 + g.round * 5, 48 + g.round * 2], summon: [17, 24 + g.round * 3, 72 + g.round * 2], dash: [20, 30 + g.round * 4, 85 + g.round * 2], ranged: [22, 38 + g.round * 5, 42 + g.round], elite: [38, 180 + g.round * 25, 32 + g.round], boss: [62, 1250, 26] };
+  let [radius, hp, speed] = defs[kind]||defs.chaser;
   const opponent = opposingRoster(g.playerFaction)[kind];
   const elite = kind === 'elite' ? ELITE_ROSTERS[g.playerFaction][Math.floor(rand(g) * ELITE_ROSTERS[g.playerFaction].length)] : null;
-  const identity = elite || opponent;
+  const qwenSmall={modelId:'qwenSmall',name:'Qwen小兵',tier:1,portrait:'qwen',color:'#71c7a0'};
+  let identity = forcedIdentity || elite || (kind==='summon'?qwenSmall:opponent);
+  if(kind==='boss'&&g.playerFaction==='us')identity=rand(g)<.1?DOUBAO_BOSS:opponent;
   if(elite?.behavior==='tank'){hp=Math.round(hp*1.35);speed*=.8;}
   if(elite?.behavior==='burst'){hp=Math.round(hp*.85);speed*=1.6;}
   const difficulty=DIFFICULTIES[g.difficulty]||DIFFICULTIES.standard;
   hp=Math.max(1,Math.round(hp*difficulty.enemyHealth));
-  g.enemies.push({ id: g.nextEnemyId++, x, y, radius, hp, maxHp: hp, speed, kind, modelId: identity.modelId, name: identity.name, tier: identity.tier, portrait: identity.portrait, color: identity.color, behavior: elite?.behavior || null,
-    shotTimer: 1.5, dashTimer: 1.2, hitFlash: 0, slowTimer: 0, xp: (kind === 'boss' ? 50 : kind === 'elite' ? 12 : 3)*difficulty.xp });
+  const enemy={ id: g.nextEnemyId++, x, y, radius, hp, maxHp: hp, speed, kind, modelId: identity.modelId, name: identity.name, tier: identity.tier, portrait: identity.portrait, color: identity.color, behavior: identity.behavior||elite?.behavior||null,
+    shotTimer: 1.5, dashTimer: 1.2, hitFlash: 0, slowTimer: 0, xp: (kind === 'boss' ? 50 : kind === 'elite' ? 12 : kind==='summon'?1:3)*difficulty.xp };
+  if(lifetime>0){enemy.life=lifetime;enemy.maxLife=lifetime;enemy.summoned=true;}
+  if(kind==='boss'&&identity.behavior==='summoner'){enemy.summonTimer=1;enemy.telegraph=1;}
+  if(kind==='boss'&&identity.behavior==='egg'){enemy.shieldTimer=3;enemy.shieldCooldown=8;}
+  g.enemies.push(enemy);
   return true;
 }
 function fire(g, target) {
   const p = g.player; const d = unit(target.x - p.x, target.y - p.y); p.facing = Math.atan2(d.y, d.x);
+  if(g.heroId==='kimi'){fireLaser(g,640,8,p.damage,p.piercing||3,'#72ddff',target);return;}
   const n = p.shots; for (let i = 0; i < n; i++) {
     if (g.bullets.length >= limits.bullets) break;
     const spread = (i - (n - 1) / 2) * 0.13; const c = Math.cos(spread), s = Math.sin(spread);
     const dx = d.x * c - d.y * s, dy = d.x * s + d.y * c;
     g.bullets.push({ x: p.x, y: p.y, vx: dx * 550, vy: dy * 550, damage: p.damage, radius: 9, life: 1.8, hits: p.piercing || 1, hitIds: [], ricochets: Math.min(2, Math.floor(g.weaponPower.ricochet || 0)) });
   }
+}
+function pointSegmentDistance2(point,ax,ay,bx,by){const dx=bx-ax,dy=by-ay,len=dx*dx+dy*dy||1,t=clamp(((point.x-ax)*dx+(point.y-ay)*dy)/len,0,1),x=ax+t*dx,y=ay+t*dy;return {distance2:(point.x-x)**2+(point.y-y)**2,t};}
+function addBeam(g,beam){g.beams||=[];if(g.beams.length>=limits.beams)g.beams.shift();g.beams.push({...beam,life:.16,maxLife:.16});}
+function dealEnemyDamage(g,e,amount){
+  if(!g.enemies.includes(e))return 0;
+  const effective=e.kind==='boss'&&e.behavior==='egg'&&e.shieldTimer>0?amount*.5:amount;
+  e.hp-=effective;e.hitFlash=.12;if(e.hp<=0)killEnemy(g,e);return effective;
+}
+function chainRicochet(g,from,hitIds,damage,power){let left=Math.min(2,Math.floor(power)),origin=from;
+  while(left-->0){let next=null,near=180**2;for(const candidate of g.enemies){if(hitIds.includes(candidate.id))continue;const d=dist2(origin,candidate);if(d<near){near=d;next=candidate;}}
+    if(!next)break;hitIds.push(next.id);dealEnemyDamage(g,next,damage*.35*power);origin=next;
+  }
+}
+function fireLaser(g,length,width,damage,maxHits,color,aimTarget=null){
+  const p=g.player;let target=aimTarget;
+  for(const e of g.enemies)if(!Number.isInteger(e.id))e.id=g.nextEnemyId++;
+  if(!target&&Number.isFinite(p.aimX)&&Number.isFinite(p.aimY)&&Math.hypot(p.aimX-p.x,p.aimY-p.y)>1)target={x:p.aimX,y:p.aimY};
+  if(!target){let nearest=Infinity;for(const e of g.enemies){const d=dist2(p,e);if(d<nearest){nearest=d;target=e;}}}
+  const baseAngle=target?Math.atan2(target.y-p.y,target.x-p.x):p.facing,shots=Math.min(8,Math.max(1,p.shots||1));p.facing=baseAngle;
+  for(let shot=0;shot<shots;shot++){
+    const angle=baseAngle+(shot-(shots-1)/2)*.035,dx=Math.cos(angle),dy=Math.sin(angle),toX=p.x+dx*length,toY=p.y+dy*length;
+    addBeam(g,{x:p.x,y:p.y,toX,toY,width,color});
+    const inLine=g.enemies.map(e=>({e,...pointSegmentDistance2(e,p.x,p.y,toX,toY)})).filter(x=>x.distance2<=(x.e.radius+width/2)**2).sort((a,b)=>a.t-b.t);
+    const hitIds=[];for(const {e} of inLine){if(hitIds.length>=maxHits)break;if(!g.enemies.includes(e))continue;hitIds.push(e.id);const hitDamage=damage*(rand(g)<p.crit?2:1)*(1+.1*(g.weaponPower.frost||0));dealEnemyDamage(g,e,hitDamage);
+      if(g.weaponPower.frost>0){e.slowTimer=Math.max(e.slowTimer||0,Math.min(3,1.5+.2*(g.weaponPower.frost-1)));e.slowFactor=Math.max(.2,1-.4*g.weaponPower.frost);}}
+    if(g.weaponPower.ricochet>0&&hitIds.length)chainRicochet(g,inLine.find(x=>x.e.id===hitIds.at(-1)).e,hitIds,damage,g.weaponPower.ricochet);
+    for(const chest of [...g.chests])if(pointSegmentDistance2(chest,p.x,p.y,toX,toY).distance2<=(chest.radius+width/2)**2)damageChest(g,chest,damage);
+  }
+}
+function summonAlly(g,kind){
+  if(g.heroId!=='qwen'||g.phase!=='playing'||g.allies.length>=limits.allies)return false;
+  const p=g.player,cost=kind==='qwenMax'?60:20;if(p.compute<cost)return false;p.compute-=cost;
+  const index=g.allies.length,angle=(index%8)*Math.PI/4;
+  const ally={id:g.nextAllyId++,x:clamp(p.x+Math.cos(angle)*55,25,WIDTH-25),y:clamp(p.y+Math.sin(angle)*55,25,HEIGHT-25),radius:kind==='qwenMax'?20:13,kind,life:kind==='qwenMax'?12:10,maxLife:kind==='qwenMax'?12:10,shotTimer:.35,damage:kind==='qwenMax'?28:12,modelId:kind==='qwenMax'?'qwenMax':'qwenSmall',name:kind==='qwenMax'?'Qwen Max':'Qwen小兵',color:kind==='qwenMax'?'#26b482':'#71c7a0'};
+  g.allies.push(ally);event(g,'ally-summoned',{kind,cost,compute:p.compute,id:ally.id});return ally;
+}
+function updateAllies(g,dt){
+  const p=g.player;g.allies=(g.allies||[]).slice(0,limits.allies);
+  for(let index=0;index<g.allies.length;index++){
+    const ally=g.allies[index];ally.life-=dt;if(ally.life<=0)continue;
+    const desiredX=p.x-Math.cos(p.facing)*(40+index*9)+Math.sin(p.facing)*(index%2?28:-28),desiredY=p.y-Math.sin(p.facing)*(40+index*9)-Math.cos(p.facing)*(index%2?28:-28);
+    const follow=unit(desiredX-ally.x,desiredY-ally.y),distance=Math.hypot(desiredX-ally.x,desiredY-ally.y),move=Math.min(distance,130*dt);
+    ally.x=clamp(ally.x+follow.x*move,ally.radius,WIDTH-ally.radius);ally.y=clamp(ally.y+follow.y*move,ally.radius,HEIGHT-ally.radius);
+    let target=null,nearest=Infinity;for(const e of g.enemies){const d=dist2(ally,e);if(d<nearest){nearest=d;target=e;}}
+    ally.shotTimer-=dt;
+    if(target&&nearest<520**2&&ally.shotTimer<=0&&g.bullets.length<limits.bullets-limits.allyBullets){
+      const aim=unit(target.x-ally.x,target.y-ally.y);g.bullets.push({x:ally.x,y:ally.y,vx:aim.x*460,vy:aim.y*460,damage:ally.damage,radius:6,life:1.6,hits:1,hitIds:[],owner:'ally'});ally.shotTimer=ally.kind==='qwenMax'?.55:.9;
+    }
+  }
+  g.allies=g.allies.filter(ally=>ally.life>0);
 }
 function damageChest(g, chest, amount) {
   chest.hp -= amount;
@@ -188,6 +260,7 @@ export function openChest(g, chest) { if (g.chests.includes(chest)) damageChest(
 function hurt(g, amount) {
   const p = g.player; if (p.invulnerable > 0 || g.phase !== 'playing') return;
   if(p.chromeShieldTimer>0&&p.chromeShieldCharges>0){p.chromeShieldCharges--;p.invulnerable=Math.max(p.invulnerable,0.45);if(!p.chromeShieldCharges)p.chromeShieldTimer=0;event(g,'chrome-shield-hit',{charges:p.chromeShieldCharges});return;}
+  if(p.shieldTimer>0&&p.shieldCharges>0){p.shieldCharges--;p.invulnerable=Math.max(p.invulnerable,.45);event(g,'doubao-shield-hit',{charges:p.shieldCharges});return;}
   amount *= (DIFFICULTIES[g.difficulty]||DIFFICULTIES.standard).enemyDamage;
   let reduced = Math.max(1, amount - (g.equipmentPower.armor || 0));
   if(g.heroId==='gpt'&&p.transformed)reduced=Math.max(1,Math.ceil(reduced*0.5));
@@ -196,15 +269,14 @@ function hurt(g, amount) {
   if (!p.health) { g.phase = 'lost'; g.notice = '你被深海洋流卷走了。'; event(g, 'lost'); }
 }
 function killEnemy(g, e) {
+  if(!g.enemies.includes(e))return;
   g.enemies = g.enemies.filter(x => x !== e); g.kills++; g.score += e.kind === 'boss' ? 5000 : e.kind === 'elite' ? 300 : 50;
   addXpOrb(g, e.x, e.y, e.xp); if (e.kind === 'boss') g.bossDefeated = true;
   const nova = 24 * (g.weaponPower.nova || 0);
   if (nova > 0 && !g.novaActive) {
     addBlast(g,e.x,e.y,'nova');
     g.novaActive = true;
-    for (const other of [...g.enemies]) if (dist2(e, other) <= 80 ** 2) {
-      other.hp -= nova; other.hitFlash = 0.18; if (other.hp <= 0) killEnemy(g, other);
-    }
+    for (const other of [...g.enemies]) if (dist2(e, other) <= 80 ** 2) dealEnemyDamage(g,other,nova);
     g.novaActive = false;
     event(g, 'nova', { x: e.x, y: e.y, radius: 80, damage: nova });
   }
@@ -228,6 +300,17 @@ function applyGptForm(g, normal) {
 export function useHeroSkill(g) {
   if(g.phase!=='playing')return [];
   const p=g.player;
+  if(g.heroId==='doubao'){
+    if(p.shieldCooldown>0)return [];
+    p.shieldTimer=3;p.shieldCharges=2;p.shieldCooldown=HEROES.doubao.skillCooldown;
+    for(const e of g.enemies)if(dist2(p,e)<=HEROES.doubao.pushRadius**2){const d=unit(e.x-p.x,e.y-p.y);e.x=clamp(e.x+d.x*HEROES.doubao.pushDistance,e.radius,WIDTH-e.radius);e.y=clamp(e.y+d.y*HEROES.doubao.pushDistance,e.radius,HEIGHT-e.radius);}
+    event(g,'doubao-shield',{duration:p.shieldTimer,charges:p.shieldCharges,push:HEROES.doubao.pushDistance});return g.events.splice(0);
+  }
+  if(g.heroId==='qwen'){summonAlly(g,'qwenSmall');return g.events.splice(0);}
+  if(g.heroId==='kimi'){
+    if(p.skillCooldown>0)return [];
+    p.skillCooldown=HEROES.kimi.skillCooldown;fireLaser(g,850,14,120,p.piercing||3,'#ffc668');event(g,'kimi-focus',{length:850,damage:120,width:14});return g.events.splice(0);
+  }
   if(g.heroId==='deepseek'){primary(g);return g.events.splice(0);}
   if(g.heroId==='gemini'){
     if(p.skillCooldown>0)return [];
@@ -237,7 +320,7 @@ export function useHeroSkill(g) {
   }
   if(g.heroId==='astra'){
     if(p.skillCooldown>0)return [];
-    for(const e of [...g.enemies])if(dist2(p,e)<=300**2){e.hp-=300;e.hitFlash=.2;const d=unit(e.x-p.x,e.y-p.y);e.x=clamp(e.x+d.x*160,e.radius,WIDTH-e.radius);e.y=clamp(e.y+d.y*160,e.radius,HEIGHT-e.radius);if(e.hp<=0)killEnemy(g,e);}
+    for(const e of [...g.enemies])if(dist2(p,e)<=300**2){dealEnemyDamage(g,e,300);const d=unit(e.x-p.x,e.y-p.y);e.x=clamp(e.x+d.x*160,e.radius,WIDTH-e.radius);e.y=clamp(e.y+d.y*160,e.radius,HEIGHT-e.radius);}
     p.skillCooldown=7;event(g,'starburst',{radius:300,damage:300});return g.events.splice(0);
   }
   if(!p.transformed){if(p.energy<20)return [];applyGptForm(g,true);event(g,'gpt-transform',{energy:p.energy});return g.events.splice(0);}
@@ -247,6 +330,10 @@ export function useHeroSkill(g) {
   for(const e of g.enemies)if(dist2(p,e)<=360**2){const d=unit(e.x-p.x,e.y-p.y);e.x=clamp(e.x+d.x*360,e.radius,WIDTH-e.radius);e.y=clamp(e.y+d.y*360,e.radius,HEIGHT-e.radius);}
   g.bullets=g.bullets.filter(b=>b.life>0);event(g,'tool-node',{duration:3,radius:360});return g.events.splice(0);
 }
+export function useHeroSecondary(g){
+  if(g.phase!=='playing'||g.heroId!=='qwen')return [];
+  summonAlly(g,'qwenMax');return g.events.splice(0);
+}
 export function performAction(g, command) {
   g.events = [];
   if (g.phase !== 'playing') return [];
@@ -255,8 +342,9 @@ export function performAction(g, command) {
     if (Number.isFinite(command.aimY)) g.player.aimY = command.aimY;
     g.input = { moveX: command.moveX || 0, moveY: command.moveY || 0 };
     if (command.type === 'primary' || command.command === 'primary') return useHeroSkill(g);
+    if (command.type === 'secondary' || command.command === 'secondary') return useHeroSecondary(g);
     if (command.type === 'use-item') return useItem(g, command.slot ?? 1);
-  } else if (command === 'primary') return useHeroSkill(g);
+  } else if (command === 'primary') return useHeroSkill(g); else if(command==='secondary')return useHeroSecondary(g);
   return g.events.splice(0);
 }
 export function useItem(g, slot = 1) {
@@ -265,15 +353,21 @@ export function useItem(g, slot = 1) {
   if(key==='rice')return eatRice(g,false);
   if(key==='chromeOrb'&&g.player.chromeShieldTimer>0)return [];
   if(key==='resetScroll'&&g.player.energy>=g.player.energyMax)return [];
+  if(key==='doubaoSnack'&&g.player.health>=g.player.maxHealth)return [];
+  if(key==='computeCell'&&g.player.compute>=g.player.computeMax)return [];
+  if(key==='kimiLens'&&g.player.skillCooldown<=0)return [];
   if(key==='astraCore'){g.inventory[key]--;g.player.skillCooldown=0;return [{type:'item-used',item:key,slot:1,cooldown:0,remaining:g.inventory[key]}];}
   g.inventory[key]--;
   if(key==='chromeOrb'){g.player.chromeShieldTimer=8;g.player.chromeShieldCharges=3;return [{type:'item-used',item:key,slot:1,charges:3,duration:8,remaining:g.inventory[key]}];}
   if(key==='resetScroll'){g.player.energy=g.player.energyMax;return [{type:'item-used',item:key,slot:1,energy:g.player.energy,remaining:g.inventory[key]}];}
+  if(key==='doubaoSnack'){const before=g.player.health;g.player.health=Math.min(g.player.maxHealth,g.player.health+25);return [{type:'item-used',item:key,slot:1,healed:g.player.health-before,remaining:g.inventory[key]}];}
+  if(key==='computeCell'){g.player.compute=Math.min(g.player.computeMax,g.player.compute+40);return [{type:'item-used',item:key,slot:1,compute:g.player.compute,remaining:g.inventory[key]}];}
+  if(key==='kimiLens'){g.player.skillCooldown=0;return [{type:'item-used',item:key,slot:1,cooldown:0,remaining:g.inventory[key]}];}
   return [];
 }
 export function itemInfo(g) {
   const hero=HEROES[g.heroId]; const key=hero.itemKey; const available=(g.inventory[key]||0)>0;
-  const ready=key==='rice'?g.player.health<g.player.maxHealth:key==='resetScroll'?g.player.energy<g.player.energyMax:key==='astraCore'?g.player.skillCooldown>0:g.player.chromeShieldTimer<=0;
+  const ready=key==='rice'||key==='doubaoSnack'?g.player.health<g.player.maxHealth:key==='computeCell'?g.player.compute<g.player.computeMax:key==='resetScroll'?g.player.energy<g.player.energyMax:key==='astraCore'||key==='kimiLens'?g.player.skillCooldown>0:key==='chromeOrb'?g.player.chromeShieldTimer<=0:true;
   return { key,name:hero.itemName,icon:hero.itemIcon,description:hero.itemDescription,count:g.inventory[key]||0,canUse:g.phase==='playing'&&available&&ready };
 }
 function recomputeFatStats(g) {
@@ -339,6 +433,8 @@ export function stepGame(g, input = {}, dt = 1 / 60) {
   g.events = [];
   dt = clamp(Number.isFinite(dt) ? dt : 0, 0, 0.05); const p = g.player; g.time += dt; g.roundTime += dt;
   p.invulnerable = Math.max(0, p.invulnerable - dt); p.chargeCooldown = p.dashCooldown = Math.max(0, p.chargeCooldown - dt); p.vampirismTimer = Math.max(0, p.vampirismTimer - dt);
+  p.shieldTimer=Math.max(0,p.shieldTimer-dt);if(!p.shieldTimer)p.shieldCharges=0;p.shieldCooldown=Math.max(0,p.shieldCooldown-dt);
+  if(g.heroId==='qwen')p.compute=Math.min(p.computeMax,p.compute+HEROES.qwen.computeRegen*dt);
   p.skillCooldown=Math.max(0,p.skillCooldown-dt);p.toolNodeTimer=Math.max(0,p.toolNodeTimer-dt);p.chromeShieldTimer=Math.max(0,p.chromeShieldTimer-dt);
   if(p.transformed){p.energy=Math.max(0,p.energy-8*Math.max(0.2,1-0.2*(g.traitPower.efficiency||0))*dt);if(p.energy<1e-9){p.energy=0;applyGptForm(g,false);}}
   p.aimX = Number.isFinite(input.aimX) ? input.aimX : p.x + Math.cos(p.facing) * 100; p.aimY = Number.isFinite(input.aimY) ? input.aimY : p.y + Math.sin(p.facing) * 100;
@@ -355,11 +451,13 @@ export function stepGame(g, input = {}, dt = 1 / 60) {
   } else { p.vx += (move.x * p.speed * magnitude - p.vx) * Math.min(1, dt * 8); p.vy += (move.y * p.speed * magnitude - p.vy) * Math.min(1, dt * 8); }
   p.x = clamp(p.x + p.vx * dt, p.radius, WIDTH - p.radius); p.y = clamp(p.y + p.vy * dt, p.radius, HEIGHT - p.radius);
   if ((input.command === 'primary' || input.type === 'primary') && p.slideTimer <= 0) useHeroSkill(g);
+  if ((input.command === 'secondary' || input.type === 'secondary') && p.slideTimer <= 0) useHeroSecondary(g);
   const difficulty=DIFFICULTIES[g.difficulty]||DIFFICULTIES.standard;
   g.spawnTimer -= dt; if (g.spawnTimer <= 0 && g.enemies.length < limits.enemies) { spawnEnemy(g, g.round >= 4 && rand(g) < 0.25 ? 'ranged' : g.round >= 2 && rand(g) < 0.3 ? 'dash' : 'chaser'); g.spawnTimer = Math.max(0.22, 1.1 - g.round * 0.06)*difficulty.spawnInterval; }
   if ([3, 5, 7, 9].includes(g.round) && !g.eliteSpawned) g.eliteSpawned = spawnEnemy(g, 'elite');
   if (g.round === 10 && !g.bossSpawned) g.bossSpawned = spawnEnemy(g, 'boss');
     g.chestTimer -= dt; if (g.chestTimer <= 0 && g.chests.length < limits.chests) { const a=rand(g)*Math.PI*2, r=200+rand(g)*300; g.chests.push({ x: clamp(p.x+Math.cos(a)*r,70,WIDTH-70), y:clamp(p.y+Math.sin(a)*r,70,HEIGHT-70),hp:24,maxHp:24,radius:20 }); g.chestTimer = 7; }
+  updateAllies(g,dt);
   // Auto-fire chooses the nearest chest only when it is closer than the nearest enemy.
   let target = null, targetD = Infinity; for (const candidate of [...g.enemies, ...g.chests]) { const d = dist2(p, candidate); if (d < targetD) { target = candidate; targetD = d; } }
   p.shotTimer -= dt; if (target && p.shotTimer <= 0) { fire(g, target); p.shotTimer = p.fireRate; }
@@ -367,21 +465,27 @@ export function stepGame(g, input = {}, dt = 1 / 60) {
     b.x += b.vx * dt; b.y += b.vy * dt; b.life -= dt;
     if (b.hostile) { if(p.toolNodeTimer>0&&dist2(b,p)<=360**2)b.life=0;else if (dist2(b, p) < (b.radius + p.radius) ** 2) { hurt(g, b.damage); b.life = 0; } continue; }
     let struck = false; for (const e of [...g.enemies]) if (!b.hitIds.includes(e.id) && dist2(b, e) < (b.radius + e.radius) ** 2) {
-      const damage = (rand(g) < p.crit ? b.damage * 2 : b.damage)*(1+.1*(g.weaponPower.frost||0)); e.hp -= damage; b.hitIds.push(e.id); e.hitFlash = 0.12;
+      const damage = (rand(g) < p.crit ? b.damage * 2 : b.damage)*(1+.1*(g.weaponPower.frost||0)); dealEnemyDamage(g,e,damage); b.hitIds.push(e.id);
       if(g.weaponPower.frost>0){e.slowTimer=Math.max(e.slowTimer||0,Math.min(3,1.5+.2*(g.weaponPower.frost-1)));e.slowFactor=Math.max(.2,1-.4*g.weaponPower.frost);}
-      if (e.hp <= 0) killEnemy(g, e);
-      let ricochets=b.ricochets||0, from=e;
-      while(ricochets-->0){let next=null,near=180**2;for(const candidate of g.enemies){if(b.hitIds.includes(candidate.id))continue;const ds=dist2(from,candidate);if(ds<near){near=ds;next=candidate;}}
-        if(!next)break; b.hitIds.push(next.id); next.hp-=b.damage*.35*(g.weaponPower.ricochet||0); next.hitFlash=.12; if(next.hp<=0)killEnemy(g,next); from=next;
-      }
+      chainRicochet(g,e,b.hitIds,b.damage,g.weaponPower.ricochet||0);
       if (b.hitIds.length >= b.hits) b.life = 0; struck = true; break;
     } if (!struck) for (const c of [...g.chests]) if (dist2(b, c) < (b.radius + c.radius) ** 2) { damageChest(g, c, b.damage); b.life = 0; break; }
   }
   g.bullets = g.bullets.filter(b => b.life > 0 && b.x >= 0 && b.x <= WIDTH && b.y >= 0 && b.y <= HEIGHT).slice(0, limits.bullets);
+  for(const beam of g.beams||[])beam.life-=dt;g.beams=(g.beams||[]).filter(beam=>beam.life>0).slice(-limits.beams);
   p.orbitAngle=(p.orbitAngle||0)+dt*2; p.orbitTimer-=dt;
-  if(g.weaponPower.orbit>0&&p.orbitTimer<=0){const orbit=getOrbitStats(g);p.orbitTimer=orbit.interval;const orbitDamage=orbit.damage;for(const e of [...g.enemies])if(dist2(p,e)<=orbit.radius**2){e.hp-=orbitDamage;e.hitFlash=.12;if(e.hp<=0)killEnemy(g,e);}event(g,'orbit-pulse',{x:p.x,y:p.y,radius:orbit.radius,damage:orbitDamage,count:orbit.count,angle:p.orbitAngle});}
+  if(g.weaponPower.orbit>0&&p.orbitTimer<=0){const orbit=getOrbitStats(g);p.orbitTimer=orbit.interval;const orbitDamage=orbit.damage;for(const e of [...g.enemies])if(dist2(p,e)<=orbit.radius**2)dealEnemyDamage(g,e,orbitDamage);event(g,'orbit-pulse',{x:p.x,y:p.y,radius:orbit.radius,damage:orbitDamage,count:orbit.count,angle:p.orbitAngle});}
   for (const e of [...g.enemies]) {
+    if(e.summoned){e.life-=dt;if(e.life<=0){g.enemies=g.enemies.filter(other=>other!==e);continue;}}
     e.hitFlash = Math.max(0, (e.hitFlash || 0) - dt); e.slowTimer = Math.max(0,(e.slowTimer||0)-dt); const speedScale=e.slowTimer>0?(e.slowFactor||0.6):1; const d = unit(p.x - e.x, p.y - e.y);
+    if(e.behavior==='summoner'){
+      e.summonTimer=(e.summonTimer??5)-dt;e.telegraph=e.summonTimer>0&&e.summonTimer<=1?Math.min(1,e.summonTimer):0;
+      if(e.summonTimer<=0){for(let i=0;i<6&&g.enemies.length<limits.enemies;i++)spawnEnemy(g,'summon',{lifetime:10});e.summonTimer=5;e.telegraph=0;}
+    }
+    if(e.behavior==='egg'){
+      e.shieldTimer=Math.max(0,(e.shieldTimer||0)-dt);e.shieldCooldown=(e.shieldCooldown||0)-dt;
+      if(e.shieldCooldown<=0){e.shieldTimer=3;e.shieldCooldown=8;if(dist2(e,p)<=180**2){const away=unit(p.x-e.x,p.y-e.y);p.x=clamp(p.x+away.x*180,p.radius,WIDTH-p.radius);p.y=clamp(p.y+away.y*180,p.radius,HEIGHT-p.radius);event(g,'egg-push',{distance:180});}}
+    }
     if (e.kind === 'ranged' || e.behavior === 'sniper') { if (dist2(p, e) < 360 ** 2) { e.x -= d.x * e.speed * speedScale * dt; e.y -= d.y * e.speed * speedScale * dt; } else if (dist2(p, e) > 520 ** 2) { e.x += d.x * e.speed * speedScale * dt; e.y += d.y * e.speed * speedScale * dt; }
       e.shotTimer -= dt; if (e.shotTimer <= 0 && g.bullets.length < limits.bullets) { const aim = unit(p.x - e.x, p.y - e.y); g.bullets.push({ x:e.x, y:e.y, vx:aim.x*210, vy:aim.y*210, damage:8, radius:7, life:3, hostile:true, hitIds:[] }); e.shotTimer = 2.2; }
     } else if (e.kind === 'dash' || e.behavior === 'burst') { e.dashTimer -= dt; if (e.dashTimer <= 0) { e.dashTimer = e.behavior === 'burst' ? 2.2 : 1.6; e.dashWindup = e.behavior === 'burst' ? 0.2 : 0.36; e.dashDir = unit(p.x-e.x,p.y-e.y); }
@@ -395,7 +499,7 @@ export function stepGame(g, input = {}, dt = 1 / 60) {
     }
   }
   if (g.phase !== 'playing') return g.events.splice(0);
-  if (p.chargeTimer > 0) for (const e of [...g.enemies]) if (!p.chargeHits.includes(e.id) && dist2(p, e) < (p.radius + e.radius + 14) ** 2) { e.hp -= p.chargeDamage; e.hitFlash = 0.18; e.x += Math.cos(p.chargeDirection) * 22; e.y += Math.sin(p.chargeDirection) * 22; p.chargeHits.push(e.id); if (e.hp <= 0) killEnemy(g, e); }
+  if (p.chargeTimer > 0) for (const e of [...g.enemies]) if (!p.chargeHits.includes(e.id) && dist2(p, e) < (p.radius + e.radius + 14) ** 2) { dealEnemyDamage(g,e,p.chargeDamage); e.x += Math.cos(p.chargeDirection) * 22; e.y += Math.sin(p.chargeDirection) * 22; p.chargeHits.push(e.id); }
   for (const c of [...g.chests]) if (p.chargeTimer > 0 && dist2(p, c) < (p.radius + c.radius + 14) ** 2) damageChest(g, c, p.chargeDamage);
   for (const o of [...g.orbs]) if (dist2(p, o) < (p.magnet + 100) ** 2) { const d = unit(p.x - o.x, p.y - o.y); o.x += d.x * 180 * dt; o.y += d.y * 180 * dt; if (dist2(p, o) < (p.radius + 12) ** 2) { g.orbs = g.orbs.filter(v => v !== o); grantExperience(g, o.value); } }
   for (const item of [...g.pickups]) { const key=item.itemKey||item.kind; if(key===HEROES[g.heroId].itemKey&&(g.inventory[key]||0)<limits[key]&&dist2(p,item)<(p.radius+item.radius)**2){g.inventory[key]++;g.pickups=g.pickups.filter(v=>v!==item);event(g,'item-collected',{item:key,count:g.inventory[key]});} }
@@ -424,7 +528,10 @@ export function getStats(g) {
   ];
   const orbit=getOrbitStats(g);
   if(orbit.count)entries.push({key:'orbitCount',label:'环绕水弹',value:orbit.count,unit:'枚'},{key:'orbitDamage',label:'环刃脉冲伤害',value:orbit.damage,unit:'点/脉冲'});
-  const hero=g.heroId==='deepseek'?{fatLevel:p.fatLevel,fatXp:p.fatXp,fatXpNeed:p.fatXpNeed,fatness:p.fatness,fishStage:p.fishStage}:g.heroId==='gpt'?{energy:p.energy,energyMax:p.energyMax,transformed:p.transformed}:{};
+  const hero=g.heroId==='deepseek'?{fatLevel:p.fatLevel,fatXp:p.fatXp,fatXpNeed:p.fatXpNeed,fatness:p.fatness,fishStage:p.fishStage}:g.heroId==='gpt'?{energy:p.energy,energyMax:p.energyMax,transformed:p.transformed}:g.heroId==='qwen'?{compute:p.compute,computeMax:p.computeMax,computeRegen:HEROES.qwen.computeRegen,allies:g.allies.length}:g.heroId==='doubao'?{shieldTimer:p.shieldTimer,shieldCharges:p.shieldCharges,shieldCooldown:p.shieldCooldown}:g.heroId==='kimi'?{skillCooldown:p.skillCooldown,piercing:p.piercing,beams:g.beams.length}:{};
+  if(g.heroId==='qwen')entries.push({key:'compute',label:'算力',value:p.compute,max:p.computeMax,unit:'点'},{key:'allies',label:'召唤物',value:g.allies.length,max:limits.allies,unit:'个'});
+  if(g.heroId==='doubao')entries.push({key:'shield',label:'护盾',value:p.shieldCharges,max:2,unit:'次'},{key:'shieldCooldown',label:'护盾冷却',value:p.shieldCooldown,unit:'秒'});
+  if(g.heroId==='kimi')entries.push({key:'laserPiercing',label:'光束穿透',value:p.piercing,unit:'名敌人'},{key:'laserCooldown',label:'聚焦冷却',value:p.skillCooldown,unit:'秒'});
   const weapons=Object.entries(g.weapons).map(([id,level])=>({id,name:CATALOG[id]?.name||id,level,power:g.weaponPower[id]||0,count:id==='orbit'?orbit.count:level}));
   return {entries,weights:weights.map((weight,i)=>({id:RARITIES[i].id,label:RARITIES[i].label,percent:percents[i],color:RARITIES[i].color})),weapons,effects:{...g.effects},hero};
 }
@@ -432,4 +539,4 @@ export function getOrbitStats(g) {
   const power=g.weaponPower?.orbit||0, level=g.weapons?.orbit||0;
   return {count:power>0?Math.min(7,Math.max(3,level+2)):0,damage:10*power,interval:.9,radius:150};
 }
-export function getHud(g) { return { phase: g.phase, round: g.round, maxRounds: g.maxRounds, roundTime: g.roundTime, roundDuration: g.roundDuration, score: g.score, level: g.level, xp: g.xp, xpNeed: g.xpNeed, health: g.player.health, maxHealth: g.player.maxHealth, enemies: g.enemies.length, kills: g.kills, notice: g.notice, difficulty: g.difficulty }; }
+export function getHud(g) { return { phase: g.phase, round: g.round, maxRounds: g.maxRounds, roundTime: g.roundTime, roundDuration: g.roundDuration, score: g.score, level: g.level, xp: g.xp, xpNeed: g.xpNeed, health: g.player.health, maxHealth: g.player.maxHealth, enemies: g.enemies.length, kills: g.kills, notice: g.notice, difficulty: g.difficulty, compute:g.player.compute,computeMax:g.player.computeMax,allies:g.allies.length,beams:g.beams.length }; }
