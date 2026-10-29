@@ -85,7 +85,7 @@ test('weapon offers scale power by rarity and stat panel reports tier weights an
   assert.equal(g.weapons.orbit,1);assert.equal(g.weaponPower.orbit,1.65);
   const stats=getStats(g);assert.equal(stats.weapons[0].power,1.65);assert.equal(stats.effects.orbit,1.65);
   assert.equal(stats.weights.reduce((sum,x)=>sum+x.percent,0),100);
-  assert.equal(limits.enemies,64);
+  assert.equal(limits.enemies,112);
 });
 
 test('orbit upgrades add a visible orb and increase aggregate pulse damage up to the seven orb cap', () => {
@@ -115,11 +115,11 @@ test('enemy slow state, orbit angle, and damage stay deterministic and bounded',
   assert.deepEqual(a,b);assert.ok(a.enemies.length<=limits.enemies);assert.ok(a.player.orbitAngle>0);
 });
 
-test('balanced DeepSeek starter can clear the first round without test-only stat boosts', () => {
+test('moving DeepSeek starter can clear the denser first round without test-only stat boosts', () => {
   const g=createGame({seed:1});
   for(let i=0;i<400;i++){
     if(g.phase==='trait')choose(g,g.choices[0].id);
-    stepGame(g,{},.05);
+    stepGame(g,{moveX:Math.cos(i*.025),moveY:Math.sin(i*.025)},.05);
   }
   while(g.phase==='trait')choose(g,g.choices[0].id);
   assert.equal(g.phase,'reward');assert.equal(g.round,1);assert.equal(g.roundDuration,20);

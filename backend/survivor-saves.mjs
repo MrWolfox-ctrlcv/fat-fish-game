@@ -4,7 +4,7 @@ import { mkdirSync } from 'node:fs';
 import { dirname } from 'node:path';
 import { createPropWallet } from './prop-wallet.mjs';
 import { HEROES } from '../survival/heroes.js';
-import { DIFFICULTIES } from '../survival/engine.js';
+import { DIFFICULTIES, limits } from '../survival/engine.js';
 import { SHOP_ITEMS } from '../survival/shop-items.js';
 
 const PRICE=5000, DAY=86400000, MAX=256*1024, MAX_FUTURE=30*DAY;
@@ -19,7 +19,8 @@ function validState(s){
   if(!s||typeof s!=='object'||!validTree(s)||!phases.has(s.phase)||!heroes.has(s.heroId)||!Number.isFinite(s.time)||s.time<0||!Number.isSafeInteger(s.rng)||s.rng<0||s.rng>0xffffffff||(s.difficulty!==undefined&&!Object.hasOwn(DIFFICULTIES,s.difficulty)))return false;
   if(s.appliedShopReceipts!==undefined&&(!Array.isArray(s.appliedShopReceipts)||s.appliedShopReceipts.length>128||s.appliedShopReceipts.some(x=>typeof x!=='string')))return false;
   const p=s.player,hp=p?.hp??p?.health,maxHp=p?.maxHp??p?.maxHealth;if(!p||![p.x,p.y,hp,maxHp].every(Number.isFinite)||maxHp<=0||hp<0||hp>maxHp)return false;
-  for(const [key,max] of Object.entries({enemies:64,bullets:96,orbs:96,particles:80,chests:4,pickups:8,blasts:12}))if(!Array.isArray(s[key])||s[key].length>max)return false;
+  for(const key of ['enemies','bullets','orbs','particles','chests','pickups','blasts'])if(!Array.isArray(s[key])||s[key].length>(key==='chests'?4:limits[key]))return false;
+  if(s.scene!==undefined&&(!s.scene||!['coral','moon','harbor','abyss'].includes(s.scene.mapId)||!Number.isFinite(s.scene.nextPulseAt)||!Array.isArray(s.scene.nodes)||s.scene.nodes.length>3||s.scene.nodes.some(n=>!n||![n.x,n.y,n.hp,n.maxHp,n.radius].every(Number.isFinite)||n.hp<0||n.hp>n.maxHp||n.maxHp<=0)))return false;
   for(const [key,max]of Object.entries({allies:8,beams:16}))if(s[key]!==undefined&&(!Array.isArray(s[key])||s[key].length>max))return false;
   if(s.allies?.some(a=>!a||typeof a!=='object'||(a.hp!==undefined&&(!Number.isFinite(a.hp)||!Number.isFinite(a.maxHp)||a.hp<0||a.maxHp<=0||a.hp>a.maxHp))))return false;
   try{return Buffer.byteLength(JSON.stringify(s))<=MAX;}catch{return false;}
@@ -55,7 +56,7 @@ export function createSurvivorSaves({dbPath='/var/lib/fat-fish-survivor/game.sql
       if(method!=='POST'||!['/api/saves/write','/api/saves/extend','/api/saves/load'].includes(path))return false;
       const user=await auth(req),uid=user.id,input=await body(req);if(!input||!Number.isInteger(input.slot)||input.slot<1||input.slot>5)throw fail(422,'存档槽位不正确。','INVALID_SAVE');
       transaction(()=>{db.prepare('DELETE FROM survivor_saves WHERE user_id=? AND expires<=?').run(uid,now());db.prepare("UPDATE survivor_orders SET snapshot=NULL WHERE user_id=? AND status='committed'").run(uid);});
-      if(path==='/api/saves/load'){if(pendingFor.get(uid))throw fail(202,'有一笔存档付款结果待核对，暂不能读取或修改云存档。','PAYMENT_PENDING');const row=get.get(uid,input.slot);if(!row||row.expires<=now())throw fail(404,'存档不存在或已过期。','SAVE_NOT_FOUND');return reply(res,200,{success:true,slot:row.slot,expires_at:row.expires,state:JSON.parse(row.snapshot),version:1});}
+      if(path==='/api/saves/load'){if(pendingFor.get(uid))throw fail(202,'有一笔存档付款结果待核对，暂不能读取或修改云存档。','PAYMENT_PENDING');const row=get.get(uid,input.slot);if(!row||row.expires<=now())throw fail(404,'存档不存在或已过期。','SAVE_NOT_FOUND');const state=JSON.parse(row.snapshot);if(state.maxRounds===20&&input.campaign_version!==2)throw fail(409,'这是二十轮远征存档，请刷新游戏页面后再读取。','CLIENT_UPDATED');return reply(res,200,{success:true,slot:row.slot,expires_at:row.expires,state,version:1});}
       if(!uuid(input.request_id))throw fail(422,'请求编号必须是UUID。','INVALID_SAVE');
       if(path==='/api/saves/write'){
         if(input.version!==1||!validState(input.state))throw fail(422,'存档内容无效或超出限制。','INVALID_SAVE');const snapshot=JSON.stringify(input.state),current=get.get(uid,input.slot),t=now();

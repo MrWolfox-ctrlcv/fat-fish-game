@@ -8,7 +8,7 @@ if(await realpath(parent)!==parent)throw Error('Linked output parent refused');
 try{const st=await lstat(out);if(!st.isDirectory()||st.isSymbolicLink()||await readFile(join(out,'.itch-build-owner'),'utf8')!=='survivor-itch-v1')throw Error('Output is not owned by this builder');await rm(out,{recursive:true});}catch(e){if(e.code!=='ENOENT')throw e;}
 await mkdir(out);await writeFile(join(out,'.itch-build-owner'),'survivor-itch-v1');
 async function copy(from,to){await mkdir(dirname(join(out,to)),{recursive:true});await copyFile(join(root,from),join(out,to));}
-for(const n of ['index.html','main.js','engine.js','render.js','roster.js','heroes.js','loot.js','music.js','shop-items.js','style.css'])await copy('survival/'+n,n);
+for(const n of ['index.html','main.js','engine.js','render.js','maps.js','scene-render.js','roster.js','heroes.js','loot.js','music.js','shop-items.js','style.css'])await copy('survival/'+n,n);
 for(const n of ['cloud-saves.js','shop.js','station-dialog.js'])await copy('survival/itch-adapters/'+n,n);
 for(const [from,to] of [['data/art-prepared/01.png','survival-avatar.png'],['data/art-prepared/21.png','super-fat.png'],['survival/assets/map-floor.webp','map-floor.png'],['survival/assets/loot-sheet.webp','loot-sheet.png']])await copy(from,to);
 for(let i=1;i<=11;i++)await copy(`data/art-prepared/${String(i).padStart(2,'0')}.png`,`fish-stage/${i}.png`);

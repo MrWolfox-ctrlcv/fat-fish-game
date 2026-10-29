@@ -1,4 +1,5 @@
-import { createGame, stepGame, performAction, choose, continueRound, useItem, itemInfo, getStats, DIFFICULTIES, CATALOG, normalizeGameSnapshot } from './engine.js';
+import { createGame, stepGame, performAction, choose, continueRound, useItem, itemInfo, getStats, DIFFICULTIES, CATALOG, normalizeGameSnapshot, roundDuration, isBossRound, limits } from './engine.js';
+import { MAPS, mapForRound } from './maps.js';
 import { HEROES } from './heroes.js';
 import { createRenderer } from './render.js';
 import { createCloudSaves } from './cloud-saves.js';
@@ -100,15 +101,15 @@ function refreshOverlay() {
     paused: ['歇一会儿', '饭可以慢慢吃。', '战斗已暂停。准备好了就继续。'],
     trait: ['经验升级 · 三选一', '这次，往哪儿长？', '选一项特性，塑造本局的战斗方式。选择期间战斗暂停。'],
     reward: [`第 ${game.round} 轮完成 · 装备三选一`, '给下一轮，添点底气。', '本轮剩余经验已收好。免费选一件装备，效果持续到本局结束。'],
-    rest: ['轮间休整', game.round === 10 ? '收工，开饭。' : `下一轮，${20 + game.round * 5} 秒。`, '调整好状态再出发。道具商店将在后续接入，当前不产生费用。'],
-    won: ['十轮通关', `${HEROES[game.heroId].name}，挑战完成！`, game.heroId==='gpt'?'已在当前浏览器解锁 Astra！选择主角即可使用。':'使用 GPT 通关，可在当前浏览器解锁 Astra。'],
+    rest: ['轮间休整', game.round >= game.maxRounds ? '收工，开饭。' : `下一站，${mapForRound(game.round+1).name} · ${roundDuration(game.round+1)} 秒`, '本轮装备已收好。可整理云存档、按需打开补给。换地图时，未拾取的宝箱和地面道具会留在原地。'],
+    won: [`${game.maxRounds} 轮通关`, `${HEROES[game.heroId].name}，挑战完成！`, game.heroId==='gpt'?'已在当前浏览器解锁 Astra！选择主角即可使用。':'使用 GPT 通关，可在当前浏览器解锁 Astra。'],
     lost: ['本局结束', '先回去吃碗饭。', `坚持到第 ${game.round} 轮 · 成长 Lv.${game.level} · 击破 ${game.kills}。换个构筑再来。`],
   };
   const [kicker, title, description] = texts[phase] || ['休整', '稍作调整。', ''];
   $('overlay-kicker').textContent = kicker; $('overlay-title').textContent = title; $('overlay-description').textContent = description;
   const choices = $('choices'); choices.replaceChildren(); choices.classList.toggle('single', !['trait','reward'].includes(phase));
   if (phase === 'trait' || phase === 'reward') for (const c of game.choices || []) choices.append(button('', () => eventFeedback(choose(game, c.id)), c));
-  else if (phase === 'rest') choices.append(button(game.round === 10 ? '完成本局' : '下一轮 →', () => eventFeedback(continueRound(game))));
+  else if (phase === 'rest') choices.append(button(game.round >= game.maxRounds ? '完成本局' : '下一轮 →', () => eventFeedback(continueRound(game))));
   else if (phase === 'welcome') choices.append(button('开始挑战 →', () => { started = true; }));
   else if (phase === 'paused') choices.append(button('继续战斗 →', () => { paused = false; }));
   else choices.append(button('再来一局 →', reset));
@@ -119,7 +120,11 @@ function updateHud() {
   const hero=HEROES[game.heroId],copy=heroCopy[game.heroId],info=itemInfo(game);
   $('field').setAttribute('aria-label',game.heroId==='qwen'?'方向键移动，空格召唤小型模型，数字2召唤Qwen Max。触屏摇杆移动，按钮使用技能。':'方向键移动，空格或E使用技能，数字1使用道具。触屏摇杆移动，按钮使用技能。');
   document.querySelector('.controlbar>span').innerHTML=game.heroId==='qwen'?'移动 <kbd>WASD</kbd> / 方向键 · 技能 <kbd>空格</kbd> / <kbd>2</kbd>':'移动 <kbd>WASD</kbd> / 方向键 · 自动攻击';
-  $('round').textContent = `${String(game.round).padStart(2,'0')} / 10`;
+  $('round').textContent = `${String(game.round).padStart(2,'0')} / ${game.maxRounds}`;
+  const map=mapForRound(game.round);
+  $('map-name').textContent=map.name;
+  $('map-population').textContent=`敌群 ${game.enemies.length} / ${limits.enemies}${isBossRound(game)?' · 首领关':''}`;
+  $('map-tip').textContent=map.subtitle;
   $('timer').textContent = `${Math.max(0, Math.ceil(game.roundDuration - game.roundTime))} 秒`;
   $('level').textContent = `Lv.${game.level}`; $('kills').textContent = game.kills;
   $('health-label').textContent = `生命 ${Math.ceil(p.health)} / ${p.maxHealth}`;
@@ -148,8 +153,16 @@ function updateHud() {
   $('opponent-roster').textContent=game.playerFaction==='cn'?'GPT、Gemini Flash Lite、Claude；精英 sol、Opus、Flash；首领 Astra。':'豆包、Qwen、Kimi；精英 Qwen Max、Kimi Thinking、DeepSeek Reasoner；首领主要为 Qwen Max 召唤师，偶尔出现豆包首领。';
   if($('hero-portrait').dataset.hero!==game.heroId){$('hero-portrait').dataset.hero=game.heroId;$('hero-portrait').src=asset(copy.portrait);$('hero-title').textContent=copy.title;$('hero-description').textContent=copy.description;$('hero-eyebrow').textContent=`本局角色 · ${hero.name}`;$('hero-tags').textContent=hero.skillName;}
   $('notice').classList.toggle('visible', performance.now() < noticeUntil && $('overlay').hidden);
-  $('route-title').textContent = game.round < 3 ? '第三轮，模型精英来袭。' : game.round < 10 ? '组合升级，备战首领。' : '最后一轮，全力以赴。';
-  $('route-detail').textContent = `本轮 ${game.roundDuration} 秒。${info.name}最多携带9份，可留到后续轮次使用。`;
+  $('route-title').textContent = `${map.name} · 第 ${Math.floor((game.round-1)/5)+1} 章`;
+  $('route-detail').textContent = `本轮 ${game.roundDuration} 秒；${isBossRound(game)?'计时结束后仍需击败首领。':'存活至结束即可前进。'} ${info.name}最多携带9份。`;
+  if($('map-route').dataset.round!==String(game.round)){
+    $('map-route').dataset.round=String(game.round);$('map-route').replaceChildren(...MAPS.slice(0,Math.ceil(game.maxRounds/5)).map((region,i)=>{const card=document.createElement('div');card.className='map-stop'+(region.id===map.id?' current':'');const title=document.createElement('strong');title.textContent=region.name;const sub=document.createElement('small');sub.textContent=`${i*5+1}–${Math.min(game.maxRounds,i*5+5)} 轮`;card.append(title,sub);return card;}));
+  }
+  if ($('round-dots').dataset.round !== String(game.round)) {
+    $('round-dots').dataset.round = String(game.round);
+    $('round-dots').setAttribute('aria-label',`${game.maxRounds}轮进度`);
+    $('round-dots').replaceChildren(...Array.from({length:game.maxRounds},(_,i)=>{const dot=document.createElement('i');dot.className=i+1<game.round?'done':i+1===game.round?'current':'';return dot;}));
+  }
   const signature = JSON.stringify([game.traits,game.equipment,game.buildLog?.length]);
   if ($('build').dataset.signature !== signature) {
     $('build').dataset.signature = signature; $('build').replaceChildren();
@@ -161,10 +174,7 @@ function updateHud() {
     }
     if (!$('build').children.length) $('build').textContent = '捡经验选特性；每轮结束选一件装备。';
   }
-  if ($('round-dots').dataset.round !== String(game.round)) {
-    $('round-dots').dataset.round = String(game.round);
-    $('round-dots').replaceChildren(...Array.from({length:10},(_,i)=>{const dot=document.createElement('i');dot.className=i+1<game.round?'done':i+1===game.round?'current':'';return dot;}));
-  }
+
 }
 $('skill').addEventListener('pointerdown', event => { event.preventDefault(); skill(); });
 $('secondary-skill').addEventListener('pointerdown', event => { event.preventDefault(); skill('secondary'); });

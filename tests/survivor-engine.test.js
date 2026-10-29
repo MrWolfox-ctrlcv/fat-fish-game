@@ -37,7 +37,7 @@ test('damage causes loss and loss freezes; round rewards and final victory progr
   stepGame(h, {}, 0.02); assert.equal(h.phase, 'reward');
   assert.equal(choose(h, 'bad-choice'), false); assert.equal(choose(h, h.choices[0].id), true); assert.equal(h.phase, 'rest');
   assert.equal(continueRound(h), true); assert.equal(h.phase, 'playing'); assert.equal(h.round, 10);
-  h.phase = 'rest'; assert.equal(continueRound(h), true); assert.equal(h.phase, 'won'); assert.equal(continueRound(h), false);
+  h.round=h.maxRounds; h.phase = 'rest'; assert.equal(continueRound(h), true); assert.equal(h.phase, 'won'); assert.equal(continueRound(h), false);
 });
 
 test('simulation collections remain capped', () => {
@@ -243,7 +243,7 @@ test('Gemini fixed-direction flash and chrome orb shield each respect one-use co
 test('Astra skill is local engine behavior and only GPT completion emits the game-won unlock signal', () => {
   const a=createGame({hero:'astra'});const e={id:1,x:a.player.x+100,y:a.player.y,radius:30,hp:500,maxHp:500,speed:0,kind:'chaser',xp:1};a.enemies=[e];
   assert.ok(useHeroSkill(a).some(event=>event.type==='starburst'));assert.equal(e.hp,200);a.inventory.astraCore=1;assert.equal(a.player.skillCooldown,7);assert.equal(useItem(a)[0].item,'astraCore');assert.equal(a.player.skillCooldown,0);
-  const g=createGame({hero:'gpt'});g.round=10;g.phase='rest';assert.equal(continueRound(g),true);assert.equal(g.phase,'won');assert.ok(g.events.some(event=>event.type==='game-won'&&event.hero==='gpt'));
+  const g=createGame({hero:'gpt'});g.round=g.maxRounds;g.phase='rest';assert.equal(continueRound(g),true);assert.equal(g.phase,'won');assert.ok(g.events.some(event=>event.type==='game-won'&&event.hero==='gpt'));
   const d=createGame({hero:'deepseek'});d.round=10;d.phase='rest';continueRound(d);assert.equal(d.events.some(event=>event.type==='game-won'),false);
 });
 

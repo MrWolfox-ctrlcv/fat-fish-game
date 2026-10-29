@@ -22,7 +22,7 @@ test('first chest arrives at twelve seconds, then eighteen seconds apart, with t
 test('enemy pressure scales by round and difficulty while all spawns stay near the player and capped', () => {
   const round1=createGame({seed:8}),round3=createGame({seed:8}),round7=createGame({seed:8});
   for(const [g,round] of [[round1,1],[round3,3],[round7,7]]){g.round=round;g.eliteSpawned=true;g.spawnTimer=0;g.chestTimer=100;stepGame(g,{},.01);}
-  assert.equal(round1.enemies.length,1);assert.equal(round3.enemies.length,2);assert.equal(round7.enemies.length,3);
+  assert.equal(round1.enemies.length,2);assert.equal(round3.enemies.length,3);assert.equal(round7.enemies.length,4);
   for(const g of [round1,round3,round7])for(const e of g.enemies){const d=Math.hypot(e.x-g.player.x,e.y-g.player.y);assert.ok(d>=320&&d<=500);}
   assert.ok(round7.spawnTimer<round3.spawnTimer&&round3.spawnTimer<round1.spawnTimer);
   const relaxed=createGame({seed:8,difficulty:'relaxed'});relaxed.round=7;relaxed.eliteSpawned=true;relaxed.spawnTimer=0;relaxed.chestTimer=100;stepGame(relaxed,{},.01);

@@ -2,12 +2,15 @@ import { ENEMY_ROSTERS, ELITE_ROSTERS, DOUBAO_BOSS, opposingRoster } from './ros
 import { HEROES } from './heroes.js';
 import { RARITIES, rarityWeights, rollRarity } from './loot.js';
 import { SHOP_ITEMS } from './shop-items.js';
+import { mapForRound, createScene, ensureScene, terrainFactor, ventPhase } from './maps.js';
 export { RARITIES, rarityWeights, rollRarity } from './loot.js';
 export { SHOP_ITEMS } from './shop-items.js';
 
 export const WIDTH = 2560;
 export const HEIGHT = 1600;
-export const limits = Object.freeze({ enemies: 64, bullets: 96, orbs: 96, particles: 80, blasts: 12, allies: 8, allyBullets: 8, beams: 16, chests: 2, pickups: 8, events: 32, rice: 9, chromeOrb: 9, resetScroll: 9, astraCore: 9, doubaoSnack: 9, computeCell: 9, kimiLens: 9 });
+export const limits = Object.freeze({ enemies: 112, bullets: 144, orbs: 128, particles: 80, blasts: 12, allies: 8, allyBullets: 8, beams: 16, chests: 2, pickups: 8, events: 32, rice: 9, chromeOrb: 9, resetScroll: 9, astraCore: 9, computeCell: 9, doubaoSnack: 9, kimiLens: 9 });
+export const roundDuration = round => Math.min(75,20+5*(round-1));
+export const isBossRound = g => g.round === g.maxRounds || (g.maxRounds > 10 && g.round % 5 === 0);
 export const DIFFICULTIES = Object.freeze({
   relaxed: Object.freeze({ label: '轻松', description: '敌人更弱、进场更慢，经验略多。', enemyHealth: .75, enemyDamage: .7, spawnInterval: 1.2, xp: 1.15 }),
   standard: Object.freeze({ label: '标准', description: '标准敌人强度与出现速度。', enemyHealth: 1, enemyDamage: 1, spawnInterval: 1, xp: 1 }),
@@ -44,7 +47,7 @@ export function createGame({ seed = 1, hero = 'deepseek', faction, difficulty = 
   const playerFaction = Object.hasOwn(ENEMY_ROSTERS, faction) ? faction : heroConfig.faction;
   const stats = heroConfig.stats;
   return {
-    rng: s, visualRng: s, difficulty: Object.hasOwn(DIFFICULTIES,difficulty)?difficulty:'standard', phase: 'playing', round: 1, maxRounds: 10, roundTime: 0, roundDuration: 20, time: 0, playerFaction, heroId,
+    rng: s, visualRng: s, difficulty: Object.hasOwn(DIFFICULTIES,difficulty)?difficulty:'standard', phase: 'playing', round: 1, maxRounds: 20, campaignVersion: 2, scene: createScene(1), roundTime: 0, roundDuration: 20, time: 0, playerFaction, heroId,
     score: 0, level: 1, xp: 0, xpNeed: 8, pendingLevels: 0,
     player: { x: WIDTH / 2, y: HEIGHT / 2, radius: 28, fishStage: 1, health: stats.health, maxHealth: stats.health, vx: 0, vy: 0, facing: 1,
       fatLevel: 1, fatXp: 0, fatXpNeed: 2, fatness: 0, superFat: false, slideTimer: 0, slideDuration: 0,
@@ -64,6 +67,9 @@ export function normalizeGameSnapshot(snapshot){
   const hero=Object.hasOwn(HEROES,raw.heroId)?raw.heroId:'deepseek';
   const defaults=createGame({seed:raw.rng??1,hero,faction:raw.playerFaction,difficulty:raw.difficulty});
   const result={...defaults,...raw};
+  result.maxRounds=raw.maxRounds===20?20:10;
+  result.campaignVersion=raw.campaignVersion===2?2:1;
+  ensureScene(result);
   result.heroId=hero;result.playerFaction=Object.hasOwn(ENEMY_ROSTERS,raw.playerFaction)?raw.playerFaction:defaults.playerFaction;
   result.difficulty=Object.hasOwn(DIFFICULTIES,result.difficulty)?result.difficulty:'standard';
   result.player={...defaults.player,...(raw.player||{})};
@@ -177,7 +183,8 @@ function spawnEnemy(g, kind = 'chaser', { identity:forcedIdentity=null, lifetime
   if (g.enemies.length >= limits.enemies) return false;
   const angle = rand(g) * Math.PI * 2, radiusFromPlayer = 320 + rand(g) * 180;
   const x = clamp(g.player.x + Math.cos(angle) * radiusFromPlayer, 30, WIDTH - 30), y = clamp(g.player.y + Math.sin(angle) * radiusFromPlayer, 30, HEIGHT - 30);
-  const defs = { chaser: [26, 28 + g.round * 7, 48 + g.round * 2], summon: [17, 24 + g.round * 3, 72 + g.round * 2], dash: [20, 30 + g.round * 4, 85 + g.round * 2], ranged: [22, 38 + g.round * 5, 42 + g.round], elite: [38, 180 + g.round * 25, 32 + g.round], boss: [62, 1250, 26] };
+  const progression=Math.min(10,g.round)+Math.max(0,g.round-10)*.55;
+  const defs = { chaser: [26, 28 + progression * 7, 48 + progression * 2], summon: [17, 24 + progression * 3, 72 + progression * 2], dash: [20, 30 + progression * 4, 85 + progression * 2], ranged: [22, 38 + progression * 5, 42 + progression], elite: [38, 180 + progression * 25, 32 + progression], boss: [62+Math.floor((g.round-1)/5)*4, 1250+Math.floor((g.round-1)/5)*650, 26] };
   let [radius, hp, speed] = defs[kind]||defs.chaser;
   const opponent = opposingRoster(g.playerFaction)[kind];
   const elite = kind === 'elite' ? ELITE_ROSTERS[g.playerFaction][Math.floor(rand(g) * ELITE_ROSTERS[g.playerFaction].length)] : null;
@@ -232,6 +239,7 @@ function fireLaser(g,length,width,damage,maxHits,color,aimTarget=null){
       if(g.weaponPower.frost>0){e.slowTimer=Math.max(e.slowTimer||0,Math.min(3,1.5+.2*(g.weaponPower.frost-1)));e.slowFactor=Math.max(.2,1-.4*g.weaponPower.frost);}}
     if(g.weaponPower.ricochet>0&&hitIds.length)chainRicochet(g,inLine.find(x=>x.e.id===hitIds.at(-1)).e,hitIds,damage,g.weaponPower.ricochet);
     for(const chest of [...g.chests])if(pointSegmentDistance2(chest,p.x,p.y,toX,toY).distance2<=(chest.radius+width/2)**2)damageChest(g,chest,damage);
+    for(const node of g.scene?.nodes||[])if(node.hp>0&&pointSegmentDistance2(node,p.x,p.y,toX,toY).distance2<=(node.radius+width/2)**2)damageSceneNode(g,node,damage);
   }
 }
 function normalizeAlly(a){
@@ -259,7 +267,7 @@ function updateAllies(g,dt){
     let target=null,nearest=Infinity;for(const e of g.enemies){const d=dist2(ally,e);if(d<nearest){nearest=d;target=e;}}
     let desiredX=p.x+Math.cos(index*Math.PI/4)*90,desiredY=p.y+Math.sin(index*Math.PI/4)*90;
     if(target&&nearest<750**2&&dist2(ally,p)<850**2){const toward=unit(target.x-ally.x,target.y-ally.y),standOff=ally.kind==='qwenMax'?220:160;desiredX=target.x-toward.x*standOff;desiredY=target.y-toward.y*standOff;}
-    const follow=unit(desiredX-ally.x,desiredY-ally.y),distance=Math.hypot(desiredX-ally.x,desiredY-ally.y),move=Math.min(distance,ally.speed*dt);
+    const follow=unit(desiredX-ally.x,desiredY-ally.y),distance=Math.hypot(desiredX-ally.x,desiredY-ally.y),move=Math.min(distance,ally.speed*dt*terrainFactor(g,ally));
     ally.x=clamp(ally.x+follow.x*move,ally.radius,WIDTH-ally.radius);ally.y=clamp(ally.y+follow.y*move,ally.radius,HEIGHT-ally.radius);
     for(let j=0;j<index;j++){const other=g.allies[j],distance=Math.hypot(ally.x-other.x,ally.y-other.y),minimum=ally.radius+other.radius+5;if(distance<minimum){const d=distance>.01?unit(ally.x-other.x,ally.y-other.y):{x:1,y:0},push=Math.min((minimum-distance)*.5,45*dt);ally.x=clamp(ally.x+d.x*push,ally.radius,WIDTH-ally.radius);ally.y=clamp(ally.y+d.y*push,ally.radius,HEIGHT-ally.radius);}}
     ally.shotTimer-=dt;
@@ -274,6 +282,18 @@ function damageChest(g, chest, amount) {
   if (chest.hp <= 0) { g.chests = g.chests.filter(c => c !== chest); const key=HEROES[g.heroId].itemKey; if (g.pickups.length < limits.pickups) g.pickups.push({ x: chest.x, y: chest.y, kind: key, itemKey:key, radius: 13 }); event(g, 'chest-opened'); }
 }
 export function openChest(g, chest) { if (g.chests.includes(chest)) damageChest(g, chest, chest.hp); }
+function damageSceneNode(g,node,amount){
+  if(node.hp<=0)return;node.hp=Math.max(0,node.hp-amount);
+  if(!node.hp){addXpOrb(g,node.x,node.y,5);event(g,'scene-node-broken',{text:'晶簇击碎了，捡起经验！'});}
+}
+function updateScene(g){
+  const scene=ensureScene(g);if(g.time<scene.nextPulseAt)return;scene.nextPulseAt=g.time+.5;
+  for(const vent of mapForRound(g.round).vents){if(ventPhase(g.time,vent)!=='active')continue;
+    if(dist2(g.player,vent)<(vent.radius+g.player.radius*.4)**2)hurt(g,5);
+    for(const e of [...g.enemies])if(dist2(e,vent)<(vent.radius+e.radius*.4)**2)dealEnemyDamage(g,e,12);
+    for(const a of g.allies)if(a.hp>0&&dist2(a,vent)<(vent.radius+a.radius*.4)**2)hurtAlly(g,a,5);
+  }
+}
 function hurt(g, amount) {
   const p = g.player; if (p.invulnerable > 0 || g.phase !== 'playing') return;
   if(p.chromeShieldTimer>0&&p.chromeShieldCharges>0){p.chromeShieldCharges--;p.invulnerable=Math.max(p.invulnerable,0.45);if(!p.chromeShieldCharges)p.chromeShieldTimer=0;event(g,'chrome-shield-hit',{charges:p.chromeShieldCharges});return;}
@@ -482,7 +502,10 @@ export function choose(g, choiceId) {
 export function continueRound(g) {
   if (g.phase !== 'rest') return false;
   if (g.round >= g.maxRounds) { g.phase = 'won'; g.notice = '你征服了深海！'; if(g.heroId==='gpt')event(g,'game-won',{hero:'gpt'});else event(g,'won',{hero:g.heroId}); return true; }
-  g.round++; g.roundTime = 0; g.roundDuration = 20 + 5 * (g.round - 1); g.spawnTimer = 0; g.chestTimer = 10; g.eliteSpawned = false; g.bossSpawned = false; g.phase = 'playing'; g.notice = `第 ${g.round} 轮`; return true;
+  const previousMap=mapForRound(g.round).id;
+  g.round++; g.roundTime = 0; g.roundDuration = roundDuration(g.round); g.spawnTimer = 0; g.chestTimer = 10; g.eliteSpawned = false; g.bossSpawned = false; g.bossDefeated=false; g.phase = 'playing'; g.notice = `第 ${g.round} 轮`;
+  if(mapForRound(g.round).id!==previousMap){g.scene=createScene(g.round);g.chests=[];g.pickups=[];g.beams=[];g.particles=[];g.blasts=[];g.player.x=WIDTH/2;g.player.y=HEIGHT/2;g.player.vx=g.player.vy=0;g.player.chargeTimer=g.player.dashTimer=g.player.slideTimer=0;g.player.invulnerable=Math.max(1.5,g.player.invulnerable);g.allies.forEach((a,i)=>{a.x=g.player.x+Math.cos(i)*80;a.y=g.player.y+Math.sin(i)*80;});event(g,'map-changed',{text:`抵达${mapForRound(g.round).name}！`,mapId:g.scene.mapId});}
+  return true;
 }
 function endRound(g) {
   g.enemies = []; g.bullets = []; g.roundEnding = true; g.orbs.forEach(o => grantExperience(g, o.value)); g.orbs = []; if (g.phase === 'trait') return;
@@ -493,6 +516,7 @@ export function stepGame(g, input = {}, dt = 1 / 60) {
   if (g.phase !== 'playing') return [];
   g.events = [];
   dt = clamp(Number.isFinite(dt) ? dt : 0, 0, 0.05); const p = g.player; g.time += dt; g.roundTime += dt;
+  ensureScene(g);
   p.invulnerable = Math.max(0, p.invulnerable - dt); p.chargeCooldown = p.dashCooldown = Math.max(0, p.chargeCooldown - dt); p.vampirismTimer = Math.max(0, p.vampirismTimer - dt);
   p.shieldTimer=Math.max(0,p.shieldTimer-dt);if(!p.shieldTimer)p.shieldCharges=0;p.shieldCooldown=Math.max(0,p.shieldCooldown-dt);
   if(g.heroId==='qwen')p.compute=Math.min(p.computeMax,p.compute+HEROES.qwen.computeRegen*dt);
@@ -510,23 +534,25 @@ export function stepGame(g, input = {}, dt = 1 / 60) {
     p.slideTimer = Math.max(0, p.slideTimer - dt); const damping = Math.exp(-1.8 * dt); p.vx *= damping; p.vy *= damping;
     if (!p.slideTimer) p.vx = p.vy = 0;
   } else { p.vx += (move.x * p.speed * magnitude - p.vx) * Math.min(1, dt * 8); p.vy += (move.y * p.speed * magnitude - p.vy) * Math.min(1, dt * 8); }
-  p.x = clamp(p.x + p.vx * dt, p.radius, WIDTH - p.radius); p.y = clamp(p.y + p.vy * dt, p.radius, HEIGHT - p.radius);
+  const terrainSpeed=terrainFactor(g,p);
+  p.x = clamp(p.x + p.vx * dt*terrainSpeed, p.radius, WIDTH - p.radius); p.y = clamp(p.y + p.vy * dt*terrainSpeed, p.radius, HEIGHT - p.radius);
   if ((input.command === 'primary' || input.type === 'primary') && p.slideTimer <= 0) useHeroSkill(g);
   if ((input.command === 'secondary' || input.type === 'secondary') && p.slideTimer <= 0) useHeroSecondary(g);
   const difficulty=DIFFICULTIES[g.difficulty]||DIFFICULTIES.standard;
-  g.spawnTimer -= dt; if (g.spawnTimer <= 0 && g.enemies.length < limits.enemies) {
-    const interval = Math.max(0.2, 0.85 - 0.05 * g.round) * difficulty.spawnInterval * (g.difficulty === 'relaxed' ? 1.5 : 1);
-    const count = g.difficulty === 'relaxed' ? 1 : g.round >= 7 ? 3 : g.round >= 3 ? 2 : 1;
-    for (let i = 0; i < count && g.enemies.length < limits.enemies; i++)
+  const spawnCap=limits.enemies-(isBossRound(g)&&!g.bossSpawned?1:0);
+  g.spawnTimer -= dt; if (g.spawnTimer <= 0 && g.enemies.length < spawnCap) {
+    const interval = Math.max(0.24, 0.65 - 0.032 * g.round) * difficulty.spawnInterval * (g.difficulty === 'relaxed' ? 1.5 : 1);
+    const count = g.difficulty === 'relaxed' ? (g.round>=8?2:1) : g.round >= 11 ? 5 : g.round >= 6 ? 4 : g.round >= 3 ? 3 : 2;
+    for (let i = 0; i < count && g.enemies.length < spawnCap; i++)
       spawnEnemy(g, g.round >= 4 && rand(g) < 0.25 ? 'ranged' : g.round >= 2 && rand(g) < 0.3 ? 'dash' : 'chaser');
     g.spawnTimer = interval;
   }
-  if ([3, 5, 7, 9].includes(g.round) && !g.eliteSpawned) g.eliteSpawned = spawnEnemy(g, 'elite');
-  if (g.round === 10 && !g.bossSpawned) g.bossSpawned = spawnEnemy(g, 'boss');
+  if (isBossRound(g) && !g.bossSpawned) g.bossSpawned = spawnEnemy(g, 'boss');
+  if (g.round>=3 && g.round%2===1 && !g.eliteSpawned && g.enemies.length<spawnCap) g.eliteSpawned = spawnEnemy(g, 'elite');
     g.chestTimer -= dt; if (g.chestTimer <= 0 && g.chests.length < 2) { const a=rand(g)*Math.PI*2, r=200+rand(g)*300; g.chests.push({ x: clamp(p.x+Math.cos(a)*r,70,WIDTH-70), y:clamp(p.y+Math.sin(a)*r,70,HEIGHT-70),hp:24,maxHp:24,radius:20 }); g.chestTimer = 18; }
   updateAllies(g,dt);
   // Auto-fire chooses the nearest chest only when it is closer than the nearest enemy.
-  let target = null, targetD = Infinity; for (const candidate of [...g.enemies, ...g.chests]) { const d = dist2(p, candidate); if (d < targetD) { target = candidate; targetD = d; } }
+  let target = null, targetD = Infinity; for (const candidate of [...g.enemies, ...g.chests,...g.scene.nodes.filter(n=>n.hp>0)]) { const d = dist2(p, candidate); if (d < targetD) { target = candidate; targetD = d; } }
   p.shotTimer -= dt; if (target && p.shotTimer <= 0) { fire(g, target); p.shotTimer = p.fireRate; }
   for (const b of g.bullets) {
     b.x += b.vx * dt; b.y += b.vy * dt; b.life -= dt;
@@ -536,7 +562,8 @@ export function stepGame(g, input = {}, dt = 1 / 60) {
       if(g.weaponPower.frost>0){e.slowTimer=Math.max(e.slowTimer||0,Math.min(3,1.5+.2*(g.weaponPower.frost-1)));e.slowFactor=Math.max(.2,1-.4*g.weaponPower.frost);}
       chainRicochet(g,e,b.hitIds,b.damage,g.weaponPower.ricochet||0);
       if (b.hitIds.length >= b.hits) b.life = 0; struck = true; break;
-    } if (!struck) for (const c of [...g.chests]) if (dist2(b, c) < (b.radius + c.radius) ** 2) { damageChest(g, c, b.damage); b.life = 0; break; }
+    } if (!struck) for (const c of [...g.chests]) if (dist2(b, c) < (b.radius + c.radius) ** 2) { damageChest(g, c, b.damage); b.life = 0; struck=true;break; }
+    if(!struck)for(const node of g.scene.nodes)if(node.hp>0&&dist2(b,node)<(b.radius+node.radius)**2){damageSceneNode(g,node,b.damage);b.life=0;break;}
   }
   g.bullets = g.bullets.filter(b => b.life > 0 && b.x >= 0 && b.x <= WIDTH && b.y >= 0 && b.y <= HEIGHT).slice(0, limits.bullets);
   for(const beam of g.beams||[])beam.life-=dt;g.beams=(g.beams||[]).filter(beam=>beam.life>0).slice(-limits.beams);
@@ -545,7 +572,7 @@ export function stepGame(g, input = {}, dt = 1 / 60) {
   for (const e of [...g.enemies]) {
     if(e.summoned){e.life-=dt;if(e.life<=0){g.enemies=g.enemies.filter(other=>other!==e);continue;}}
     let victim=p,nearestVictim=dist2(p,e);for(const ally of g.allies)if(ally.hp>0&&dist2(ally,e)<nearestVictim){victim=ally;nearestVictim=dist2(ally,e);}
-    e.hitFlash = Math.max(0, (e.hitFlash || 0) - dt); e.slowTimer = Math.max(0,(e.slowTimer||0)-dt); const speedScale=e.slowTimer>0?(e.slowFactor||0.6):1; const d = unit(victim.x - e.x, victim.y - e.y);
+    e.hitFlash = Math.max(0, (e.hitFlash || 0) - dt); e.slowTimer = Math.max(0,(e.slowTimer||0)-dt); const speedScale=(e.slowTimer>0?(e.slowFactor||0.6):1)*terrainFactor(g,e); const d = unit(victim.x - e.x, victim.y - e.y);
     if(e.behavior==='summoner'){
       e.summonTimer=(e.summonTimer??5)-dt;e.telegraph=e.summonTimer>0&&e.summonTimer<=1?Math.min(1,e.summonTimer):0;
       if(e.summonTimer<=0){for(let i=0;i<6&&g.enemies.length<limits.enemies;i++)spawnEnemy(g,'summon',{lifetime:10});e.summonTimer=5;e.telegraph=0;}
@@ -572,6 +599,9 @@ export function stepGame(g, input = {}, dt = 1 / 60) {
   if (g.phase !== 'playing') return g.events.splice(0);
   if (p.chargeTimer > 0) for (const e of [...g.enemies]) if (!p.chargeHits.includes(e.id) && dist2(p, e) < (p.radius + e.radius + 14) ** 2) { dealEnemyDamage(g,e,p.chargeDamage); e.x += Math.cos(p.chargeDirection) * 22; e.y += Math.sin(p.chargeDirection) * 22; p.chargeHits.push(e.id); }
   for (const c of [...g.chests]) if (p.chargeTimer > 0 && dist2(p, c) < (p.radius + c.radius + 14) ** 2) damageChest(g, c, p.chargeDamage);
+  for(const node of g.scene.nodes)if(node.hp>0&&p.chargeTimer>0&&dist2(p,node)<(p.radius+node.radius+14)**2)damageSceneNode(g,node,p.chargeDamage);
+  updateScene(g);
+  if(g.phase!=='playing')return g.events.splice(0);
   for (const o of [...g.orbs]) if (dist2(p, o) < (p.magnet + 100) ** 2) { const d = unit(p.x - o.x, p.y - o.y); o.x += d.x * 180 * dt; o.y += d.y * 180 * dt; if (dist2(p, o) < (p.radius + 12) ** 2) { g.orbs = g.orbs.filter(v => v !== o); grantExperience(g, o.value); } }
   for (const item of [...g.pickups]) { const key=item.itemKey||item.kind; if(key===HEROES[g.heroId].itemKey&&(g.inventory[key]||0)<limits[key]&&dist2(p,item)<(p.radius+item.radius)**2){g.inventory[key]++;g.pickups=g.pickups.filter(v=>v!==item);event(g,'item-collected',{item:key,count:g.inventory[key]});} }
   while (g.heroId==='deepseek'&&g.time>=g.nextAutoRiceAt){g.nextAutoRiceAt+=8;if(g.inventory.rice>0&&rand(g)<0.35)eatRice(g,true);}
@@ -580,7 +610,7 @@ export function stepGame(g, input = {}, dt = 1 / 60) {
   g.blasts=(g.blasts||[]).filter(blast=>blast.age<blast.duration).slice(-limits.blasts);
   for(const particle of g.particles||[]){particle.x+=particle.vx*dt;particle.y+=particle.vy*dt;particle.vx*=Math.exp(-2.5*dt);particle.vy*=Math.exp(-2.5*dt);particle.life-=dt;}
   g.particles=(g.particles||[]).filter(particle=>particle.life>0).slice(-limits.particles);
-  if (g.roundTime >= g.roundDuration && (g.round < 10 || (g.bossSpawned && g.bossDefeated))) endRound(g);
+  if (g.roundTime >= g.roundDuration && (!isBossRound(g) || (g.bossSpawned && g.bossDefeated))) endRound(g);
   return g.events.splice(0);
 }
 export function getStats(g) {
