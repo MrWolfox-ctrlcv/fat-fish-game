@@ -12,6 +12,7 @@ import { createFishPropsUI } from './fish-props-ui.js';
 import { setupFishSavesUI, hydrateGameState } from './fish-saves-ui.js';
 import { PHYSICS_VERSION } from './physics-version.js';
 import { createFishRenderer } from './fish-render.js';
+import { createFishViewport } from './fish-viewport.js';
 
 export const MAX_LEVEL = 11;
 export const GIFT_LEVEL = 6;
@@ -456,6 +457,7 @@ function setupUI() {
   }
   const canvas = document.querySelector("#game-canvas");
   const ctx = canvas.getContext("2d");
+  const fishViewport = createFishViewport(canvas, ctx, { width: FIELD_WIDTH, height: BASE_FIELD_HEIGHT });
   const wrapper = document.querySelector(".board-wrap");
   const scoreEl = document.querySelector("#score");
   const bestEl = document.querySelector("#best-score");
@@ -1350,13 +1352,10 @@ function setupUI() {
   };
 
   const resizeCanvas = () => {
-    const rect = wrapper.getBoundingClientRect();
-    const dpr = Math.min(window.devicePixelRatio || 1, 2);
-    canvas.width = Math.round(rect.width * dpr); canvas.height = Math.round(rect.height * dpr);
-    gameScale = Math.min(rect.width / FIELD_WIDTH, rect.height / BASE_FIELD_HEIGHT);
-    gameOffsetX = (rect.width - FIELD_WIDTH * gameScale) / 2;
-    gameOffsetY = (rect.height - BASE_FIELD_HEIGHT * gameScale) / 2;
-    ctx.setTransform(dpr * gameScale, 0, 0, dpr * gameScale, dpr * gameOffsetX, dpr * gameOffsetY);
+    const view = fishViewport.sync();
+    gameScale = view.scale;
+    gameOffsetX = view.offsetX;
+    gameOffsetY = view.offsetY;
     game.width = FIELD_WIDTH; game.height = BASE_FIELD_HEIGHT;
     game.aimX = clamp(game.aimX, 30, FIELD_WIDTH - 30);
   };
@@ -1667,6 +1666,7 @@ function setupUI() {
 
   const frame = (time) => {
     if (document.hidden) { lastTime = 0; accumulator = 0; requestAnimationFrame(frame); return; }
+    fishViewport.apply();
     if (fishProps.isPaused() || fishSaves?.isPaused()) {
       lastTime = time;
       accumulator = 0;
@@ -1709,7 +1709,10 @@ function setupUI() {
     requestAnimationFrame(frame);
   };
 
-  new ResizeObserver(resizeCanvas).observe(wrapper);
+  new ResizeObserver(resizeCanvas).observe(canvas);
+  window.addEventListener('resize', resizeCanvas);
+  window.visualViewport?.addEventListener('resize', resizeCanvas);
+  canvas.addEventListener('contextrestored', resizeCanvas);
   resizeCanvas(); updateHud(); void fishProps.load(); requestAnimationFrame(frame);
   onlineClient.onSessionChange((kind) => {
     sessionGeneration++;

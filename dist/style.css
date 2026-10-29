@@ -121,7 +121,7 @@ button:focus-visible, a:focus-visible, summary:focus-visible, #game-canvas:focus
     radial-gradient(ellipse at 88% 100%, #4b9996 0 15px, transparent 16px),
     radial-gradient(ellipse at 50% 112%, #75b8ad 0 60px, transparent 61px);
 }
-#game-canvas { position: relative; z-index: 1; display: block; width: 100%; height: 100%; outline: none; touch-action: none; }
+#game-canvas { position: absolute; inset: 0; z-index: 1; display: block; width: 100%; height: 100%; outline: none; touch-action: none; }
 .game-overlay { position: absolute; inset: 0; z-index: 4; display: grid; place-items: center; background: rgba(17,58,87,.36); backdrop-filter: blur(3px); }
 .game-overlay[hidden] { display: none; }
 .overlay-card { width: min(300px, calc(100% - 28px)); padding: 22px 24px; border: 1px solid #fff; border-radius: 21px; background: #fffef8; box-shadow: 0 12px 36px rgba(17,58,87,.25); text-align: center; }
