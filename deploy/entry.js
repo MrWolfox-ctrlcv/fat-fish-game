@@ -13,6 +13,7 @@
     { href: '/games/', label: '小游戏大厅', icon: '🎮' },
     { href: '/games/fat-fish/', label: '合成大肥鱼', icon: '🐳' },
     { href: '/games/bumper/', label: '碰碰擂台', icon: '🛟' },
+    { href: '/games/survivor/', label: '肥鱼幸存者', icon: '🍚' },
   ];
   let open = false;
   let activeAnchor = null;
