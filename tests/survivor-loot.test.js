@@ -49,7 +49,7 @@ test('rarity multiplier changes actual damage and armor effects, not only their 
   offer(common,'trait','trait:damage',RARITIES[0]);offer(legendary,'trait','trait:damage',RARITIES[3]);
   choose(common,'trait:damage');choose(legendary,'trait:damage');
   assert.ok(legendary.player.damage>common.player.damage);
-  assert.equal(legendary.player.damage/common.player.damage,(1+0.25*2.1)/(1+0.25));
+  assert.equal(legendary.player.damage/common.player.damage,(1+0.18*2.1)/(1+0.18));
   const weak=createGame({hero:'gemini'}),strong=createGame({hero:'gemini'});
   offer(weak,'reward','gear:armor',RARITIES[0]);offer(strong,'reward','gear:armor',RARITIES[3]);choose(weak,'gear:armor');choose(strong,'gear:armor');
   assert.equal(weak.equipmentPower.armor,1);assert.equal(strong.equipmentPower.armor,2.1);

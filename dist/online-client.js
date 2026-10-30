@@ -166,6 +166,8 @@ export function createOnlineClient({
     checkpoint: (payload) => request("run/checkpoint", { method: "POST", body: payload }),
     checkpointGuest: (payload) => request("play/checkpoint", { method: "POST", body: payload, withBearer: false, retryUnauthorized: false }),
     getSaves: () => request("saves"),
+    getAutoSave: (guest=false) => request(guest?'play/autosave':'autosave',{withBearer:!guest,retryUnauthorized:!guest}),
+    restoreAutoSave: (payload,guest=false) => request(guest?'play/autosave/load':'autosave/load',{method:'POST',body:payload,withBearer:!guest,retryUnauthorized:!guest}),
     writeSave: (payload) => request("saves/write", { method: "POST", body: payload }),
     extendSave: (payload) => request("saves/extend", { method: "POST", body: payload }),
     loadSave: (payload) => request("saves/load", { method: "POST", body: payload }),

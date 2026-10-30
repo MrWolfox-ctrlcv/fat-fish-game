@@ -292,7 +292,7 @@ test('difficulty presets change enemy toughness, damage, spawn cadence, and XP w
   assert.ok(easy.enemies[0].hp<normal.enemies[0].hp&&normal.enemies[0].hp<hard.enemies[0].hp);
   assert.ok(easy.damageTaken<normal.damageTaken&&normal.damageTaken<hard.damageTaken);
   assert.ok(easy.spawnTimer>normal.spawnTimer&&normal.spawnTimer>hard.spawnTimer);
-  assert.ok(easy.enemies[0].xp>normal.enemies[0].xp&&normal.enemies[0].xp===3&&hard.enemies[0].xp===3);
+  assert.ok(easy.enemies[0].xp>normal.enemies[0].xp&&normal.enemies[0].xp===1&&hard.enemies[0].xp===1);
   assert.equal(getHud(easy).difficulty,'relaxed');assert.equal(createGame({difficulty:'invalid'}).difficulty,'standard');
   for(const g of games){const selected=g.difficulty;for(let i=0;i<10;i++)stepGame(g,{},.05);assert.equal(g.difficulty,selected);}
   const bosses=['relaxed','standard','hard'].map(difficulty=>{const g=createGame({difficulty});g.round=10;g.spawnTimer=g.chestTimer=100;stepGame(g,{},.01);return g.enemies.find(e=>e.kind==='boss').hp;});

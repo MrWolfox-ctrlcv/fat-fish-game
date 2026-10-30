@@ -42,7 +42,7 @@ export function serializeArenaEvents(events) {
 }
 
 export function createArenaRooms({ origins = new Set(), env = process.env, production = env.NODE_ENV === 'production', now = Date.now,
-  maxRooms = Number(env.ARENA_MAX_ROOMS || 2), setIntervalFn = setInterval, clearIntervalFn = clearInterval, server } = {}) {
+  maxRooms = Number(env.ARENA_MAX_ROOMS || 2), setIntervalFn = setInterval, clearIntervalFn = clearInterval, server, accepting = () => true } = {}) {
   maxRooms = clamp(Number.isInteger(maxRooms) ? maxRooms : 2, 1, 8);
   const rooms = new Map();
   const sessions = new Map();
@@ -255,6 +255,7 @@ export function createArenaRooms({ origins = new Set(), env = process.env, produ
     server.on('upgrade', (request, socket, head) => {
       let path; try { path = new URL(request.url, 'http://local').pathname; } catch { return rejectUpgrade(socket, 404); }
       if (path !== '/games/bumper/socket') return rejectUpgrade(socket, 404);
+      if (!accepting()) return rejectUpgrade(socket, 503);
       const found = locateSession(request);
       if (request.method !== 'GET' || !originAllowed(request.headers.origin) || !found) return rejectUpgrade(socket, 403);
       if (sockets.size >= maxRooms * 6 || found.seat.connections.size >= 1) return rejectUpgrade(socket, 503);
@@ -311,6 +312,7 @@ export function createArenaRooms({ origins = new Set(), env = process.env, produ
     const send = (status, value) => { response.writeHead(status, { 'Cache-Control': 'no-store', 'X-Content-Type-Options': 'nosniff', 'Content-Type': 'application/json; charset=utf-8' }); response.end(JSON.stringify(value)); };
     try {
       const suffix = path.slice('/games/bumper/api/rooms'.length) || '/';
+      if (!accepting() && request.method !== 'GET' && suffix !== '/leave') throw Object.assign(new Error('小游戏正在更新，请稍后重试。'), { status: 503, code: 'GAME_UPDATING' });
       if (suffix === '/' && request.method === 'POST' || suffix === '/join' && request.method === 'POST' || suffix === '/start' && request.method === 'POST' || suffix === '/leave' && request.method === 'POST' || suffix === '/settings' && request.method === 'POST') sameOrigin(request);
       const clientIP = request.headers['x-real-ip'] || request.socket.remoteAddress || 'unknown';
       if (suffix === '/' && request.method === 'POST') {

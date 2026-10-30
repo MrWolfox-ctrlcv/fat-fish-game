@@ -7,11 +7,12 @@ const base=process.env.SURVIVOR_BASE||'/';
 if(!/^\/(?:[a-z-]+\/)*$/.test(base))throw new Error('Invalid survivor base');
 const paths=new Map([
  ['/', ['survival/index.html','text/html']],
- ...['main.js','engine.js','render.js','maps.js','scene-render.js','roster.js','heroes.js','loot.js','cloud-saves.js','music.js','shop.js','shop-items.js','style.css'].map(n=>['/'+n,['survival/'+n,n.endsWith('.css')?'text/css':'text/javascript']]),
+ ...['main.js','engine.js','boss-pressure.js','render.js','maps.js','scene-render.js','roster.js','heroes.js','loot.js','cloud-saves.js','music.js','shop.js','shop-items.js','style.css'].map(n=>['/'+n,['survival/'+n,n.endsWith('.css')?'text/css':'text/javascript']]),
  ['/online-client.js',['dist/online-client.js','text/javascript']],
  ['/physics-version.js',['dist/physics-version.js','text/javascript']],
  ['/survival-avatar.png',['data/art-prepared/01.png','image/png']],
  ['/super-fat.png',['data/art-prepared/21.png','image/png']],
+ ['/game-presence.js',['dist/game-presence.js','text/javascript']],
  ['/map-floor.png',['survival/assets/map-floor.webp','image/webp']],
  ['/loot-sheet.png',['survival/assets/loot-sheet.webp','image/webp']],
 ]);

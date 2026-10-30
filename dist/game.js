@@ -13,6 +13,8 @@ import { setupFishSavesUI, hydrateGameState } from './fish-saves-ui.js';
 import { PHYSICS_VERSION } from './physics-version.js';
 import { createFishRenderer } from './fish-render.js';
 import { createFishViewport } from './fish-viewport.js';
+import { createFishAutosave } from './fish-autosave.js';
+import { createGamePresence } from './game-presence.js';
 
 export const MAX_LEVEL = 11;
 export const GIFT_LEVEL = 6;
@@ -526,6 +528,7 @@ function setupUI() {
   let checkpointFlight = null;
   let checkpointTimer = null;
   let fishSaves = null;
+  let fishAuto = null,autoToken=null,autoBaseStep=0;
   let checkpointVersion = 0;
   let checkpointNeeded = false;
   let syncMessage = "";
@@ -750,6 +753,7 @@ function setupUI() {
 
   const applyServerState = (payload) => {
     if (!payload) return;
+    if(payload.autosave){autoToken=payload.autosave.token;autoBaseStep=payload.autosave.step??game.stepIndex;fishAuto?.confirmed(payload.autosave);}
     if (payload.user && activeRun && (activeRunGuest || (account && payload.user.id !== account.id))) {
       artGeneration++;
       playGeneration++;
@@ -932,6 +936,7 @@ function setupUI() {
       }
       const run = response.run;
       activeRun = run;
+      autoToken=run.autosave_token||response.autosave?.token;autoBaseStep=0;
       activeRunGuest = guest || Boolean(run.guest);
       activePlay = response.play ? { ...response.play, run_id: run.id } : null;
       pendingMoves = [];
@@ -954,6 +959,7 @@ function setupUI() {
       failedSyncPending = false;
       overlay.hidden = true;
       updateHud();
+      void fishAuto?.refresh();
       return true;
     } catch (error) {
       if (generation !== sessionGeneration) return false;
@@ -1031,6 +1037,7 @@ function setupUI() {
         if (activeRun !== run) return false;
         pendingMoves.splice(0, moves.length);
         retryCheckpointPayload = null;
+        if(response.autosave){autoToken=response.autosave.token;autoBaseStep=response.autosave.step??payload.step;fishAuto?.confirmed(response.autosave);}
         lastCheckpointAt = Date.now();
         if (checkpointVersion === sentVersion) checkpointNeeded = false;
         syncMessage = "";
@@ -1044,13 +1051,14 @@ function setupUI() {
           [404, 410].includes(error.status) || ["RUN_INVALID", "RUN_NOT_FOUND", "RUN_EXPIRED"].includes(error.code)
         );
         if (invalidRun) {
+          fishAuto?.capture();
           playGeneration++;
           activeRun = null;
           activePlay = null;
           gameReady = false;
           pendingMoves = [];
           retryCheckpointPayload = null;
-          syncMessage = "本局记录已失效，请重新开始。";
+          syncMessage = "本局记录已失效，自动备份仍保留，请用“恢复上次进度”继续。";
           sayToast(syncMessage);
         } else if (error instanceof OnlineApiError && error.status === 401 && !activeRunGuest) {
           enterGuest("guest", true);
@@ -1106,7 +1114,7 @@ function setupUI() {
     },
     getCanvasScale: () => ({ scale: gameScale, offsetX: gameOffsetX, offsetY: gameOffsetY }),
     client: onlineClient,
-    getBlocked: () => Boolean(fishSaves?.isLocked()),
+    getBlocked: () => Boolean(fishSaves?.isLocked()||fishAuto?.isLocked()),
     flushCheckpoint,
     checkpointClean,
     refreshGame: (payload, isPlay = false) => {
@@ -1139,6 +1147,7 @@ function setupUI() {
     getGame: () => game,
     setGame: (state) => {
       game = hydrateGameState(state, { width: FIELD_WIDTH, height: BASE_FIELD_HEIGHT });
+      autoBaseStep=game.stepIndex;
       overlay.hidden = !game.over;
       if (game.over) document.querySelector("#final-score").textContent = String(game.score);
       updateHud();
@@ -1149,6 +1158,7 @@ function setupUI() {
     updateRun: (run, play) => {
       playGeneration++;
       activeRun = run; activeRunGuest = false; activePlay = play ? { ...play, run_id: run.id } : null;
+      autoToken=run.autosave_token||null;autoBaseStep=game.stepIndex;
       gameReady = true;
       pendingMoves = []; retryCheckpointPayload = null; checkpointNeeded = false;
       if (checkpointTimer) clearTimeout(checkpointTimer);
@@ -1160,7 +1170,7 @@ function setupUI() {
     },
     refreshLeaderboard: () => { void leaderboard.refresh(true); },
     pauseChanged: (paused) => { if (paused) accumulator = 0; fishProps.render(); },
-    canOpen: () => !fishProps.hasPending() && !fishProps.isSelecting(),
+    canOpen: () => !fishProps.hasPending() && !fishProps.isSelecting()&&!fishAuto?.isLocked(),
     settled: () => {
       const kind = deferredSessionKind;
       deferredSessionKind = null;
@@ -1170,6 +1180,20 @@ function setupUI() {
     },
     physicsVersion: PHYSICS_VERSION,
   });
+
+  fishAuto=createFishAutosave({account:()=>account,guest:()=>activeRunGuest,getGame:()=>game,getRun:()=>activeRun,
+    getJournal:()=>({moves:pendingMoves,dirty:checkpointNeeded}),getBase:()=>({token:autoToken,step:autoBaseStep}),
+    getBlocked:()=>fishProps.hasPending()||fishProps.isSelecting()||Boolean(fishSaves?.isLocked()),client:onlineClient,
+    lockChanged:()=>{accumulator=0;fishProps.render();},
+    apply:async data=>{
+      if(!data.run||!data.state)throw Error('恢复记录不完整，原备份仍保留。');
+      checkpointClean();playGeneration++;activeRun=data.run;activeRunGuest=Boolean(data.run.guest);gameReady=true;
+      game=hydrateGameState(data.state,{width:FIELD_WIDTH,height:BASE_FIELD_HEIGHT});autoToken=data.autosave.token;autoBaseStep=data.state.stepIndex;
+      activePlay=data.play?{...data.play,run_id:data.run.id}:null;overlay.hidden=!game.over;companion.reset();
+      if(data.profile)applyServerState(data);if(data.play)await updatePlayingState(data.play,activeRun,activeRunGuest);
+      updateHud();void leaderboard.refresh(true);
+    }});
+  createGamePresence({game:'fat-fish',getPlaying:()=>gameReady&&!game.over,element:document.querySelector('#online-count')});
 
   const scheduleCheckpoint = () => {
     if (!activeRun || (!pendingMoves.length && !checkpointNeeded) || checkpointTimer) return;
@@ -1366,7 +1390,7 @@ function setupUI() {
     game.aimX = clamp(x, radiusForLevel(game.currentLevel) + 7, FIELD_WIDTH - radiusForLevel(game.currentLevel) - 7);
   };
   const drop = () => {
-    if (fishProps.isPaused() || fishSaves?.isPaused()) return;
+    if (fishProps.isPaused() || fishSaves?.isPaused()||fishAuto?.isLocked()) return;
     if (!activeRun || !gameReady) {
       sayToast(syncMessage || "游戏记录不可用，请重新开始。");
       return;
@@ -1376,6 +1400,7 @@ function setupUI() {
     if (body) {
       companion.observe(discoveries.observe(game));
       pendingMoves.push(move);
+      fishAuto?.capture();
       if (body.variant) {
         markCheckpointNeeded();
       } else scheduleCheckpoint();
@@ -1650,7 +1675,7 @@ function setupUI() {
   });
 
   async function resetGame() {
-    if (fishProps.hasPending() || fishSaves?.isLocked()) { sayToast("存档或道具请求结果确认前，本局已暂停。请先重试确认同一请求。"); return; }
+    if (fishProps.hasPending() || fishSaves?.isLocked()||fishAuto?.isLocked()) { sayToast("存档或道具请求结果确认前，本局已暂停。请先重试确认同一请求。"); return; }
     if (fishProps.isSelecting()) fishProps.cancelSelection();
     if (activeRun && (pendingMoves.length || checkpointNeeded) && !(await flushCheckpoint())) {
       sayToast(syncMessage || "进度未同步，请稍后重试。");
@@ -1667,7 +1692,7 @@ function setupUI() {
   const frame = (time) => {
     if (document.hidden) { lastTime = 0; accumulator = 0; requestAnimationFrame(frame); return; }
     fishViewport.apply();
-    if (fishProps.isPaused() || fishSaves?.isPaused()) {
+    if (fishProps.isPaused() || fishSaves?.isPaused()||fishAuto?.isLocked()) {
       lastTime = time;
       accumulator = 0;
       drawGame(ctx, game, { width: FIELD_WIDTH, height: game.height });
@@ -1716,7 +1741,7 @@ function setupUI() {
   resizeCanvas(); updateHud(); void fishProps.load(); requestAnimationFrame(frame);
   onlineClient.onSessionChange((kind) => {
     sessionGeneration++;
-    if (fishProps.hasPending() || fishSaves?.isLocked()) {
+    if (fishProps.hasPending() || fishSaves?.isLocked()||fishAuto?.isLocked()) {
       deferredSessionKind = kind;
       return;
     }

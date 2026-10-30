@@ -18,6 +18,7 @@
         <span><strong>合成大肥鱼</strong><small>滚一滚，合个大的</small></span>
       </a>
       <div class="top-actions">
+        <span id="online-count" class="account-label" aria-live="polite">在线人数统计中</span>
         <a class="leaderboard-link" href="https://oua-cdn.wolfoxlabs.xyz/" target="_blank" rel="noopener" aria-label="访问 Wolfox Labs OUA 中转站">↗<span>中转站</span></a>
         <a class="leaderboard-link" href="/games/bumper/" aria-label="碰碰擂台与联动衣柜">◉<span>擂台衣柜</span></a>
         <a class="leaderboard-link" href="#weekly-board" aria-label="查看周排行榜">🏆<span>周榜</span></a>
@@ -40,6 +41,7 @@
           <div class="score-box record"><span>最佳纪录</span><strong id="best-score">0</strong></div>
           <div class="next-box"><span>下一只</span><canvas id="next-canvas" width="76" height="76" aria-label="下一只鱼"></canvas></div>
         </div>
+        <section class="auto-recovery" aria-label="自动存档"><p id="autosave-status" role="status">自动备份初始化中</p><div><button id="auto-restore" type="button" hidden>恢复上次进度</button><button id="auto-cloud-restore" type="button" hidden>恢复最近云端进度</button></div></section>
         <div class="board-wrap">
           <canvas id="game-canvas" width="480" height="620" tabindex="0" aria-label="合成大肥鱼游戏画布。鼠标移动或触屏拖动选择位置，鼠标点击或触屏松手投放；聚焦后可用左右方向键选择位置，空格或 Enter 投放。"></canvas>
           <div class="game-overlay" id="overlay" hidden>

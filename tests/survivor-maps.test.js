@@ -4,7 +4,7 @@ import { createGame, stepGame, choose, continueRound, normalizeGameSnapshot, lim
 import { MAPS, mapForRound, terrainFactor, ventPhase } from '../survival/maps.js';
 
 test('twenty-round expedition visits all four maps with capped duration and a boss every fifth round',()=>{
-  const g=createGame();const maps=new Set();
+  const g=createGame({length:"long"});const maps=new Set();
   for(let r=1;r<=20;r++){
     assert.equal(g.round,r);assert.equal(g.roundDuration,roundDuration(r));maps.add(g.scene.mapId);
     assert.equal(isBossRound(g),r%5===0);

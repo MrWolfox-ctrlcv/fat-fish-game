@@ -905,3 +905,5 @@ if (localPreview && location.port === '4179') {
     else { pendingReload = true; dirty = true; }
   });
 }
+
+if(location.protocol==='https:')void import('/games/fat-fish/game-presence.js').then(({createGamePresence})=>createGamePresence({game:'bumper',getPlaying:()=>game?.phase==='playing',element:document.querySelector('#online-count')})).catch(()=>{});

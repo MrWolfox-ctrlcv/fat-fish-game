@@ -13,6 +13,8 @@ import { createWardrobe } from './wardrobe.mjs';
 import { createArenaRooms } from './arena-rooms.mjs';
 import { applyProp, propInputFingerprint, PROP_PRICE_QUOTA, PROP_PRICE_USD, validatePropInput, validatePropBodies } from './props.mjs';
 import { createPropWallet } from './prop-wallet.mjs';
+import { createAutoRecovery } from './auto-recovery.mjs';
+import { createPresence } from './presence.mjs';
 import { FREE_TTL, PAID_TTL, SAVE_EXTENSION, SAVE_LIMITS, SAVE_MAX_BYTES, SAVE_MAX_RETENTION, SAVE_PRICE_QUOTA, SAVE_PRICE_USD,
   compactSnapshot, isValidSnapshot, saveFingerprint, validateSaveExtension, validateSaveLoad, validateSaveRequest } from './saves.mjs';
 
@@ -52,12 +54,47 @@ export async function createGameServer(options = {}) {
   const wardrobe = createWardrobe({ store });
   const verifier = options.verifier ?? createReplayVerifier();
   const companion = createCompanion({ db: store.db, env: options.companionEnv ?? process.env, fetchImpl: options.companionFetch ?? fetch, now });
-  const arenaRooms = createArenaRooms({ origins, production: process.env.NODE_ENV === 'production', now, maxRooms: options.arenaMaxRooms });
+  const arenaRooms = createArenaRooms({ origins, production: process.env.NODE_ENV === 'production', now, maxRooms: options.arenaMaxRooms, accepting:()=>!draining });
   const authCache = new Map();
   const runs = new Map();
   const currentRun = new Map();
   const guestRuns = new Map();
   const limits = new Map();
+  const autoRecovery=createAutoRecovery(store.db,{now,physicsVersion:PHYSICS_VERSION});
+  const presence=createPresence({now});
+  let draining=false;
+  const autoOwner=run=>run.guest?'g:'+sha(run.session):'u:'+run.userId;
+  const persistAuto=run=>{if(!run)return null;const meta=autoRecovery.save(autoOwner(run),run);run.autoToken=meta.token;return {...meta,step:run.state.stepIndex};};
+
+  async function restoreAuto(owner,input,user=null,session=null){
+    requireCurrentPhysics(input);
+    if(user&&store.hasPendingPayment(user.id))throw fail(409,'付费订单仍在确认，自动恢复不会回退或重扣订单。','PAYMENT_PENDING');
+    const row=autoRecovery.get(owner,input.token||null);
+    if(!row)throw fail(404,'自动恢复档已过期或不存在。','AUTO_NOT_FOUND');
+    const source=row.run;let discardTail=false;
+    if(user&&store.lineagePropCount(user.id,source.lineageId||source.id)>(source.propRevision||0)){
+      const paid=store.db.prepare("SELECT request_id FROM prop_receipts WHERE user_id=? AND lineage_id=? AND status='committed' ORDER BY prop_revision DESC LIMIT 1").get(user.id,source.lineageId||source.id);
+      const receipt=paid&&store.propReceipt(paid.request_id);
+      if(!receipt?.state)throw fail(409,'请先确认已支付道具的结果，原记录仍保留。','PAYMENT_PENDING');
+      source.state=receipt.state;source.summary=receipt.summary;source.hash=null;source.moves=receipt.move_count;source.propRevision=receipt.prop_revision;source.propCount=store.lineagePropCount(user.id,source.lineageId||source.id);source.usedProps=true;discardTail=true;
+    }
+    const target=!discardTail&&input.step!==undefined?input.step:source.state.stepIndex;
+    const moves=!discardTail&&input.moves!==undefined?input.moves:[];
+    if(!Number.isSafeInteger(target)||target-source.state.stepIndex>Math.floor((now()-row.updated)*60/1000)+180)throw fail(422,'本机恢复记录时间不合法，云端恢复档仍保留。','AUTO_INVALID');
+    let result;try{result=await verifier.verify(source.state,moves,target);}catch{throw fail(422,'本机后续记录无法合并，可选择恢复最近云端进度。','AUTO_INVALID');}
+    if(user&&(store.hasPendingPayment(user.id)||store.lineagePropCount(user.id,source.lineageId||source.id)>(source.propRevision||0)))throw fail(409,'道具记录刚刚变化，请重试恢复以保留已确认的道具效果。','PAYMENT_PENDING');
+    const id=randomUUID(),started=now(),previous=user?currentRun.get(user.id):guestRuns.get(session);
+    if(runs.get(previous)?.busy)throw fail(409,'当前局正在同步，请稍后恢复。','RUN_BUSY');
+    const run={...source,id,userId:user?.id,username:user?.username,session,guest:!user,state:result.state,summary:result.summary,
+      created:started,stepBase:result.state.stepIndex,busy:false,hash:null,moves:(source.moves||0)+moves.length};
+    if(run.moves>2000)throw fail(422,'本局投放记录已达到上限。','AUTO_INVALID');
+    if(user){run.usedProps=store.lineageUsedProps(user.id,run.lineageId||source.id);run.propCount=store.lineagePropCount(user.id,run.lineageId||source.id);store.saveProgress(user.id,result.summary);
+      if(run.weekId===weekFor(started).id)store.recordWeeklyScore({weekId:run.weekId,userId:user.id,name:user.username,score:result.summary.score,maxLevel:result.summary.max_level,runId:run.lineageId||source.id,attainedAt:started,usedProps:run.usedProps});}
+    const autosave=persistAuto(run);
+    if(previous)runs.delete(previous);runs.set(id,run);if(user)currentRun.set(user.id,id);else guestRuns.set(session,id);
+    return {success:true,run:{id,seed:run.state.randomState,variant_seed:run.state.variantState,width:480,height:620,resumed:true,guest:!user,autosave_token:autosave.token},
+      state:run.state,summary:run.summary,play:playPermission(run,id),autosave,tail_discarded:discardTail,...(user?account(user):{})};
+  }
 
   function settleDueWeeks() {
     const current = weekFor(now());
@@ -109,7 +146,7 @@ export async function createGameServer(options = {}) {
     if (!run || run.userId !== user.id || now() - run.created > 1800000 || currentRun.get(user.id) !== id) {
       throw fail(409, '这局记录已失效，请重新开始。', 'RUN_EXPIRED');
     }
-    return run;
+    run.lastActivity=now();return run;
   }
 
   function checkCommittedPropRun(user, receipt) {
@@ -143,12 +180,12 @@ export async function createGameServer(options = {}) {
     if (!session || !run?.guest || run.session !== session || guestRuns.get(session) !== id || now() - run.created > 1800000) {
       throw fail(409, '这局记录已失效，请重新开始。', 'RUN_EXPIRED');
     }
-    return run;
+    run.lastActivity=now();return run;
   }
 
   async function checkpoint(run, input, held = false) {
     const digest = sha(JSON.stringify({ step: input.step, moves: input.moves, propRevision: run.propRevision || 0 }));
-    if (run.hash === digest) return;
+    if (run.hash === digest) { persistAuto(run); return; }
     if (!held && run.busy) throw fail(409, '这局正在同步，请稍后再试。', 'RUN_BUSY');
     if (!Number.isSafeInteger(input.step) || input.step - (run.stepBase || 0) > Math.floor((now() - run.created) * 60 / 1000) + 180) throw fail(422, '对局时间不合法。', 'INVALID_REPLAY');
     if (!Array.isArray(input.moves) || run.moves + input.moves.length > 2000) throw fail(422, '这局已达记录上限，请重新开始。');
@@ -163,6 +200,7 @@ export async function createGameServer(options = {}) {
           runId: run.lineageId || run.id || '', attainedAt: verifiedAt, usedProps: Boolean(run.usedProps) });
       }
       run.state = result.state; run.hash = digest; run.summary = result.summary; run.moves += input.moves.length;
+      persistAuto(run);
     } finally { if (!held) run.busy = false; }
   }
 
@@ -207,6 +245,13 @@ export async function createGameServer(options = {}) {
       if (path === 'api/health' && request.method === 'GET') { json(200, { success: true }); return; }
       const clientIP = request.headers['x-real-ip'] || request.socket.remoteAddress;
       rate(`ip:${clientIP}`, 600, 60000);
+      if(path==='api/presence'&&['GET','POST'].includes(request.method)){
+        if(request.method==='POST'){const input=await body(request);if(input.leave)presence.leave(input.session_id);else if(!presence.touch({sessionId:input.session_id,game:input.game,playing:input.playing}))throw fail(429,'在线统计暂时繁忙。');}
+        json(200,{success:true,...presence.stats()});return;
+      }
+      if(draining&&['api/run','api/play/run','api/autosave/load','api/play/autosave/load','api/saves/load'].includes(path))throw fail(503,'小游戏正在更新，请稍后重试，自动恢复记录仍保留。','GAME_UPDATING');
+      if(path==='api/play/autosave'&&request.method==='GET'){const session=guestSession(request);json(200,{success:true,autosave:session?autoRecovery.metadata('g:'+sha(session)):{exists:false}});return;}
+      if(path==='api/play/autosave/load'&&request.method==='POST'){const session=guestSession(request);if(!session)throw fail(404,'游客恢复记录不存在。','AUTO_NOT_FOUND');rate('auto-guest:'+sha(session),12,60000);json(200,await restoreAuto('g:'+sha(session),await body(request),null,session));return;}
       const propsEnabled = propWallet?.enabled === true && typeof propWallet?.debit === 'function';
       if (path === 'api/props' && request.method === 'GET') {
         json(200, { success: true, enabled: propsEnabled, price_usd: PROP_PRICE_USD, price_quota: PROP_PRICE_QUOTA,
@@ -273,15 +318,16 @@ export async function createGameServer(options = {}) {
         const id = randomUUID();
         const randomSeed = seed();
         const variantSeed = seed();
-        const run = { guest: true, session, created: now(), state: initialState(randomSeed, variantSeed), hash: null, summary: null, busy: false, moves: 0 };
+        const run = { id,guest: true, session, created: now(), state: initialState(randomSeed, variantSeed), hash: null, summary: null, busy: false, moves: 0 };
         runs.set(id, run); guestRuns.set(session, id);
-        json(200, { success: true, run: { id, seed: randomSeed, variant_seed: variantSeed, width: 480, height: 620, guest: true }, play: playPermission(run, id) }); return;
+        const autosave=persistAuto(run);
+        json(200, { success: true, run: { id, seed: randomSeed, variant_seed: variantSeed, width: 480, height: 620, guest: true,autosave_token:autosave.token }, play: playPermission(run, id),autosave }); return;
       }
       if (path === 'api/play/checkpoint' && request.method === 'POST') {
         const input = await body(request);
         const run = getGuestRun(request, input.run_id);
         await checkpoint(run, input);
-        json(200, { success: true, summary: run.summary, play: playPermission(run, input.run_id) }); return;
+        json(200, { success: true, summary: run.summary, play: playPermission(run, input.run_id),autosave:persistAuto(run) }); return;
       }
       if (path === 'api/play/art' && request.method === 'GET') {
         const id = request.headers['x-game-run'] || url.searchParams.get('run_id');
@@ -297,6 +343,18 @@ export async function createGameServer(options = {}) {
         await sendPrivateArt(request, response, art, key, headers); return;
       }
       const user = await authenticate(request);
+      if(path==='api/admin/online'&&request.method==='GET'){
+        if(user.role<10)throw fail(403,'需要管理员权限。');
+        json(200,{success:true,...presence.stats(),rooms:arenaRooms.metrics(),recent_runs:[...runs.values()].filter(r=>now()-(r.lastActivity||r.created)<90000).length,draining});return;
+      }
+      if(path==='api/admin/drain'&&request.method==='POST'){
+        if(user.role<10)throw fail(403,'需要管理员权限。');
+        const input=await body(request),stats=presence.stats(),metrics=arenaRooms.metrics();
+        if(input.enabled&& (stats.online||metrics.connections||[...runs.values()].some(r=>now()-(r.lastActivity||r.created)<90000)))throw fail(409,'仍有人在线或刚刚游玩，不能切换版本。','PLAYERS_ONLINE');
+        draining=input.enabled===true;json(200,{success:true,draining});return;
+      }
+      if(path==='api/autosave'&&request.method==='GET'){json(200,{success:true,autosave:autoRecovery.metadata('u:'+user.id)});return;}
+      if(path==='api/autosave/load'&&request.method==='POST'){rate(`auto-load:${user.id}`,12,60000);json(200,await restoreAuto('u:'+user.id,await body(request),user));return;}
       rate(`user:${user.id}`, 180, 60000);
       if (path === 'api/saves' && request.method === 'GET') {
         json(200, { success: true, saves: store.saveListing(user.id, now()), price_usd: SAVE_PRICE_USD,
@@ -443,8 +501,9 @@ export async function createGameServer(options = {}) {
           created: startedAt, stepBase: saved.state.stepIndex, state: saved.state, hash: null,
           propRevision: propCount, propCount, usedProps, summary: saved.summary, busy: false, moves: 0 };
         runs.set(id, run); currentRun.set(user.id, id);
+        const autosave=persistAuto(run);
         json(200, { success: true, run: { id, seed: saved.state.randomState, variant_seed: saved.state.variantState,
-          width: 480, height: 620, resumed: true }, state: saved.state, summary: saved.summary,
+          width: 480, height: 620, resumed: true,autosave_token:autosave.token }, state: saved.state, summary: saved.summary,autosave,
           play: playPermission(run, id), profile: { ...store.profile(user.id), user_id: user.id },
           rewards: store.rewards(user.id), receipt: { slot: input.slot, lineage_id: lineageId,
             week_id: saved.week_id, used_props: usedProps } }); return;
@@ -484,7 +543,8 @@ export async function createGameServer(options = {}) {
           created: startedAt, stepBase: 0, state: initialState(randomSeed, variantSeed), hash: null, propRevision: 0,
           usedProps: false, summary: null, busy: false, moves: 0 });
         currentRun.set(user.id, id);
-        json(200, { success: true, run: { id, seed: randomSeed, variant_seed: variantSeed, width: 480, height: 620 }, play: playPermission(runs.get(id), id) }); return;
+        const autosave=persistAuto(runs.get(id));
+        json(200, { success: true, run: { id, seed: randomSeed, variant_seed: variantSeed, width: 480, height: 620,autosave_token:autosave.token }, play: playPermission(runs.get(id), id),autosave }); return;
       }
       if (path === 'api/run/checkpoint' && request.method === 'POST') {
         const input = await body(request);
@@ -493,7 +553,7 @@ export async function createGameServer(options = {}) {
           throw fail(409, '付费订单仍在确认，请先确认订单再继续。', 'PAYMENT_PENDING');
         }
         await checkpoint(run, input);
-        json(200, { ...account(user), summary: run.summary, play: playPermission(run, input.run_id) });
+        json(200, { ...account(user), summary: run.summary, play: playPermission(run, input.run_id),autosave:persistAuto(run) });
         return;
       }
       if (path === 'api/run/prop' && request.method === 'POST') {
@@ -511,7 +571,7 @@ export async function createGameServer(options = {}) {
             if (runStatus === 'expired') { json(200, { success: true, expired: true,
               receipt: { id: previous.receipt_id, quota: previous.quota, used_props: true } }); return; }
             json(200, { success: true, state: previous.state, summary: previous.summary, profile: previous.profile,
-              rewards: previous.rewards, play: previous.play, receipt: { id: previous.receipt_id, quota: previous.quota, used_props: true } }); return;
+              rewards: previous.rewards, play: previous.play, autosave:persistAuto(runs.get(previous.run_id)),receipt: { id: previous.receipt_id, quota: previous.quota, used_props: true } }); return;
           }
           if (previous.status === 'pending') { json(202, { success: true, pending: true,
             receipt: { id: previous.receipt_id, quota: previous.quota, used_props: true } }); return; }
@@ -554,7 +614,7 @@ export async function createGameServer(options = {}) {
               if (runStatus === 'expired') { json(200, { success: true, expired: true,
                 receipt: { id: prepared.receipt_id, quota: prepared.quota, used_props: true } }); return; }
               json(200, { success: true, state: prepared.state, summary: prepared.summary, profile: prepared.profile,
-                rewards: prepared.rewards, play: prepared.play, receipt: { id: prepared.receipt_id, quota: prepared.quota, used_props: true } }); return;
+                rewards: prepared.rewards, play: prepared.play,autosave:persistAuto(runs.get(prepared.run_id)), receipt: { id: prepared.receipt_id, quota: prepared.quota, used_props: true } }); return;
             }
             if (prepared.status === 'pending') { json(202, { success: true, pending: true,
               receipt: { id: prepared.receipt_id, quota: prepared.quota, used_props: true } }); return; }
@@ -576,8 +636,9 @@ export async function createGameServer(options = {}) {
             week: run.weekId, userId: user.id, name: user.username, runId: run.id, usedProps: true });
           run.state = applied.state; run.summary = summary; run.usedProps = true; run.propRevision = prepared.prop_revision; run.propReceiptId = receipt.receipt_id; run.hash = null;
           run.propCount = Math.max(run.propCount || 0, store.lineagePropCount(user.id, run.lineageId || run.id));
+          const autosave=persistAuto(run);
           json(200, { success: true, state: receipt.state, summary: receipt.summary, profile: receipt.profile,
-            rewards: receipt.rewards, play: receipt.play, receipt: { id: receipt.receipt_id, quota: receipt.quota, used_props: true } }); return;
+            rewards: receipt.rewards, play: receipt.play,autosave, receipt: { id: receipt.receipt_id, quota: receipt.quota, used_props: true } }); return;
         } finally { run.busy = false; }
       }
       if (path === 'api/rewards/claim' && request.method === 'POST') {
@@ -673,7 +734,7 @@ export async function createGameServer(options = {}) {
     for (const [key, value] of runs) if (now() - value.created > 1800000) runs.delete(key);
     for (const [key, id] of currentRun) if (!runs.has(id)) currentRun.delete(key);
     for (const [key, id] of guestRuns) if (!runs.has(id)) guestRuns.delete(key);
-    try { store.cleanupExpiredSaves(now()); store.cleanupFreeSaveOrders(now()); } catch { /* retried on the next cleanup or read */ }
+    try { store.cleanupExpiredSaves(now()); store.cleanupFreeSaveOrders(now());autoRecovery.cleanup(); } catch { /* retried on the next cleanup or read */ }
     try { settleDueWeeks(); } catch { /* retried on the next cleanup or read */ }
   }, 60000).unref();
   server.on('close', () => { clearInterval(cleanup); arenaRooms.close(); void verifier.close(); });
