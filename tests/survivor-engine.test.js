@@ -54,14 +54,14 @@ test('action and step return one-shot events and frozen phases stay quiet', () =
   assert.deepEqual(performAction(g, { type: 'primary' }), []);
 });
 
-test('round ten waits for its boss and boss defeat enables the reward', () => {
+test('final round waits for its boss and then ends without redundant rewards', () => {
   const g = createGame(); g.round = 10; g.roundTime = 100; g.roundDuration = 1;
   stepGame(g, { aimX: 0, aimY: 0 }, 0.01); const boss = g.enemies.find(e => e.kind === 'boss');
   assert.ok(boss); assert.equal(g.phase, 'playing'); g.enemies = [boss]; boss.x = g.player.x + 30; boss.y = g.player.y; boss.hp = 0.1; g.player.damage = 10000; g.player.shotTimer = 0;
   for (let i = 0; i < 10 && g.phase === 'playing'; i++) stepGame(g, { aimX: boss.x, aimY: boss.y }, 0.05);
   assert.equal(g.enemies.some(e => e.kind === 'boss'), false);
   while (g.phase === 'trait') choose(g, g.choices[0].id);
-  assert.equal(g.phase, 'reward');
+  assert.equal(g.phase, 'won');
 });
 
 test('boss spawning retries at capacity and only defeating the spawned boss opens the gate', () => {
@@ -72,7 +72,7 @@ test('boss spawning retries at capacity and only defeating the spawned boss open
   g.enemies = g.enemies.filter(e => e.kind === 'boss'); const boss = g.enemies[0]; boss.hp = 0.1; boss.x = g.player.x + 30; boss.y = g.player.y;
   g.player.damage = 10000; g.player.shotTimer = 0;
   for (let i=0; i<8 && !g.bossDefeated; i++) stepGame(g, { aimX:boss.x, aimY:boss.y }, 0.05);
-  assert.equal(g.bossDefeated, true); while (g.phase === 'trait') choose(g, g.choices[0].id); assert.equal(g.phase, 'reward');
+  assert.equal(g.bossDefeated, true); while (g.phase === 'trait') choose(g, g.choices[0].id); assert.equal(g.phase, 'won');
 });
 
 test('a real 20 second first round awards equipment and continue sets round two to 25 seconds', () => {
@@ -208,9 +208,9 @@ test('GPT XP fills energy, transformation preserves health, drains back, and res
   assert.equal(g.playerFaction,'us');
 });
 
-test('combat XP levels quickly with linear thresholds and every level still offers valid traits', () => {
+test('early combat XP offers choices with bounded later progression and every level still offers valid traits', () => {
   const g=createGame({hero:'gpt',seed:1});grantExperience(g,8);assert.equal(g.phase,'trait');assert.equal(g.level,2);assert.equal(g.xpNeed,12);
-  assert.ok(g.choices.some(c=>c.id==='trait:energyMax'));assert.ok(g.choices.some(c=>c.id==='trait:maxHealth'));
+  assert.ok(g.choices.some(c=>['trait:energyMax','trait:maxHealth'].includes(c.id)));assert.equal(g.choices.length,3);
   while(g.phase==='trait')choose(g,g.choices[0].id);grantExperience(g,12);assert.equal(g.level,3);assert.equal(g.xpNeed,16);assert.equal(g.phase,'trait');
   for(let i=0;i<100;i++){g.phase='playing';g.pendingLevels=0;grantExperience(g,g.xpNeed);while(g.phase==='trait')choose(g,g.choices[0].id);assert.ok(g.level>0);}
 });

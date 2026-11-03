@@ -18,13 +18,13 @@ test('twenty-round expedition visits all four maps with capped duration and a bo
 test('each chapter boss gates completion and receives progressively more health',()=>{
   const health=[];
   for(const round of [5,10,15,20]){
-    const g=createGame();g.round=round;g.roundTime=1000;g.player.invulnerable=100;
+    const g=createGame({length:'long'});g.round=round;g.roundTime=1000;g.player.invulnerable=100;
     stepGame(g,{},.01);const boss=g.enemies.find(e=>e.kind==='boss');
     assert.ok(boss);health.push(boss.maxHp);assert.equal(g.phase,'playing');
     boss.hp=.1;boss.x=g.player.x+30;boss.y=g.player.y;g.player.damage=10000;g.player.shotTimer=0;
     for(let i=0;i<20&&g.phase==='playing';i++)stepGame(g,{},.05);
     while(g.phase==='trait')choose(g,g.choices[0].id);
-    assert.equal(g.phase,'reward');
+    assert.equal(g.phase,round===g.maxRounds?'won':'reward');
   }
   assert.ok(health.every((x,i)=>i===0||x>health[i-1]));
 });

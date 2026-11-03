@@ -1,10 +1,12 @@
+import {createGameTelemetry} from './game-telemetry.js';
 export function createGamePresence({
-  game, getPlaying = () => false, element = null,
+  game, getPlaying = () => false, getSnapshot=()=>({}), element = null,
   endpoint = '/games/fat-fish/api/presence',
   enabled = globalThis.location?.protocol === 'https:',
   fetchImpl = fetch, windowRef = window, documentRef = document,
   storage, intervalMs = 30000
 } = {}) {
+  const telemetry=createGameTelemetry({game,getSnapshot,enabled:()=>{try{const value=globalThis.localStorage?.getItem('oua.game.analytics-consent');return enabled&&game!=='survivor'&&(value===null?globalThis.localStorage?.getItem('survivor.analytics-consent.v1')==='1':value==='1');}catch{return false;}}});
   let sessionId;
   try {
     storage ||= globalThis.sessionStorage;
@@ -38,7 +40,7 @@ export function createGamePresence({
       });
       const result = await response.json();
       if (!result?.success) throw new Error('presence unavailable');
-      setText(Number.isFinite(result.online) ? `在线 ${result.online}` : '在线人数暂不可用');
+      setText(Number.isFinite(result.online) ? `在线 ${result.online}${Number.isFinite(result.playing)?` · 游玩 ${result.playing}`:''}` : '在线人数暂不可用');
     } catch { if (!closed) setText('在线人数暂不可用'); }
     finally { clearTimeout(timeout);busy = false; controller = null; }
   };
@@ -67,7 +69,7 @@ export function createGamePresence({
     sessionId,
     close() {
       if (closed) return;
-      closed = true;
+      closed = true;telemetry.close();
       if (timer !== null) windowRef.clearInterval(timer);
       timer = null;
       controller?.abort();

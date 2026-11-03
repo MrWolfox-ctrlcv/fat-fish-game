@@ -5,6 +5,15 @@ const env = { PROP_WALLET_ENABLED: '1', PROP_WALLET_ADMIN_TOKEN: 'mock-managemen
 const order = { userId: 3, quota: 5000, operationId: 'test-order-123' };
 const account = (quota = 10000) => Response.json({ success: true, data: { id: 3, status: 1, quota } });
 
+test('server-whitelisted one-dollar purchases deduct exactly 500000 quota',async()=>{
+  let debits=0;const wallet=createPropWallet({env,allowedQuotas:[5000,500000],fetchImpl:async(url,options)=>{
+    if(new URL(url).pathname==='/api/user/3')return account(1000000);
+    assert.equal(JSON.parse(options.body).value,500000);debits++;return Response.json({success:true});
+  }});
+  assert.equal((await wallet.debit({...order,quota:500000})).quota,500000);assert.equal(debits,1);
+  await assert.rejects(wallet.debit({...order,quota:499999}),{code:'WALLET_INPUT'});assert.equal(debits,1);
+});
+
 test('wallet fails closed without explicit credentials and on non-loopback upstreams', async () => {
   for (const config of [{}, { ...env, NEWAPI_URL: 'https://example.com' }]) {
     const wallet = createPropWallet({ env: config, fetchImpl: () => { throw Error('must not call'); } });

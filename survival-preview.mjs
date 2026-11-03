@@ -7,7 +7,9 @@ const base=process.env.SURVIVOR_BASE||'/';
 if(!/^\/(?:[a-z-]+\/)*$/.test(base))throw new Error('Invalid survivor base');
 const paths=new Map([
  ['/', ['survival/index.html','text/html']],
- ...['main.js','engine.js','boss-pressure.js','render.js','maps.js','scene-render.js','roster.js','heroes.js','loot.js','cloud-saves.js','music.js','shop.js','shop-items.js','style.css'].map(n=>['/'+n,['survival/'+n,n.endsWith('.css')?'text/css':'text/javascript']]),
+ ...['main.js','analytics.js','local-recovery.js','recovery-owner.js','engine.js','boss-pressure.js','render.js','maps.js','scene-render.js','roster.js','heroes.js','loot.js','cloud-saves.js','music.js','shop.js','shop-items.js','style.css'].map(n=>['/'+n,['survival/'+n,n.endsWith('.css')?'text/css':'text/javascript']]),
+ ['/supporter-ui.js',['dist/supporter-ui.js','text/javascript']],
+ ['/game-telemetry.js',['dist/game-telemetry.js','text/javascript']],
  ['/online-client.js',['dist/online-client.js','text/javascript']],
  ['/physics-version.js',['dist/physics-version.js','text/javascript']],
  ['/survival-avatar.png',['data/art-prepared/01.png','image/png']],
@@ -25,7 +27,7 @@ let saveService,saveServicePromise;
 const server=createServer(async(req,res)=>{
  try{
   const url=new URL(req.url,'http://localhost');
-  if(url.pathname.startsWith(base)&&/^api\/(me|saves|shop)(\/|$)/.test(url.pathname.slice(base.length))){
+  if(url.pathname.startsWith(base)&&/^api\/(me|saves|shop|metrics)(\/|$)/.test(url.pathname.slice(base.length))){
     if(!saveServicePromise)saveServicePromise=import('./backend/survivor-saves.mjs').then(({createSurvivorSaves})=>saveService=createSurvivorSaves({dbPath:process.env.SURVIVOR_DB||fileURLToPath(new URL('./data/survivor.sqlite',import.meta.url))})).catch(error=>{saveServicePromise=null;throw error;});
     await saveServicePromise;
     if(await saveService.handle(req,res,url))return;

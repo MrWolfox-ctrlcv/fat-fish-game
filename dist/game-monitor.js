@@ -1,0 +1,13 @@
+import {createOnlineClient} from './online-client.js';
+const client=createOnlineClient(),$=id=>document.getElementById(id);
+function table(parent,headers,rows){parent.replaceChildren();const t=document.createElement('table'),head=document.createElement('tr');for(const text of headers){const th=document.createElement('th');th.textContent=text;head.append(th);}t.append(head);for(const values of rows){const tr=document.createElement('tr');for(const v of values){const td=document.createElement('td');td.textContent=String(v??'');tr.append(td);}t.append(tr);}parent.append(t);}
+async function request(path,payload){const response=await client.requestCompanion(new URL(`./api/admin/${path}`,import.meta.url),{method:payload?'POST':'GET',headers:{'Content-Type':'application/json'},...(payload?{body:JSON.stringify(payload)}:{})});const data=await response.json();if(!response.ok||!data.success)throw Error(data.message||'读取失败');return data;}
+async function refresh(){const b=$('refresh');b.disabled=true;$('status').textContent=' 正在读取…';try{const data=await request('monitor');$('overview').replaceChildren();for(const[label,value]of [['在线会话',data.current.online],['正在游玩',data.current.playing],['内存 MiB',(data.resources.rss/1048576).toFixed(1)],['服务运行小时',(data.resources.uptime_seconds/3600).toFixed(1)]]){const item=document.createElement('div'),n=document.createElement('strong');n.textContent=value;item.append(n,document.createTextNode(label));$('overview').append(item);}
+table($('samples'),['时间','游戏','在线','游玩','采样内存 MiB'],data.minutes.slice(0,240).map(r=>[new Date(r.minute*60000).toLocaleString(),r.game,r.online,r.playing,(r.rss/1048576).toFixed(1)]));
+table($('daily'),['日期','游戏','在线峰值','游玩峰值','采样次数'],data.daily.map(r=>[new Date(r.day*86400000).toISOString().slice(0,10),r.game,r.peak_online,r.peak_playing,r.samples]));
+table($('totals'),['游戏','事件','记录数'],data.totals.map(r=>[r.game,r.kind,r.count]));
+table($('events'),['时间','游戏','对局标识','事件','角色 / 难度','属性与选择'],data.events.map(r=>[new Date(r.created).toLocaleString(),r.game,r.run_key.slice(0,12),r.kind,`${r.summary.hero||''} / ${r.summary.difficulty||''}`,JSON.stringify(r.summary)]));$('status').textContent=` 更新于 ${new Date().toLocaleTimeString()}`;
+}catch(e){$('status').textContent=e.message;}finally{b.disabled=false;}}
+$('refresh').onclick=refresh;
+$('review').onsubmit=async event=>{event.preventDefault();const form=new FormData(event.target),input=Object.fromEntries(form);input.user_id=Number(input.user_id);input.quota=500000;if(!confirm(`确认对账户 ${input.user_id} 的 $1 订单 ${input.request_id} 执行「${input.decision}」复核？请先核对真实流水。`))return;try{await request('supporter-review',input);$('review-status').textContent='复核完成，未再次扣款。';}catch(e){$('review-status').textContent=e.message;}};
+void refresh();

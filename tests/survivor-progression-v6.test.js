@@ -33,7 +33,7 @@ test('experience progression stops at level 40 and uses the slower curve',()=>{
   const g=createGame();
   grantExperience(g,1000000);
   assert.equal(g.level,40);assert.equal(g.pendingLevels,39);
-  assert.equal(g.xpNeed,8+4*39+2*(40-8)**2);
+  assert.equal(g.xpNeed,Math.round(8+4*39+.6*(40-8)**2));
   g.level=40;g.pendingLevels=0;g.phase='playing';g.xp=0;
   grantExperience(g,100000);
   assert.equal(g.level,40);assert.equal(g.pendingLevels,0);

@@ -12,14 +12,14 @@ export function validatePropInput(input) {
   if (!input || typeof input !== 'object' || typeof input.run_id !== 'string' ||
       !Number.isSafeInteger(input.step) || input.step < 0 ||
       !Array.isArray(input.moves) || !/^[a-zA-Z0-9_-]{8,128}$/.test(input.request_id || '') ||
-      !PROP_KINDS.has(input.kind) || input.confirm_quota !== PROP_PRICE_QUOTA || !Array.isArray(input.body_ids)) throw invalid();
+      !PROP_KINDS.has(input.kind) || !(input.confirm_quota===PROP_PRICE_QUOTA||(input.confirm_quota===0&&input.free_daily===true&&Number.isSafeInteger(input.day))) || !Array.isArray(input.body_ids)) throw invalid();
   const validCount = input.kind === 'revive' ? input.body_ids.length === 0 : input.kind === 'pack'
     ? input.body_ids.length >= 1 && input.body_ids.length <= 3
     : input.body_ids.length === (input.kind === 'remove' ? 1 : 2);
   if (!validCount || input.body_ids.some((id) => typeof id !== 'string' && !Number.isSafeInteger(id)) ||
       new Set(input.body_ids).size !== input.body_ids.length) throw invalid();
   return { runId: input.run_id, step: input.step, moves: input.moves, requestId: input.request_id,
-    kind: input.kind, bodyIds: input.body_ids, quota: PROP_PRICE_QUOTA };
+    kind: input.kind, bodyIds: input.body_ids, quota: input.confirm_quota };
 }
 
 export function propFingerprint(prop) {
@@ -29,7 +29,7 @@ export function propFingerprint(prop) {
 
 export function propInputFingerprint(input) {
   return createHash('sha256').update(JSON.stringify({ run_id: input?.run_id, step: input?.step, moves: input?.moves,
-    kind: input?.kind, body_ids: input?.body_ids, confirm_quota: input?.confirm_quota })).digest('hex');
+    kind: input?.kind, body_ids: input?.body_ids, confirm_quota: input?.confirm_quota, free_daily:input?.free_daily,day:input?.day })).digest('hex');
 }
 
 export function hydrateState(state) {

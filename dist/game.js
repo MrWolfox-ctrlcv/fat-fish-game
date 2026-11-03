@@ -785,7 +785,7 @@ function setupUI() {
     if (payload.user) accountState = "signed_in";
     adminAllowed = Number(account?.role) >= 10;
     if (!adminAllowed) resetAdminInventory();
-    adminOpen.hidden = !adminAllowed;
+    adminOpen.hidden = !adminAllowed;const monitorOpen=document.querySelector("#monitor-open");if(monitorOpen)monitorOpen.hidden=!adminAllowed;
     loginLink.hidden = Boolean(account);
     const accountLabel = document.querySelector("#account-label");
     accountLabel.hidden = !account;
@@ -814,7 +814,7 @@ function setupUI() {
     resetAdminInventory();
     activeRun = null; activePlay = null; activeRunGuest = true; gameReady = false;
     pendingMoves = []; checkpointNeeded = false; retryCheckpointPayload = null; syncMessage = ""; accountState = state;
-    adminOpen.hidden = true;
+    adminOpen.hidden = true;const monitorOpen=document.querySelector("#monitor-open");if(monitorOpen)monitorOpen.hidden=true;
     loginLink.hidden = false;
     const accountLabel = document.querySelector("#account-label");
     accountLabel.hidden = true;
@@ -1193,7 +1193,7 @@ function setupUI() {
       if(data.profile)applyServerState(data);if(data.play)await updatePlayingState(data.play,activeRun,activeRunGuest);
       updateHud();void leaderboard.refresh(true);
     }});
-  createGamePresence({game:'fat-fish',getPlaying:()=>gameReady&&!game.over,element:document.querySelector('#online-count')});
+  createGamePresence({game:'fat-fish',getPlaying:()=>gameReady&&!game.over,getSnapshot:()=>({values:{score:game.score,level:Math.max(...game.unlocked),seconds:game.stepIndex/60},...(game.over?{result:'lost'}:{})}),element:document.querySelector('#online-count')});
 
   const scheduleCheckpoint = () => {
     if (!activeRun || (!pendingMoves.length && !checkpointNeeded) || checkpointTimer) return;

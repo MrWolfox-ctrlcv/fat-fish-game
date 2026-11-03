@@ -906,4 +906,4 @@ if (localPreview && location.port === '4179') {
   });
 }
 
-if(location.protocol==='https:')void import('/games/fat-fish/game-presence.js').then(({createGamePresence})=>createGamePresence({game:'bumper',getPlaying:()=>game?.phase==='playing',element:document.querySelector('#online-count')})).catch(()=>{});
+if(location.protocol==='https:')void import('/games/fat-fish/game-presence.js').then(({createGamePresence})=>createGamePresence({game:'bumper',getPlaying:()=>game?.phase==='playing',getSnapshot:()=>({values:{score:game?.score||0,seconds:game?.time||0}}),element:document.querySelector('#online-count')})).catch(()=>{});

@@ -217,17 +217,18 @@ export class GameStore {
   }
 
   createPropReceipt({ requestId, userId, runId, lineageId = runId, fingerprint, receiptId, kind, bodyIds, step, now, weekId = null, name = '',
-    moveCount = 0, propRevision = 0, state = null, summary = null, profile = null, rewards = null, play = null }) {
+    moveCount = 0, propRevision = 0, quota = 5000, beforeInsert = null, state = null, summary = null, profile = null, rewards = null, play = null }) {
     this.db.exec('BEGIN IMMEDIATE');
     try {
       const existing = this.propReceipt(requestId);
       if (existing) { this.db.exec('COMMIT'); return { ...existing, created: false }; }
       if (this.saveOrder(requestId)) throw Object.assign(new Error('请求编号已用于其他操作。'), { status: 409, code: 'PAYMENT_REQUEST_CONFLICT' });
       if (this.pendingSaveOrder(userId)) throw Object.assign(new Error('存档订单仍在确认，请先确认订单再继续。'), { status: 409, code: 'PAYMENT_PENDING' });
+      if(![0,5000].includes(quota))throw Error('Invalid prop quota');if(beforeInsert)beforeInsert();
       this.db.prepare(`INSERT INTO prop_receipts
         (request_id,user_id,run_id,lineage_id,fingerprint,status,receipt_id,quota,kind,body_ids,step,week_id,name,move_count,prop_revision,state,summary,profile,rewards,play,created_at,updated_at)
-        VALUES(?,?,?,?,?,'pending',?,5000,?,?,?,?,?,?,?,?,?,?,?,?,?,?)`)
-        .run(requestId, userId, runId, lineageId, fingerprint, receiptId, kind, JSON.stringify(bodyIds), step, weekId, name, moveCount, propRevision,
+        VALUES(?,?,?,?,?,'pending',?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)`)
+        .run(requestId, userId, runId, lineageId, fingerprint, receiptId, quota, kind, JSON.stringify(bodyIds), step, weekId, name, moveCount, propRevision,
           state === null ? null : JSON.stringify(state), summary === null ? null : JSON.stringify(summary),
           profile === null ? null : JSON.stringify(profile), rewards === null ? null : JSON.stringify(rewards),
           play === null ? null : JSON.stringify(play), now, now);
@@ -325,7 +326,8 @@ export class GameStore {
         throw Object.assign(new Error('上一笔付费订单仍在确认，请先确认订单再继续。'), { status: 409, code: 'PAYMENT_PENDING' });
       }
       const active = this.activeSave(userId, slot, now);
-      const requiresPayment = operation === 'extend' || (operation === 'write' && slot > 1 && !active);
+      const covered=slot<=3&&this.db.prepare("SELECT 1 FROM sqlite_master WHERE type='table' AND name='supporter_accounts'").get()&&this.db.prepare('SELECT 1 FROM supporter_accounts WHERE user_id=? AND expires>?').get(userId,now);
+      const requiresPayment = operation === 'extend' || (operation === 'write' && slot > 1 && !active && !covered);
       if (requiresPayment && !payload.allow_payment) {
         throw Object.assign(new Error('需要确认这笔 $0.01 额度扣减。'), { status: 422, code: 'SAVE_CONFIRM_REQUIRED' });
       }

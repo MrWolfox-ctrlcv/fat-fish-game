@@ -30,6 +30,21 @@ async function fixture(t, extra = {}) {
   return { store, request };
 }
 
+test('daily supporter fish props are verified, limited to two, and work without an enabled wallet',async(t)=>{
+  let charges=0;const {request,store}=await fixture(t,{propWallet:{enabled:false,async debit(){charges++;throw Error('must not debit');}}});
+  store.db.prepare('INSERT INTO supporter_accounts(user_id,expires,activated) VALUES(42,?,?)').run(Date.now()+30*86400000,Date.now());
+  const day=Math.floor((Date.now()+8*3600000)/86400000);
+  for(let n=0;n<3;n++){
+    const started=await(await request('api/run',{physics_version:PHYSICS_VERSION})).json();
+    const state=replayCheckpoint(initialState(started.run.seed,started.run.variant_seed),[{step:0,x:200}],0).state;
+    const payload={run_id:started.run.id,step:0,moves:[{step:0,x:200}],request_id:crypto.randomUUID(),kind:'remove',body_ids:[state.bodies[0].id],confirm_quota:0,free_daily:true,day};
+    const response=await request('api/run/prop',payload);
+    assert.equal(response.status,n<2?200:409);
+    if(n<2){assert.equal((await response.json()).receipt.quota,0);assert.equal((await request('api/run/prop',payload)).status,200);}
+  }
+  assert.equal(charges,0);assert.equal(store.db.prepare("SELECT COUNT(*) AS n FROM supporter_daily WHERE user_id=42 AND game='fat-fish'").get().n,2);
+});
+
 test('revive rejects an active run before charging and charges a failed saved run once', async (t) => {
   let charges = 0;
   const { request, store } = await fixture(t, { propWallet: { enabled: true, debit: async () => { charges++; } } });

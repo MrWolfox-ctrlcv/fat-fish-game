@@ -21,7 +21,7 @@ export const DIFFICULTIES = Object.freeze({
 const clamp = (n, lo, hi) => Math.max(lo, Math.min(hi, n));
 const damageFactor = power => Math.min(5.5, 1 + .18 * Math.min(12, power) + .06 * Math.max(0, power - 12));
 const fireInterval = (base,power) => Math.max(.12,base/(1+.22*Math.max(0,power)));
-const xpThreshold = level => 8 + 4 * (level - 1) + 2 * Math.max(0, level - 8) ** 2;
+export const xpThreshold = level => Math.round(8 + 4 * (Math.min(40,level) - 1) + .6 * Math.max(0, Math.min(40,level) - 8) ** 2);
 const dist2 = (a, b) => (a.x - b.x) ** 2 + (a.y - b.y) ** 2;
 const unit = (x, y) => { const m = Math.hypot(x, y) || 1; return { x: x / m, y: y / m }; };
 const traitPool = [
@@ -51,7 +51,7 @@ export function createGame({ seed = 1, hero = 'deepseek', faction, difficulty = 
   const playerFaction = Object.hasOwn(ENEMY_ROSTERS, faction) ? faction : heroConfig.faction;
   const stats = heroConfig.stats;
   return {
-    rng: s, visualRng: s, difficulty: Object.hasOwn(DIFFICULTIES,difficulty)?difficulty:'standard', phase: 'playing', round: 1, maxRounds: ({quick:5,standard:10,long:20}[length]||10), campaignVersion: 3, scene: createScene(1), roundTime: 0, roundDuration: 20, time: 0, playerFaction, heroId,
+    rng: s, visualRng: s, difficulty: Object.hasOwn(DIFFICULTIES,difficulty)?difficulty:'standard', phase: 'playing', round: 1, maxRounds: ({quick:5,standard:10,long:20}[length]||10), campaignVersion: 3, balanceVersion: 4, traitChoiceCount: 0, scene: createScene(1), roundTime: 0, roundDuration: 20, time: 0, playerFaction, heroId,
     score: 0, level: 1, xp: 0, xpNeed: 8, pendingLevels: 0,
     player: { x: WIDTH / 2, y: HEIGHT / 2, radius: 28, fishStage: 1, health: stats.health, maxHealth: stats.health, vx: 0, vy: 0, facing: 1,
       fatLevel: 1, fatXp: 0, fatXpNeed: 2, fatness: 0, superFat: false, slideTimer: 0, slideDuration: 0,
@@ -72,7 +72,7 @@ export function normalizeGameSnapshot(snapshot){
   const defaults=createGame({seed:raw.rng??1,hero,faction:raw.playerFaction,difficulty:raw.difficulty});
   const result={...defaults,...raw};
   result.maxRounds=[5,10,20].includes(raw.maxRounds)?raw.maxRounds:10;
-  result.campaignVersion=3;
+  result.campaignVersion=3;result.balanceVersion=4;result.traitChoiceCount=Math.max(0,Math.floor(Number(raw.traitChoiceCount) || Object.values(raw.traits||{}).reduce((n,v)=>n+(Number(v)||0),0)));result.gptResourceOffered=raw.gptResourceOffered===true||result.traitChoiceCount>=2;
   result.level=Math.min(40,Math.max(1,Number(raw.level)||1));result.xpNeed=xpThreshold(result.level);result.pendingLevels=Math.min(Math.max(0,Number(raw.pendingLevels)||0),40-result.level);
   ensureScene(result);
   result.heroId=hero;result.playerFaction=Object.hasOwn(ENEMY_ROSTERS,raw.playerFaction)?raw.playerFaction:defaults.playerFaction;
@@ -85,8 +85,7 @@ export function normalizeGameSnapshot(snapshot){
   const p=result.player,base=HEROES[hero].stats;
   const maxHealth=base.health+Math.round(25*result.traitPower.maxHealth)+(hero==='deepseek'?12*Math.max(0,(p.fatLevel||1)-1):0);
   p.maxHealth=maxHealth;p.health=clamp(Number.isFinite(p.health)?p.health:maxHealth,0,maxHealth);
-  const formBase=hero==='gpt'&&p.transformed?36:base.damage;
-  p.damage=formBase*Math.min(5.5,damageFactor(result.traitPower.damage)+(hero==='gpt'&&p.transformed ? .2*result.traitPower.transformedDamage : 0));
+  p.damage=playerDamage(result);
   p.speed=(hero==='gpt'&&p.transformed?125:base.speed)*(1+.12*result.traitPower.speed)+15*(result.equipmentPower.thrust||0);
   p.fireRate=fireInterval(hero==='gpt'&&p.transformed ? .5 : base.fireRate,result.traitPower.fireRate);
   for(const key of ['enemies','bullets','beams','allies','orbs','chests','pickups','particles','blasts','choices','buildLog','events'])result[key]=Array.isArray(raw[key])?raw[key]:defaults[key];
@@ -95,6 +94,7 @@ export function normalizeGameSnapshot(snapshot){
   result.allies=result.allies.slice(0,limits.allies).map(normalizeAlly);
   result.bossHazards=Array.isArray(raw.bossHazards)?raw.bossHazards.slice(0,12):[];
   if(!result.enemies.some(e=>e.kind==='boss'&&e.hp>0)){result.bossArena=null;result.bossHazards=[];}
+  result.choices=result.choices.map(c=>{const id=String(c.id||'').split(':')[1];return CATALOG[id]?{...c,description:powerDescription(id,c.rarity||{multiplier:1},result)}:c;});
   return result;
 }
 
@@ -126,7 +126,7 @@ function powerDescription(id, rarity, g) {
     return `移动速度提高 ${((after/before-1)*100).toFixed(1)}%。`;
   }
   if (id === 'fortune') return `幸运提高 ${Math.min(100-g.player.luck,10*m).toFixed(1)} 点。`;
-  if (id === 'multishot') return `每次额外发射 ${Math.max(1,Math.ceil(m))} 枚水弹。`;
+  if (id === 'multishot') return `每次额外发射 1 枚水弹（最多 8 枚）；品质额外增加 ${((Math.min(.2,(g.traitPower.shotBonus||0)+Math.max(0,m-1)*.06)-(g.traitPower.shotBonus||0))*100).toFixed(1)}% 基础伤害。`;
   if (id === 'piercing') return `水弹额外穿透 ${Math.max(1,Math.ceil(m))} 名敌人。`;
   if (id === 'vampirism') {const before=Math.min(8,Math.round(2*(g.traitPower.vampirism||0))),after=Math.min(8,Math.round(2*((g.traitPower.vampirism||0)+m)));return `击杀回血额外提高 ${after-before} 点，上限 8 点；每 0.25 秒最多触发一次。`;}
   if (id === 'magnet') return `经验吸取范围增加 ${Math.round(65*m)}。`;
@@ -153,22 +153,22 @@ function choicesFrom(g, pool, count, prefix) {
   const a = pool.map(row => [...row]);
   for (let i = a.length - 1; i > 0; i--) { const j = Math.floor(rand(g) * (i + 1)); [a[i], a[j]] = [a[j], a[i]]; }
   const selected=a.slice(0,count);
-  if(prefix==='trait'&&g.heroId==='gpt'){
-    for(const id of ['energyMax','maxHealth']){
+  if(prefix==='trait'&&g.heroId==='gpt'&&(g.traitChoiceCount||0)<2&&!g.gptResourceOffered){
+    const id=(rand(g)<.5?'energyMax':'maxHealth');
       const guaranteed=a.find(row=>row[0]===id);
       if(guaranteed&&!selected.some(row=>row[0]===id)){
         const replace=selected.findIndex(row=>row[0]!=='energyMax'&&row[0]!=='maxHealth');
         if(replace>=0)selected[replace]=guaranteed;
       }
-    }
   }
+  if(prefix==='trait'&&g.heroId==='gpt'&&selected.some(row=>['energyMax','maxHealth'].includes(row[0])))g.gptResourceOffered=true;
   return selected.map(([id, name, description, icon]) => {
     const rarity = rollRarity(rand(g), g.player.luck);
     return { id: `${prefix}:${id}`, name, description: powerDescription(id, rarity, g) || description, icon, rarity, rarityId: rarity.id, rarityLabel: rarity.label, rarityColor: rarity.color, multiplier: rarity.multiplier };
   });
 }
 function levelCheck(g) {
-  while (g.level<40 && g.xp >= g.xpNeed) { g.xp -= g.xpNeed; g.level++; g.xpNeed = 8 + 4 * (g.level - 1)+2*Math.max(0,g.level-8)**2; g.pendingLevels++; }
+  while (g.level<40 && g.xp >= g.xpNeed) { g.xp -= g.xpNeed; g.level++; g.xpNeed = xpThreshold(g.level); g.pendingLevels++; }
   if(g.level>=40)g.xp=0;
   if (g.pendingLevels && g.phase === 'playing') { g.phase = 'trait'; g.choices = choicesFrom(g, availableTraits(g), 3, 'trait'); }
 }
@@ -199,7 +199,8 @@ function spawnEnemy(g, kind = 'chaser', { identity:forcedIdentity=null, lifetime
   const x = clamp(g.player.x + Math.cos(angle) * radiusFromPlayer, 30, WIDTH - 30), y = clamp(g.player.y + Math.sin(angle) * radiusFromPlayer, 30, HEIGHT - 30);
   const progression=Math.min(10,g.round)+Math.max(0,g.round-10)*.55;
   const late=Math.max(0,g.round-10);
-  const defs = { chaser: [26, g.round>10?200+44*(g.round-11):28+progression*7, 48+progression*2], summon: [17, 24+progression*3, 72+progression*2], dash: [20, 30+progression*4+late*30, 85+progression*2], ranged: [22, 38+progression*5+late*30, 42+progression], elite: [38, 180+progression*25+late*35, 32+progression], boss: [62+Math.floor((g.round-1)/5)*4, 2000+90*g.round*g.round, 40] };
+  const chaserHp=28+7*g.round+2*Math.max(0,g.round-5)**1.55;
+  const defs = { chaser: [26, chaserHp, 48+progression*2], summon: [17, 24+progression*3, 72+progression*2], dash: [20, 30+progression*4+late*30, 85+progression*2], ranged: [22, 38+progression*5+late*30, 42+progression], elite: [38, 180+progression*25+late*35, 32+progression], boss: [62+Math.floor((g.round-1)/5)*4, 2000+90*g.round*g.round, 40] };
   let [radius, hp, speed] = defs[kind]||defs.chaser;
   const opponent = opposingRoster(g.playerFaction)[kind];
   const elite = kind === 'elite' ? ELITE_ROSTERS[g.playerFaction][Math.floor(rand(g) * ELITE_ROSTERS[g.playerFaction].length)] : null;
@@ -212,7 +213,7 @@ function spawnEnemy(g, kind = 'chaser', { identity:forcedIdentity=null, lifetime
   const difficulty=DIFFICULTIES[g.difficulty]||DIFFICULTIES.standard;
   hp=Math.max(1,Math.round(hp*difficulty.enemyHealth));
   const enemy={ id: g.nextEnemyId++, x, y, radius, hp, maxHp: hp, speed, kind, modelId: identity.modelId, name: identity.name, tier: identity.tier, portrait: identity.portrait, color: identity.color, behavior: identity.behavior||elite?.behavior||null,
-    shotTimer: 1.5, dashTimer: 1.2, hitFlash: 0, slowTimer: 0, xp: (kind === 'boss' ? 35 : kind === 'elite' ? 10 : kind==='summon'?0:kind==='chaser'?1:2)*difficulty.xp };
+    shotTimer: 1.5, dashTimer: 1.2, hitFlash: 0, slowTimer: 0, xp: (kind === 'boss' ? 24 : kind === 'elite' ? 8 : kind==='summon'?0:kind==='chaser'?1:2)*(1+Math.floor((g.round-1)/5)*.12)*difficulty.xp };
   if(g.round>=6&&['chaser','dash','ranged'].includes(kind)&&rand(g)<Math.min(.65,.25+.025*(g.round-6))){
     enemy.modifier=rand(g)<.5?'armored':'swift';
     if(enemy.modifier==='swift')enemy.speed*=1.25;
@@ -266,7 +267,7 @@ function fireLaser(g,length,width,damage,maxHits,color,aimTarget=null){
 }
 function normalizeAlly(a){
   const max=a.kind==='qwenMax',maxHp=Number.isFinite(a.maxHp)?a.maxHp:max?420:80;
-  const result={...a,maxHp,hp:Number.isFinite(a.hp)?a.hp:maxHp,radius:max?38:(a.radius||17),speed:Number.isFinite(a.speed)?a.speed:max?68:125,fireRate:Number.isFinite(a.fireRate)?a.fireRate:max?.75:.95,range:Number.isFinite(a.range)?a.range:max?600:470,armor:max?4:0,invulnerable:Number.isFinite(a.invulnerable)?a.invulnerable:0};
+  const result={...a,maxHp,hp:Number.isFinite(a.hp)?a.hp:maxHp,radius:max?38:(a.radius||17),speed:Number.isFinite(a.speed)?a.speed:max?68:125,fireRate:Number.isFinite(a.fireRate)?a.fireRate:max?.75:.95,range:Number.isFinite(a.range)?a.range:max?600:470,baseDamage:Number.isFinite(a.baseDamage)?a.baseDamage:Number.isFinite(a.damage)?a.damage:8,baseFireRate:Number.isFinite(a.baseFireRate)?a.baseFireRate:Number.isFinite(a.fireRate)?a.fireRate:.95,armor:max?4:0,invulnerable:Number.isFinite(a.invulnerable)?a.invulnerable:0};
   delete result.life;delete result.maxLife;return result;
 }
 function hurtAlly(g,a,amount){
@@ -279,13 +280,14 @@ function summonAlly(g,kind){
   const p=g.player,max=kind==='qwenMax',cost=max?HEROES.qwen.maxCost:HEROES.qwen.smallCost;if(p.compute<cost)return false;p.compute-=cost;
   const index=g.allies.length,angle=(index%8)*Math.PI/4;
   const maxHp=max?420:Math.round(55+rand(g)*55),speed=max?68:Math.round(95+rand(g)*70),damage=max?38:Math.round(8+rand(g)*10),fireRate=max?.75:.7+rand(g)*.55;
-  const ally=normalizeAlly({id:g.nextAllyId++,x:clamp(p.x+Math.cos(angle)*75,40,WIDTH-40),y:clamp(p.y+Math.sin(angle)*75,40,HEIGHT-40),radius:max?38:16+Math.round(rand(g)*4),kind,hp:maxHp,maxHp,speed,damage,fireRate,shotTimer:.35,modelId:max?'qwenMax':'qwenSmall',name:max?'Qwen Max':'Qwen小兵',color:max?'#26b482':'#71c7a0'});
+  const ally=normalizeAlly({id:g.nextAllyId++,x:clamp(p.x+Math.cos(angle)*75,40,WIDTH-40),y:clamp(p.y+Math.sin(angle)*75,40,HEIGHT-40),radius:max?38:16+Math.round(rand(g)*4),kind,hp:maxHp,maxHp,speed,damage,fireRate,baseDamage:damage,baseFireRate:fireRate,shotTimer:.35,modelId:max?'qwenMax':'qwenSmall',name:max?'Qwen Max':'Qwen小兵',color:max?'#26b482':'#71c7a0'});
   g.allies.push(ally);event(g,'ally-summoned',{kind,cost,compute:p.compute,id:ally.id});return ally;
 }
 function updateAllies(g,dt){
   const p=g.player;g.allies=(g.allies||[]).slice(0,limits.allies);
   for(let index=0;index<g.allies.length;index++){
-    let ally=g.allies[index];if(!Number.isFinite(ally.hp))ally=g.allies[index]=normalizeAlly(ally);if(ally.hp<=0)continue;ally.invulnerable=Math.max(0,(ally.invulnerable||0)-dt);
+    let ally=g.allies[index];if(!Number.isFinite(ally.hp))ally=g.allies[index]=normalizeAlly(ally);if(ally.hp<=0)continue;
+    const baseDamage=ally.baseDamage??ally.damage,baseFireRate=ally.baseFireRate??ally.fireRate,playerGrowth=Math.min(.5,Math.max(0,(p.damage/HEROES.qwen.stats.damage)-1)*.5);ally.damage=Math.min(baseDamage*2,baseDamage*(1+playerGrowth));ally.fireRate=Math.max(.12,baseFireRate/(1+Math.min(.5,Math.max(0,(HEROES.qwen.stats.fireRate/p.fireRate)-1)*.5)));ally.baseDamage=baseDamage;ally.baseFireRate=baseFireRate;ally.invulnerable=Math.max(0,(ally.invulnerable||0)-dt);
     let target=null,nearest=Infinity;for(const e of g.enemies){const d=dist2(ally,e);if(d<nearest){nearest=d;target=e;}}
     let desiredX=p.x+Math.cos(index*Math.PI/4)*90,desiredY=p.y+Math.sin(index*Math.PI/4)*90;
     if(target&&nearest<750**2&&dist2(ally,p)<850**2){const toward=unit(target.x-ally.x,target.y-ally.y),standOff=ally.kind==='qwenMax'?220:160;desiredX=target.x-toward.x*standOff;desiredY=target.y-toward.y*standOff;}
@@ -311,12 +313,12 @@ function damageSceneNode(g,node,amount){
 function updateScene(g){
   const scene=ensureScene(g);if(g.time<scene.nextPulseAt)return;scene.nextPulseAt=g.time+.5;
   for(const vent of mapForRound(g.round).vents){if(ventPhase(g.time,vent)!=='active')continue;
-    if(dist2(g.player,vent)<(vent.radius+g.player.radius*.4)**2)hurt(g,5);
+    if(dist2(g.player,vent)<(vent.radius+g.player.radius*.4)**2)hurt(g,5,'场景喷流');
     for(const e of [...g.enemies])if(dist2(e,vent)<(vent.radius+e.radius*.4)**2)dealEnemyDamage(g,e,12);
     for(const a of g.allies)if(a.hp>0&&dist2(a,vent)<(vent.radius+a.radius*.4)**2)hurtAlly(g,a,5);
   }
 }
-function hurt(g, amount) {
+function hurt(g, amount, source='敌人接触') {
   const p = g.player; if (p.invulnerable > 0 || g.phase !== 'playing') return;
   if(p.chromeShieldTimer>0&&p.chromeShieldCharges>0){p.chromeShieldCharges--;p.invulnerable=Math.max(p.invulnerable,0.45);if(!p.chromeShieldCharges)p.chromeShieldTimer=0;event(g,'chrome-shield-hit',{charges:p.chromeShieldCharges});return;}
   if(p.shieldTimer>0&&p.shieldCharges>0){p.shieldCharges--;p.invulnerable=Math.max(p.invulnerable,.45);event(g,'doubao-shield-hit',{charges:p.shieldCharges});return;}
@@ -324,6 +326,7 @@ function hurt(g, amount) {
   let reduced = Math.max(1, amount - (g.equipmentPower.armor || 0));
   if(g.heroId==='gpt'&&p.transformed)reduced=Math.max(1,Math.ceil(reduced*0.5));
   const damage = p.slideTimer > 0 ? Math.max(1, Math.ceil(reduced * 0.6)) : reduced;
+  g.lastDamageSource=source;
   p.health = Math.max(0, p.health - damage); p.invulnerable = 0.45; g.damageTaken += damage;
   if (!p.health) { g.phase = 'lost'; g.notice = '你被深海洋流卷走了。'; event(g, 'lost'); }
 }
@@ -349,10 +352,10 @@ function primary(g) {
   const d = aim ? unit(p.aimX - p.x, p.aimY - p.y) : { x: Math.cos(p.facing), y: Math.sin(p.facing) };
   p.facing = Math.atan2(d.y, d.x); p.chargeDirection = p.facing; p.chargeVx = d.x * 550; p.chargeVy = d.y * 550; p.vx = p.chargeVx; p.vy = p.chargeVy; event(g, 'charge');
 }
+function playerDamage(g){const normal=g.heroId==='gpt'&&g.player.transformed;return (normal?36:HEROES[g.heroId].stats.damage)*Math.min(5.5,damageFactor(g.traitPower.damage||0)+(normal?.2*(g.traitPower.transformedDamage||0):0)+clamp(Number(g.traitPower.shotBonus)||0,0,.2));}
 function applyGptForm(g, normal) {
   const p=g.player;p.transformed=normal;
-  const baseDamage=normal?36:HEROES.gpt.stats.damage;
-  p.damage=baseDamage*Math.min(5.5,damageFactor(g.traitPower.damage||0)+(normal?0.2*(g.traitPower.transformedDamage||0):0));
+  p.damage=playerDamage(g);
   p.speed=(normal?125:HEROES.gpt.stats.speed)*(1+0.12*(g.traitPower.speed||0))+15*(g.equipmentPower.thrust||g.equipment.thrust||0);
   p.fireRate=fireInterval(normal?0.5:HEROES.gpt.stats.fireRate,g.traitPower.fireRate||0);
 }
@@ -496,6 +499,7 @@ export function choose(g, choiceId) {
   const choice = g.choices.find(c => c.id === choiceId); if (!choice) return false;
   const [type, id] = choice.id.split(':');
   if (type === 'trait' && g.phase === 'trait') {
+    g.traitChoiceCount=(g.traitChoiceCount||0)+1;
     recordBuild(g, choice);
     const previousPower=g.traitPower[id]||0;
     g.traits[id] = (g.traits[id] || 0) + 1; g.traitPower[id] = (g.traitPower[id] || 0) + choice.multiplier; const p = g.player;
@@ -505,11 +509,11 @@ export function choose(g, choiceId) {
     if(id==='speed')g.traitPower.speed=Math.min(6,g.traitPower.speed);
     if(id==='transformedDamage')g.traitPower.transformedDamage=Math.min(5,g.traitPower.transformedDamage);
     const mult = choice.multiplier;
-    if (id === 'damage') {if(g.heroId==='gpt')applyGptForm(g,p.transformed);else p.damage=Math.min(HEROES[g.heroId].stats.damage*5.5,HEROES[g.heroId].stats.damage*damageFactor(g.traitPower.damage));}
+    if (id === 'damage') {if(g.heroId==='gpt')applyGptForm(g,p.transformed);else p.damage=playerDamage(g);}
     if (id === 'fireRate') { if(g.heroId==='gpt')applyGptForm(g,p.transformed);else p.fireRate = fireInterval(HEROES[g.heroId].stats.fireRate,g.traitPower.fireRate); }
     if (id === 'maxHealth') { const gain=Math.round(25*g.traitPower.maxHealth)-Math.round(25*previousPower);if(g.heroId==='deepseek'){p.health=Math.min(p.maxHealth+gain,p.health+gain);recomputeFatStats(g);}else{p.maxHealth=HEROES[g.heroId].stats.health+Math.round(25*(g.traitPower.maxHealth||0));p.health=Math.min(p.maxHealth,p.health+gain);} }
     if (id === 'vampirism') p.vampirism = g.traits.vampirism;
-    if (id === 'multishot') p.shots = Math.min(8,p.shots+Math.max(1,Math.ceil(mult)));
+    if (id === 'multishot') {p.shots=Math.min(8,p.shots+1);g.traitPower.shotBonus=Math.min(.2,(g.traitPower.shotBonus||0)+Math.max(0,mult-1)*.06);p.damage=playerDamage(g);}
     if (id === 'piercing') p.piercing = Math.min(6,(p.piercing || 1) + Math.max(1,Math.ceil(mult)));
     if (id === 'crit') p.crit = Math.min(0.75, p.crit + 0.12*mult);
     if (id === 'speed') { if(g.heroId==='gpt')applyGptForm(g,p.transformed);else p.speed=HEROES[g.heroId].stats.speed*(1+.12*g.traitPower.speed)+15*(g.equipmentPower.thrust||0); }
@@ -530,7 +534,7 @@ export function choose(g, choiceId) {
 }
 export function continueRound(g) {
   if (g.phase !== 'rest') return false;
-  if (g.round >= g.maxRounds) { g.phase = 'won'; g.notice = '你征服了深海！'; if(g.heroId==='gpt')event(g,'game-won',{hero:'gpt'});else event(g,'won',{hero:g.heroId}); return true; }
+  if (g.round >= g.maxRounds) { g.pendingLevels=0;g.xp=0;g.choices=[];g.roundEnding=false;g.phase = 'won'; g.notice = '你征服了深海！'; if(g.heroId==='gpt')event(g,'game-won',{hero:'gpt'});else event(g,'won',{hero:g.heroId}); return true; }
   const previousMap=mapForRound(g.round).id;
   g.round++; g.roundTime = 0; g.roundDuration = roundDuration(g.round); g.spawnTimer = 0; g.chestTimer = 10; g.eliteSpawned = false; g.bossSpawned = false; g.bossDefeated=false; g.phase = 'playing'; g.notice = `第 ${g.round} 轮`;
   if(mapForRound(g.round).id!==previousMap){g.scene=createScene(g.round);g.chests=[];g.pickups=[];g.beams=[];g.particles=[];g.blasts=[];g.player.x=WIDTH/2;g.player.y=HEIGHT/2;g.player.vx=g.player.vy=0;g.player.chargeTimer=g.player.dashTimer=g.player.slideTimer=0;g.player.invulnerable=Math.max(1.5,g.player.invulnerable);g.allies.forEach((a,i)=>{a.x=g.player.x+Math.cos(i)*80;a.y=g.player.y+Math.sin(i)*80;});event(g,'map-changed',{text:`抵达${mapForRound(g.round).name}！`,mapId:g.scene.mapId});}
@@ -538,6 +542,7 @@ export function continueRound(g) {
 }
 function endRound(g) {
   g.bossArena=null;g.bossHazards=[];
+  if(g.round>=g.maxRounds){g.enemies=[];g.bullets=[];g.orbs=[];g.pendingLevels=0;g.xp=0;g.choices=[];g.roundEnding=false;g.phase='won';event(g,'round-ended',{round:g.round});event(g,g.heroId==='gpt'?'game-won':'won',{hero:g.heroId});return;}
   g.enemies = []; g.bullets = []; g.roundEnding = true; g.orbs.forEach(o => grantExperience(g, o.value)); g.orbs = []; if (g.phase === 'trait') return;
   queueReward(g);
 }
@@ -577,7 +582,7 @@ export function stepGame(g, input = {}, dt = 1 / 60) {
   const spawnCap=limits.enemies-(isBossRound(g)&&!g.bossSpawned?1:0);
   g.spawnTimer -= dt; if (g.spawnTimer <= 0 && g.enemies.length < spawnCap) {
     const interval = Math.max(0.24, 0.65 - 0.032 * g.round) * difficulty.spawnInterval * (g.difficulty === 'relaxed' ? 1.5 : 1);
-    const count = g.difficulty === 'relaxed' ? (g.round>=8?2:1) : g.round >= 11 ? 5 : g.round >= 6 ? 4 : g.round >= 3 ? 3 : 2;
+    const budget=g.difficulty==='relaxed'?Math.min(2,1+Math.max(0,g.round-3)/10):Math.min(5,2+(g.round-1)*.24);g.spawnCarry=(g.spawnCarry||0)+budget;const count=Math.floor(g.spawnCarry);g.spawnCarry-=count;
     for (let i = 0; i < count && g.enemies.length < spawnCap; i++)
       spawnEnemy(g, g.round >= 4 && rand(g) < 0.25 ? 'ranged' : g.round >= 2 && rand(g) < 0.3 ? 'dash' : 'chaser');
     g.spawnTimer = interval;
@@ -591,7 +596,7 @@ export function stepGame(g, input = {}, dt = 1 / 60) {
   p.shotTimer -= dt; if (target && p.shotTimer <= 0) { fire(g, target); p.shotTimer = p.fireRate; }
   for (const b of g.bullets) {
     b.x += b.vx * dt; b.y += b.vy * dt; b.life -= dt;
-    if (b.hostile) { if(p.toolNodeTimer>0&&dist2(b,p)<=360**2)b.life=0;else {const ally=g.allies.find(a=>a.hp>0&&dist2(b,a)<(b.radius+a.radius)**2);if(ally){hurtAlly(g,ally,b.damage);b.life=0;}else if (dist2(b, p) < (b.radius + p.radius) ** 2) { hurt(g, b.damage); b.life = 0; }} continue; }
+    if (b.hostile) { if(p.toolNodeTimer>0&&dist2(b,p)<=360**2)b.life=0;else {const ally=g.allies.find(a=>a.hp>0&&dist2(b,a)<(b.radius+a.radius)**2);if(ally){hurtAlly(g,ally,b.damage);b.life=0;}else if (dist2(b, p) < (b.radius + p.radius) ** 2) { hurt(g, b.damage,b.sourceName||'敌方弹幕'); b.life = 0; }} continue; }
     let struck = false; for (const e of [...g.enemies]) if (!b.hitIds.includes(e.id) && dist2(b, e) < (b.radius + e.radius) ** 2) {
       const damage = (rand(g) < p.crit ? b.damage * 2 : b.damage)*(1+.1*(g.weaponPower.frost||0)); dealEnemyDamage(g,e,damage); b.hitIds.push(e.id);
       if(g.weaponPower.frost>0){e.slowTimer=Math.max(e.slowTimer||0,Math.min(3,1.5+.2*(g.weaponPower.frost-1)));e.slowFactor=Math.max(.2,1-.4*g.weaponPower.frost);}
@@ -626,7 +631,7 @@ export function stepGame(g, input = {}, dt = 1 / 60) {
     for(const ally of g.allies)if(ally.hp>0&&dist2(ally,e)<(ally.radius+e.radius)**2)hurtAlly(g,ally,e.kind==='boss'?24:e.kind==='elite'?16:9);
     if (dist2(p, e) < (p.radius + e.radius) ** 2 && p.chargeTimer <= 0) {
       const laterPressure = Math.floor(Math.max(0, g.round - 1) / 4);
-      hurt(g, e.kind === 'boss' ? 20 + laterPressure * 2 : e.kind === 'elite' ? 14 + laterPressure : 8 + laterPressure);
+      hurt(g, e.kind === 'boss' ? 20 + laterPressure * 2 : e.kind === 'elite' ? 14 + laterPressure : 8 + laterPressure,e.name||'敌人接触');
       if (p.slideTimer > 0) { const away = unit(e.x-p.x,e.y-p.y); e.x=clamp(e.x+away.x*36,e.radius,WIDTH-e.radius); e.y=clamp(e.y+away.y*36,e.radius,HEIGHT-e.radius); }
     }
   }
@@ -635,7 +640,7 @@ export function stepGame(g, input = {}, dt = 1 / 60) {
   if (p.chargeTimer > 0) for (const e of [...g.enemies]) if (!p.chargeHits.includes(e.id) && dist2(p, e) < (p.radius + e.radius + 14) ** 2) { dealEnemyDamage(g,e,p.chargeDamage); e.x += Math.cos(p.chargeDirection) * 22; e.y += Math.sin(p.chargeDirection) * 22; p.chargeHits.push(e.id); }
   for (const c of [...g.chests]) if (p.chargeTimer > 0 && dist2(p, c) < (p.radius + c.radius + 14) ** 2) damageChest(g, c, p.chargeDamage);
   for(const node of g.scene.nodes)if(node.hp>0&&p.chargeTimer>0&&dist2(p,node)<(p.radius+node.radius+14)**2)damageSceneNode(g,node,p.chargeDamage);
-  updateBossPressure(g,dt,{hurtPlayer:amount=>hurt(g,amount),spawnAdds:count=>{for(let i=0;i<count&&g.enemies.length<limits.enemies;i++)spawnEnemy(g,'summon',{identity:opposingRoster(g.playerFaction).chaser});},addHostileBullet:b=>{if(g.bullets.length<limits.bullets)g.bullets.push(b);}});
+  updateBossPressure(g,dt,{hurtPlayer:amount=>hurt(g,amount,'首领范围攻击'),spawnAdds:count=>{for(let i=0;i<count&&g.enemies.length<limits.enemies;i++)spawnEnemy(g,'summon',{identity:opposingRoster(g.playerFaction).chaser});},addHostileBullet:b=>{if(g.bullets.length<limits.bullets)g.bullets.push(b);}});
   if(g.phase!=='playing')return g.events.splice(0);
   updateScene(g);
   if(g.phase!=='playing')return g.events.splice(0);

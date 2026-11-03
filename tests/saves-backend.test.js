@@ -23,7 +23,7 @@ async function serverFixture(t, { path = ':memory:', now = () => Date.now(), wal
   const store = new GameStore(path);
   let currentStore = store;
   const start = async () => {
-    const app = await createGameServer({ store: currentStore, fetchImpl: fakeAuth, now, ...(verifier ? { verifier } : {}),
+    const app = await createGameServer({ supporterEnabled:true,store: currentStore, fetchImpl: fakeAuth, now, ...(verifier ? { verifier } : {}),
       ...(wallet ? { propWallet: wallet } : {}) });
     await new Promise((resolve) => app.server.listen(0, '127.0.0.1', resolve));
     const base = `http://127.0.0.1:${app.server.address().port}/games/fat-fish/`;
@@ -65,6 +65,20 @@ function writePayload(run, slot = 1, requestId = 'save-write-request-1', extra =
   return { slot, run_id: run.id, step: 0, moves: [], physics_version: PHYSICS_VERSION,
     request_id: requestId, ...extra };
 }
+
+test('supporter HTTP purchase covers fish slots 1–3 without per-slot charges and protects monitoring access',async(t)=>{
+  const charges=[];
+  const {current,store}=await serverFixture(t,{wallet:{enabled:true,async debit(value){charges.push(value.quota);return {reference:value.operationId};}}});
+  const {request}=current(),input={request_id:crypto.randomUUID(),action:'buy',confirm_quota:500000,expected_user_id:42};
+  assert.equal((await request('api/supporter/buy',input)).status,200);
+  assert.equal((await request('api/supporter/buy',input)).status,200);
+  const run=await newRun(request),before=Date.now();
+  for(const slot of [1,2,3])assert.equal((await request('api/saves/write',writePayload(run,slot,crypto.randomUUID()))).status,200);
+  assert.deepEqual(charges,[500000]);
+  for(const slot of [1,2,3])assert.ok(store().activeSave(42,slot,Date.now()).expires_at>=before+30*86400000);
+  const other=await request('api/supporter',undefined,'Bearer save-user-two-token');assert.equal((await other.json()).supporter.active,false);
+  assert.equal((await request('api/admin/monitor')).status,403);
+});
 
 test('physics 3 paid saves migrate to the new warning line without losing time, RNG, score or failed status', async (t) => {
   let charges = 0;

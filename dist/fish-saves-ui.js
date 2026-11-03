@@ -1,3 +1,4 @@
+import {mountSupporter} from './supporter-ui.js';
 import { seededRandom } from "./seeded-random.js";
 import { PHYSICS_VERSION } from "./physics-version.js";
 
@@ -80,10 +81,11 @@ export function setupFishSavesUI({
   const status = document.querySelector("#saves-status");
   const close = document.querySelector("#saves-close");
   if (!opener || !dialog) return { isPaused: () => false, isLocked: () => false, hasPending: () => false };
-  let saves = [], busy = false, paused = false, pending = null, priceQuota = 5000, priceUsd = "0.01", paidDays = 7, extensionDays = 7, maxDays = 30;
-  const isLocked = () => Boolean(pending || busy);
+  let saves = [], busy = false, paused = false, pending = null, priceQuota = 5000, priceUsd = "0.01", paidDays = 7, extensionDays = 7, maxDays = 30, supporter = null;
+  const isLocked = () => Boolean(pending || busy || support.isBusy());
   const pause = (value) => { paused = value; pauseChanged(value); };
 
+  const support=mountSupporter({parent:dialog,client,onBusy:value=>pause(value||paused),onUpdate:()=>void refresh()});
   const render = () => {
     opener.disabled = busy;
     if (!list) return;
@@ -93,7 +95,7 @@ export function setupFishSavesUI({
       const active = save.exists && (!save.expires_at || expiryMillis(save.expires_at) > Date.now());
       const card = document.createElement("article"); card.className = "save-slot";
       const head = document.createElement("div"); head.className = "save-slot-head";
-      const title = document.createElement("strong"); title.textContent = slot === 1 ? "免费档 · 1" : `付费档 · ${slot}`;
+      const title = document.createElement("strong"); title.textContent = supporter?.active&&slot<=3?`支持者档 · ${slot}`:slot === 1 ? "免费档 · 1" : `付费档 · ${slot}`;
       const expiresAt = expiryMillis(save.expires_at), expired = Boolean(save.expires_at && expiresAt <= Date.now());
       const expiry = document.createElement("span"); expiry.textContent = !save.exists ? "空档位" : !save.expires_at ? "有效期未知" : `${expired ? "已过期" : "有效至"} · ${displayDate(save.expires_at)}`;
       head.append(title, expiry);
@@ -106,7 +108,7 @@ export function setupFishSavesUI({
       const loadButton = document.createElement("button"); loadButton.type = "button"; loadButton.textContent = "读取"; loadButton.dataset.action = "load"; loadButton.dataset.slot = String(slot);
       loadButton.disabled = !save.exists || (save.expires_at && expiryMillis(save.expires_at) <= Date.now());
       const extendButton = document.createElement("button"); extendButton.type = "button"; extendButton.textContent = `延长 ${extensionDays} 天 · $${priceUsd}`;
-      extendButton.dataset.action = "extend"; extendButton.dataset.slot = String(slot); extendButton.hidden = !save.exists;
+      extendButton.dataset.action = "extend"; extendButton.dataset.slot = String(slot); extendButton.hidden = !save.exists || (supporter?.active&&slot<=3);
       const renewIcon = document.createElement("span"); renewIcon.className = "prop-icon prop-icon--renew"; renewIcon.setAttribute("aria-hidden", "true"); extendButton.prepend(renewIcon);
       actions.append(saveButton, loadButton, extendButton);
       card.append(head, details, actions); list.append(card);
@@ -122,6 +124,7 @@ export function setupFishSavesUI({
       if (account()?.id !== ownerId || (client.user?.id && client.user.id !== ownerId)) return;
       if (!Array.isArray(data.saves)) throw new Error("云存档列表格式暂不可用。");
       saves = data.saves; priceQuota = Number(data.price_quota) || 5000; priceUsd = data.price_usd || "0.01";
+      supporter=data.supporter||null;void support.refresh();
       paidDays = Number(data.limits?.paid_retention_days) || 7;
       extensionDays = Number(data.limits?.extension_days) || 7;
       maxDays = Number(data.limits?.max_retention_days) || 30;
@@ -156,7 +159,7 @@ export function setupFishSavesUI({
       if (result.success !== true || !Array.isArray(result.saves)) throw new Error("结果尚未明确，存档请求已保留并可安全重试。");
       saves = result.saves; finishPending();
       settled();
-      status.textContent = result.receipt?.paid ? "存档已更新，收费 $0.01；不会自动续费。" : "免费存档已更新，有效期至少 24 小时。";
+      status.textContent = result.receipt?.paid ? "存档已更新，收费 $0.01；不会自动续费。" : (supporter?.active?"支持者存档已更新，保留 30 天，不另收费。":"免费存档已更新，有效期至少 24 小时。");
       render();
     } catch (error) {
       if (account()?.id !== ownerId) { busy = false; render(); return; }
@@ -172,7 +175,7 @@ export function setupFishSavesUI({
   const beginWrite = async (slot) => {
     if (!account() || !gameReady() || !activeRun() || isLocked() || !canOpen()) return;
     const saved = saves.find((item) => item.slot === slot && item.exists);
-    const mustPay = slot > 1 && !(saved && (!saved.expires_at || expiryMillis(saved.expires_at) > Date.now()));
+    const mustPay = !(supporter?.active&&slot<=3) && slot > 1 && !(saved && (!saved.expires_at || expiryMillis(saved.expires_at) > Date.now()));
     if (mustPay && !window.confirm(`确认启用付费档 ${slot} 并保存当前局面？本次扣 $${priceUsd}（${priceQuota} quota），保留 ${paidDays} 天。取消不会扣费。之后覆盖有效存档不收费，也不会缩短已购买的有效期。`)) return;
     pause(true); busy = true; render(); status.textContent = "正在暂停并同步本局投放记录……";
     try {

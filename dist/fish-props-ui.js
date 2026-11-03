@@ -3,7 +3,7 @@ export function createFishPropsUI({
   client, flushCheckpoint, checkpointClean, refreshGame, refreshLeaderboard, toast, getBlocked = () => false,
   renderFinal, focusCanvas, settled,
 }) {
-  let enabled = false, reason = "正在确认道具服务状态。", mode = "", selection = [];
+  let enabled = false, billing = false, reason = "正在确认道具服务状态。", mode = "", selection = [];
   let pending = null, busy = false, paused = false;
   const removeButton = document.querySelector("#prop-remove");
   const mergeButton = document.querySelector("#prop-merge");
@@ -39,7 +39,7 @@ export function createFishPropsUI({
     else if (!account()) status.textContent = "登录中转站账户后可使用付费道具。";
     else if (!enabled) status.textContent = reason || "道具暂不可用。";
     else if (!gameReady()) status.textContent = "本局就绪后可用，每次从中转站账户扣 $0.01；每局最多 20 次。";
-    else status.textContent = "每次从中转站账户扣 $0.01；每局最多 20 次。";
+    else status.textContent = "支持者每天 2 次免费，使用前明确确认；付费仍需确认 $0.01，每局共最多 20 次。";
     reviveStatus.textContent = pending ? status.textContent
       : !canUse ? status.textContent : "清除警戒线附近及上方的鱼，保留分数；计入道具榜，仍可领取奖励。";
     selected(getGame());
@@ -48,7 +48,7 @@ export function createFishPropsUI({
   const load = async () => {
     try {
       const response = await client.getProps(), data = response?.data ?? response;
-      enabled = data.enabled === true; reason = data.reason || "道具暂不可用。";
+      billing=data.enabled===true;enabled = billing||data.daily_enabled===true; reason = data.reason || "道具暂不可用。";
     } catch (error) { enabled = false; reason = error.message || "道具服务暂时无法确认，请稍后刷新。"; }
     render();
   };
@@ -71,7 +71,7 @@ export function createFishPropsUI({
       if (data.expired) {
         pending = null; busy = false; mode = ""; selection = []; paused = false;
         overlay.hidden = !getGame().over; render();
-        toast("道具已扣款，但原对局已失效，无法恢复本局。请重新开始。", { paid: true }); settled(); return;
+        toast(data.receipt?.quota===0?"免费道具已处理，原对局已失效，请使用自动恢复入口。":"道具已扣款，但原对局已失效，无法恢复本局。请重新开始。", { paid: data.receipt?.quota!==0 }); settled(); return;
       }
       if (data.pending || !data.state) {
         pending.receiptId = data.receipt?.id ?? pending.receiptId;
@@ -106,7 +106,7 @@ export function createFishPropsUI({
       } else if (code === 401) {
         busy = false; render(); status.textContent = "道具请求仍保留。请登录发起订单的原账户，再用同一请求确认。";
       } else if (["INVALID_PROP", "PROPS_DISABLED", "PAYMENT_REFUSED", "WALLET_REJECTED", "WALLET_UNAVAILABLE", "WALLET_BUSY",
-        "WALLET_DISABLED", "WALLET_INPUT", "PROP_RUN_LIMIT", "INSUFFICIENT_QUOTA", "PROP_REQUEST_FAILED"].includes(errorCode)) {
+        "DAILY_EMPTY", "DAILY_RESET", "SUPPORTER_REQUIRED", "INVALID_DAILY", "WALLET_DISABLED", "WALLET_INPUT", "PROP_RUN_LIMIT", "INSUFFICIENT_QUOTA", "PROP_REQUEST_FAILED"].includes(errorCode)) {
         pending = null; busy = false; mode = ""; selection = []; paused = false;
         overlay.hidden = !getGame().over; render(); toast(error.message || "道具没有生效，本次未扣费。");
         settled();
@@ -122,12 +122,16 @@ export function createFishPropsUI({
     const label = ({ remove: "捞鱼网", merge: "牵线合成", swap: "交换位置", pack: "打包小鱼", revive: "续玩" })[kind];
     const action = ({ remove: "移走这条鱼", merge: "合成这两条鱼", swap: "交换这两条鱼的位置", pack: `打包所选 ${bodyIds.length} 条小鱼`,
       revive: "清除警戒线附近及上方的鱼并继续本局（保留分数，计入道具榜，仍可领奖）" })[kind];
-    if (!window.confirm(`确认使用“${label}”${action}？本次从中转站账户扣 $0.01；未成功生效不收费。`)) { clearSelection(); return; }
+    let daily=null,useFree=false;const owner=account().id;busy=true;render();
+    try{const response=await client.requestCompanion(new URL('/games/fat-fish/api/supporter',location.origin),{method:'GET'});const result=await response.json();if(!response.ok||!result.success||result.user_id!==owner)throw Error('暂时无法确认支持者次数，未使用也未扣费。');if(account()?.id!==owner)throw Error('账户已变化，未使用。');daily=result.supporter?.daily;useFree=!!(result.supporter?.active&&daily?.games?.['fat-fish']?.remaining>0);if(result.supporter?.active&&!useFree&&!window.confirm('今日免费次数已用完。是否明确切换为付费使用？下一步仍需确认 $0.01。取消不会扣费。')){clearSelection();return;}}
+    catch(error){toast(error.message);clearSelection();return;}finally{busy=false;render();}
+    if(!useFree&&!billing){toast('今天没有可用免费次数，付费功能也未开放，未使用也未扣费。');return;}
+    if (!window.confirm(useFree?`确认免费使用“${label}”${action}？消耗今日 1 次免费额度，不扣余额，每日零点重置。`:`确认使用“${label}”${action}？本次从中转站账户扣 $0.01；未成功生效不收费。`)) { clearSelection(); return; }
     const run = activeRun();
     pending = { ownerId: account().id, runId: run.id, receiptId: null, payload: { run_id: run.id, step: getGame().stepIndex, moves: [],
       request_id: globalThis.crypto?.randomUUID?.() ?? "xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx".replace(/[xy]/g, (slot) => {
         const value = Math.floor(Math.random() * 16); return (slot === "x" ? value : (value & 3) | 8).toString(16);
-    }), kind, body_ids: bodyIds, confirm_quota: 5000 } };
+    }), kind, body_ids: bodyIds, confirm_quota: useFree?0:5000,...(useFree?{free_daily:true,day:daily.day}:{}) } };
     mode = ""; selection = []; paused = true; busy = false; render();
     if (!(await flushCheckpoint())) {
       pending = null; paused = false; overlay.hidden = !getGame().over; render();
