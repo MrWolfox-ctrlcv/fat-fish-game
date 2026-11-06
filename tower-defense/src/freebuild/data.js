@@ -39,7 +39,7 @@ export const availableBranches=(type,stage)=>Object.entries(BRANCHES).filter(([,
 export function towerStats(t){
  const b=TOWERS[t.type],i=Math.min(2,t.level-1),k=t.tech||{},factor=t.coupon?.8:1;
  let s=t.type==='glm'?{damage:[12,20,32][i],interval:[.6,.55,.5][i],range:[230,250,275][i],damageType:'physical'}:
- t.type==='kimi'?{damage:[48,82,132][i],interval:0,range:[250,275,300][i],damageType:'magic'}:
+ t.type==='kimi'?{damage:[48,82,132][i],interval:0,range:[250,275,300][i],damageType:'magic',beamCount:i+1,beamRampMax:2.5,beamRampSeconds:3,beamGrace:.3}:
  t.type==='whale'?{damage:[52,82,128][i],interval:[1.9,1.8,1.7][i],range:[245,265,285][i],splash:[70,85,100][i],damageType:'physical'}:
  {damage:[12,21,34][i],interval:1.1,range:[230,250,275][i],damageType:'physical',unitCount:[2,3,4][i],unitHp:[130,230,360][i],unitDamage:[12,21,34][i],unitInterval:1.1,unitSpeed:95,unitBlock:1,respawn:[5,4.5,4][i],unitKind:'small'};
  if(t.branch==='egg')Object.assign(s,{eggCount:1+(k.egg_count||0),eggDps:18*factor,eggRadius:75,eggDuration:4,eggInterval:3.5,poisonDps:(k.egg_venom||0)*8*factor});

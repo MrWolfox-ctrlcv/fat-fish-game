@@ -1,3 +1,4 @@
+import {updateKimiBeams} from './beams.js';
 import {recordTowerDamage,measurePressure} from './metrics.js';
 import {WORLD,TOWERS,ENEMIES,TECHS,BRANCHES,towerStats,upgradePrice,effectiveDamage} from './data.js';
 import {getLevel,getMap} from './levels.js';
@@ -20,7 +21,7 @@ export function placementAt(g,type,x,y){
  if(g.gold<b.cost){p.valid=false;p.reason='金币不足';}if(g.towers.length>=80){p.valid=false;p.reason='塔楼已达上限';}if(['won','lost'].includes(g.phase)){p.valid=false;p.reason='本局已结束';}return p;
 }
 export function nearestRoad(g,x,y){let best=null;getMap(g.levelId).routes.forEach((r,route)=>{const p=r.nearest(x,y);if(!best||p.gap<best.gap)best={...p,route};});return best;}
-export function buildTower(g,type,x,y){const p=placementAt(g,type,x,y);if(!p.valid)return null;const road=nearestRoad(g,p.x,p.y),t={id:g.id++,type,cellX:p.cellX,cellY:p.cellY,x:p.x,y:p.y,level:1,branch:null,tech:{},spent:TOWERS[type].cost,cooldown:.1,eggCooldown:1,spawnTimer:0,sideCooldown:0,crushCooldown:0,bombardCooldown:0,shieldCooldown:0,shots:0,aim:0,priority:'first',coupon:false,couponUsed:false,beamTargetId:null,rally:{x:road.x,y:road.y},skillCooldown:0};g.gold-=t.spent;g.stats.spent+=t.spent;g.towers.push(t);emit(g,'build',t.x);effect(g,'build',t.x,t.y,1);return t;}
+export function buildTower(g,type,x,y){const p=placementAt(g,type,x,y);if(!p.valid)return null;const road=nearestRoad(g,p.x,p.y),t={id:g.id++,type,cellX:p.cellX,cellY:p.cellY,x:p.x,y:p.y,level:1,branch:null,tech:{},spent:TOWERS[type].cost,cooldown:.1,eggCooldown:1,spawnTimer:0,sideCooldown:0,crushCooldown:0,bombardCooldown:0,shieldCooldown:0,shots:0,aim:0,priority:'first',coupon:false,couponUsed:false,beams:[],rally:{x:road.x,y:road.y},skillCooldown:0};g.gold-=t.spent;g.stats.spent+=t.spent;g.towers.push(t);emit(g,'build',t.x);effect(g,'build',t.x,t.y,1);return t;}
 export function hitTower(g,x,y){return g.towers.findLast(t=>Math.abs(t.x-x)<=TOWERS[t.type].size*12.5&&Math.abs(t.y-y)<=TOWERS[t.type].size*12.5);}
 export function upgradeTower(g,id,kind='level'){
  const t=g.towers.find(t=>t.id===id);if(!t||['won','lost'].includes(g.phase))return false;
@@ -68,7 +69,7 @@ export function update(g,dt){
   for(const p of e.poisonStacks){const span=Math.min(dt,p.remaining);damageEnemy(g,e,p.dps*span,'magic',0,p.source);p.remaining-=dt;}e.poisonStacks=e.poisonStacks.filter(p=>p.remaining>0);
  }
  g.zones=g.zones.filter(z=>z.remaining>0);allies(g,dt);
- for(const t of g.towers){t.skillCooldown=Math.max(0,t.skillCooldown-dt);t.bombardCooldown=Math.max(0,t.bombardCooldown-dt);t.sideCooldown-=dt;t.crushCooldown-=dt;const s=towerStats(t),boost=g.boost?.towerId===t.id,list=targets(g,t);if(t.type==='qwen')continue;if(t.type==='kimi'){let e=g.enemies.find(e=>e.id===t.beamTargetId&&e.hp>0&&dist(e,t)<=s.range+e.radius);e??=list[0];t.beamTargetId=e?.id||null;if(e){t.aim=Math.atan2(e.y-t.y,e.x-t.x);t.attackAt=g.time;damageEnemy(g,e,s.damage*(boost?1.8:1)*dt,'magic',0,t.id);}continue;}
+ for(const t of g.towers){t.skillCooldown=Math.max(0,t.skillCooldown-dt);t.bombardCooldown=Math.max(0,t.bombardCooldown-dt);t.sideCooldown-=dt;t.crushCooldown-=dt;const s=towerStats(t),boost=g.boost?.towerId===t.id,list=targets(g,t);if(t.type==='qwen')continue;if(t.type==='kimi'){updateKimiBeams(g,t,s,list,dt,damageEnemy);continue;}
   t.cooldown-=dt;t.eggCooldown-=dt;if(t.cooldown<=0&&list.length){fire(g,t,{...s,damage:s.damage*(boost?1.15:1)},list[0]);t.cooldown=s.interval/(boost?1.8:1);}if(t.branch==='egg'&&t.eggCooldown<=0)eggs(g,t,s,list);
   if(s.sidePoison&&t.sideCooldown<=0&&list.length){fire(g,t,s,[...list].sort((a,b)=>b.hp-a.hp)[0],'side');t.sideCooldown=s.sideInterval;}
   if(s.crushRank&&t.crushCooldown<=0&&list.length)launchCrush(g,t,s,list[0]);
