@@ -1,6 +1,6 @@
 {
-  "version": 3,
-  "balance": 3,
+  "version": 4,
+  "balance": 4,
   "base": "/games/tower-defense/",
   "files": [
     {
@@ -36,7 +36,7 @@
     {
       "path": "src/freebuild/data.js",
       "bytes": 7922,
-      "sha256": "dd20e15c840b73b459886f76517d248803b8c7df0ee5a41acea0dd9bf3bf3baf"
+      "sha256": "543187ef5e8d69295e868646960fbeb7e2561aea2b8f1e4644a50f5f4d76420c"
     },
     {
       "path": "src/freebuild/levels.js",
@@ -76,7 +76,7 @@
     {
       "path": "src/freebuild/telemetry.js",
       "bytes": 5848,
-      "sha256": "8d113543e293353d9ea7909499212742fb1a4d932549a7981c07f43fd3af0d00"
+      "sha256": "e64cb811f7d2d3b493b2363da62dbaa7660e6e033e8b48bfdf51a2b1c293a50e"
     },
     {
       "path": "src/freebuild/beams.js",
