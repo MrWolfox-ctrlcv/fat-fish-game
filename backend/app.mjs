@@ -1,3 +1,4 @@
+import {createTowerAssets} from './tower-assets.mjs';
 import { createServer } from 'node:http';
 import { readdir } from 'node:fs/promises';
 import { randomBytes, randomUUID, createHash } from 'node:crypto';
@@ -47,6 +48,7 @@ export async function createGameServer(options = {}) {
   const staticRoot = new URL('../dist/', import.meta.url);
   const staticFiles = new Set((await readdir(staticRoot)).filter((name) => /^[a-z0-9-]+\.(js|css|html)$/.test(name) || ['companion-portrait.png', 'prop-icons.png'].includes(name)));
   const sendStatic = await createStaticAssets(staticRoot, staticFiles);
+  const sendTower=await createTowerAssets();
   const playroomRoot = options.playroomRoot ?? new URL('../playroom/', import.meta.url);
   let sendPlayroom = null;
   try {
@@ -232,6 +234,8 @@ export async function createGameServer(options = {}) {
         if (!['GET', 'HEAD'].includes(request.method) || !staticFiles.has('games-index.html')) throw fail(404, '页面不存在。');
         sendStatic(request, response, 'games-index.html', headers); return;
       }
+      if(url.pathname==='/games/tower-defense'){response.writeHead(302,{Location:'/games/tower-defense/'}).end();return;}
+      if(url.pathname.startsWith('/games/tower-defense/')){if(!['GET','HEAD'].includes(request.method)||!sendTower||!await sendTower(request,response,url.pathname.slice('/games/tower-defense/'.length)||'index.html',headers))throw fail(404,'页面不存在。');return;}
       if (url.pathname === '/games/bumper') { response.writeHead(302, { Location: '/games/bumper/' }).end(); return; }
       if (url.pathname.startsWith('/games/bumper/')) {
         const name = url.pathname.slice('/games/bumper/'.length) || 'index.html';
@@ -349,6 +353,7 @@ export async function createGameServer(options = {}) {
         await sendPrivateArt(request, response, art, key, headers); return;
       }
       const user = await authenticate(request);
+      if(path==='api/admin/tower-export'&&request.method==='GET'){if(user.role<10)throw fail(403,'需要管理员权限。');const after=Number(url.searchParams.get('after')||0);if(!Number.isSafeInteger(after)||after<0)throw fail(422,'分页参数无效。');const rows=store.db.prepare("SELECT rowid cursor,run_key,kind,created,summary FROM game_play_events WHERE game='tower-defense' AND rowid>? ORDER BY rowid LIMIT 500").all(after).map(r=>({...r,summary:JSON.parse(r.summary)}));json(200,{success:true,rows,next:rows.at(-1)?.cursor||after,has_more:rows.length===500});return;}
       if(path==='api/admin/monitor'&&request.method==='GET'){if(user.role<10)throw fail(403,'需要管理员权限。');json(200,{success:true,...monitor.report()});return;}
       if(path==='api/admin/supporter-review'&&request.method==='POST'){if(user.role<10)throw fail(403,'需要管理员权限。');json(200,{success:true,...supporter.review(await body(request))});return;}
       if(path==='api/supporter'&&request.method==='GET'){json(200,{success:true,user_id:user.id,supporter:supporter.status(user.id)});return;}

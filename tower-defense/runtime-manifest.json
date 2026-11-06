@@ -1,0 +1,247 @@
+{
+  "version": 1,
+  "balance": 1,
+  "base": "/games/tower-defense/",
+  "files": [
+    {
+      "path": "index.html",
+      "bytes": 7812,
+      "sha256": "f04f3ed4cc4d29ecf74990351f36bfe4852222c47d5caa019467a4876248eb64"
+    },
+    {
+      "path": "style.css",
+      "bytes": 30679,
+      "sha256": "9aacb19d86e299e42cfacc53806627358b8a9b796f8d8cd6e08b1dec34bd9c4b"
+    },
+    {
+      "path": "src/audio.js",
+      "bytes": 7736,
+      "sha256": "7eded531f8f6ac454cfe4d7f405bf765db6cf8b9a2071a886983373cca679e34"
+    },
+    {
+      "path": "src/units.js",
+      "bytes": 4137,
+      "sha256": "a43cc28f4fb005e0595677d4484d21f9fe5834e5b33b287727c2545fc3f86330"
+    },
+    {
+      "path": "src/menu-layout.js",
+      "bytes": 1694,
+      "sha256": "366ae4f681fccb3691c47c8adb12e3e3fe3590957246f8b34bf0853465b31df3"
+    },
+    {
+      "path": "src/freebuild/main.js",
+      "bytes": 21649,
+      "sha256": "deb6821f959a200425d2667310687607ce478b67303ab87b8611170624c30e18"
+    },
+    {
+      "path": "src/freebuild/data.js",
+      "bytes": 7207,
+      "sha256": "b99bf93658e48e1e43b0d11b5ee631fddc1bb2d47b87bf3ad7b6ce418b2c948d"
+    },
+    {
+      "path": "src/freebuild/levels.js",
+      "bytes": 8409,
+      "sha256": "dd45ba281411b2b57c98110f2a802cc6432088dbf6c25bb2f8934535b20e224f"
+    },
+    {
+      "path": "src/freebuild/engine.js",
+      "bytes": 20715,
+      "sha256": "499870e6a823f3d94fc6a0033516f49d2ce4ca7d13d21b34b4c03df5e57412a6"
+    },
+    {
+      "path": "src/freebuild/geometry.js",
+      "bytes": 1618,
+      "sha256": "5150b2148649a66f13c44ca141085595b29bb711b42a1553b5a91ed02e70f067"
+    },
+    {
+      "path": "src/freebuild/gestures.js",
+      "bytes": 2714,
+      "sha256": "284f4535d4b255e5d6f814109084cc673ff45452b70660dbcdea72f91a5ef19c"
+    },
+    {
+      "path": "src/freebuild/view.js",
+      "bytes": 986,
+      "sha256": "783609e057d2a40c83febbd148e1514e844dac5e7e5c990c8ac937a1ae9f0026"
+    },
+    {
+      "path": "src/freebuild/render.js",
+      "bytes": 11487,
+      "sha256": "5f2003bb00f311036da97a4482730f72c0e0e1e66176338917d28ec7b8b0c816"
+    },
+    {
+      "path": "src/freebuild/metrics.js",
+      "bytes": 1224,
+      "sha256": "83a6ab7a05745d13fbf7be3b5b2654da832b89652814501f43c2d333753f1002"
+    },
+    {
+      "path": "src/freebuild/telemetry.js",
+      "bytes": 5612,
+      "sha256": "7c3edf4fd65210b51bcccb793db4f2b566958f580e826a75b37360709c40d4ed"
+    },
+    {
+      "path": "src/freebuild/controls.css",
+      "bytes": 1264,
+      "sha256": "97da424ba9896d4cee628a0571abf1d76862b9242a97a4bf3862243650c56cf1"
+    },
+    {
+      "path": "assets/supply-lodge.webp",
+      "bytes": 25446,
+      "sha256": "f511aca6dab0794ffea38880ec990b96e8ebaba2757d580c078b8a80db37e57b"
+    },
+    {
+      "path": "assets/whale-mortars.webp",
+      "bytes": 71596,
+      "sha256": "b444a8fd505e01ebe7465c44a1938b40a39af9fd031823bdfc6bbb36ec7d46b3"
+    },
+    {
+      "path": "assets/moon-prisms.webp",
+      "bytes": 71024,
+      "sha256": "f609b047b7687015c351bb8d7c9eddb87f478cc2a6518bbab607ee9d70ad98ab"
+    },
+    {
+      "path": "assets/fan-barracks.webp",
+      "bytes": 88250,
+      "sha256": "0ad3c004f0709e1e3dfda74f7024d0c8b664af606361b41fa58ec38a6074106c"
+    },
+    {
+      "path": "assets/glm.png",
+      "bytes": 1122842,
+      "sha256": "94a1e7d7a23c2db41524f6bacaf0dc0aafb164e50c3e867d9b6615322430b850"
+    },
+    {
+      "path": "assets/ui/life.webp",
+      "bytes": 6922,
+      "sha256": "feb74bc2021d1a912235a84a91a6578b88132a59ca6391803a66f66cf50add47"
+    },
+    {
+      "path": "assets/ui/coins.webp",
+      "bytes": 5178,
+      "sha256": "81dea679910e6983c73113782181cf4f1d3af2c87499246f70d03e7a09acfe76"
+    },
+    {
+      "path": "assets/ui/waves.webp",
+      "bytes": 6736,
+      "sha256": "45bc22349eac52c7096174769dd54f9e1d1a660a2a26e85a4e223151e742fd71"
+    },
+    {
+      "path": "assets/ui/compute.webp",
+      "bytes": 4668,
+      "sha256": "07548ef30eaf593b9d8f186a745dec775669e334814354bc17611204b5f8da8e"
+    },
+    {
+      "path": "assets/ui/energy-frame.webp",
+      "bytes": 19898,
+      "sha256": "422dddff3acc13ec6c4b305cadfa1b55e32e8316e3b72458ca30e2cae32b1b8d"
+    },
+    {
+      "path": "assets/ui/energy-fill.webp",
+      "bytes": 9440,
+      "sha256": "57b7009a2e1cd15cf9a5a1321c4b12a7484df09afb3252ddcd56e9c731e97c59"
+    },
+    {
+      "path": "assets/audio/shallow-bay-v2.mp3",
+      "bytes": 320877,
+      "sha256": "28a8d9008a51512e307296e7b90eeeaf46f4dd230180b2d44757a7df0805ec17"
+    },
+    {
+      "path": "assets/audio/star-crown-v2.mp3",
+      "bytes": 275085,
+      "sha256": "55cb214f00cb6be7c7f3ccaee5a788da7dd1c916f7df2027c41f5d329ec89564"
+    },
+    {
+      "path": "assets/units/glm.webp",
+      "bytes": 204858,
+      "sha256": "357fab7f562f7e6c9f00d56903b634af817bfac7fe60320d74b99019bb0ad209"
+    },
+    {
+      "path": "assets/units/whale.webp",
+      "bytes": 247558,
+      "sha256": "1ba11f0f6160917b57fa2cb2148cce87569112697db8185beed5a09a09b89bcb"
+    },
+    {
+      "path": "assets/units/moon.webp",
+      "bytes": 238386,
+      "sha256": "82903518af94fb5ae6f02ce228ce39039dd9c9ead766a0ad978c34c2e12aee3a"
+    },
+    {
+      "path": "assets/units/fan.webp",
+      "bytes": 227636,
+      "sha256": "12612ded0b98d5b93e71ac77a94f6017bf4cc4b02c1d5c36fd7178f994134337"
+    },
+    {
+      "path": "assets/units/silly.webp",
+      "bytes": 199886,
+      "sha256": "c76578a4ff2b56689f54029b2750547dbe8be4561befd1079d3afeef29505ced"
+    },
+    {
+      "path": "assets/units/awake.webp",
+      "bytes": 235882,
+      "sha256": "347083eb7b924a04aa0ed3ba595e0f7c989f83f7c2a48596f090b50540c3da19"
+    },
+    {
+      "path": "assets/units/grok.webp",
+      "bytes": 255656,
+      "sha256": "e7f0a8f4daaef3b6f0962389a2e3e33df3675ff9a333d44ae6adad6920a8a241"
+    },
+    {
+      "path": "assets/units/claude.webp",
+      "bytes": 211078,
+      "sha256": "d14f8d7a62f0cc5792829f2181d100c7d786351273b7d57ff015cf565d5c32e9"
+    },
+    {
+      "path": "assets/units/cat.webp",
+      "bytes": 202044,
+      "sha256": "fd4aceede5fe1430807f8475bb6c6a181f70b0ed70add01ec12d86d16a51e5b7"
+    },
+    {
+      "path": "assets/units/recruit.webp",
+      "bytes": 184324,
+      "sha256": "ce58d4bcf7350f52d86521437a166c31daafa3938da8de305e28ba6012313fbe"
+    },
+    {
+      "path": "assets/units/general.webp",
+      "bytes": 228212,
+      "sha256": "cee91c5808338dd9cea40c531d7e6bf77739b4bdc0d753d01888f6647f72d8b9"
+    },
+    {
+      "path": "sprites/whale.png",
+      "bytes": 68181,
+      "sha256": "d0e9505a3bd95120d77dcc2d25fd0f9bc360b67f6922809fecb13126235a7349"
+    },
+    {
+      "path": "sprites/moon.png",
+      "bytes": 67480,
+      "sha256": "4db4d384e515af95d025e105840c6c967b69de7f1e64e60b07d98e2e91e3658e"
+    },
+    {
+      "path": "sprites/fan.png",
+      "bytes": 52761,
+      "sha256": "15df99c8a1fb5d9b49af92044a19fa64500d6f314b7d16ad955b0c35cd4e82a0"
+    },
+    {
+      "path": "sprites/cat.png",
+      "bytes": 73691,
+      "sha256": "e38653cd58f880d48273f154fb1558220570c40087e6332f05986e94a000cf75"
+    },
+    {
+      "path": "sprites/claude.png",
+      "bytes": 80529,
+      "sha256": "25a7dadebf0e8721dbcff1d07883c5c458a991b02d53715bbab76abe4cf690de"
+    },
+    {
+      "path": "sprites/grok.png",
+      "bytes": 95803,
+      "sha256": "495afa22658bd081ce0ffb4f775f476798c01c2b389aa5d62cab811b0d132a50"
+    },
+    {
+      "path": "sprites/silly.png",
+      "bytes": 206565,
+      "sha256": "79aa07f52adef059b164546ecb4230a2ef7aae11c711ccd12d5ec9f3f4fd278c"
+    },
+    {
+      "path": "sprites/awake.png",
+      "bytes": 233219,
+      "sha256": "518222b686257ea898a96a4a65429d38c726973090bdfd5888bc1ce83c390e64"
+    }
+  ]
+}

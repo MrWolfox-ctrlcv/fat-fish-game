@@ -11,7 +11,7 @@ test('counts visitors and active players by game, deduplicating sessions', () =>
   assert.equal(presence.touch({ sessionId: id(2), game: 'survivor' }), true);
   assert.deepEqual(presence.stats(), {
     online: 2, playing: 2,
-    games: { 'fat-fish': { online: 0, playing: 0 }, bumper: { online: 1, playing: 1 }, survivor: { online: 1, playing: 1 } }
+    games: { 'fat-fish': { online: 0, playing: 0 }, bumper: { online: 1, playing: 1 }, survivor: { online: 1, playing: 1 }, 'tower-defense': { online: 0, playing: 0 } }
   });
 });
 

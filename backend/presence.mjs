@@ -1,4 +1,4 @@
-const GAMES = ['fat-fish', 'bumper', 'survivor'];
+const GAMES = ['fat-fish', 'bumper', 'survivor', 'tower-defense'];
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
 
 export function createPresence({ now = Date.now, ttl = 90000, maxEntries = 2000 } = {}) {

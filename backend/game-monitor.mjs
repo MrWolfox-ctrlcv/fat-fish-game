@@ -1,6 +1,7 @@
+import {cleanTowerPayload,towerAnalysis} from './tower-analysis.mjs';
 import {createHash} from 'node:crypto';
-const DAY=86400000,GAMES=new Set(['fat-fish','bumper','survivor']);
-const TYPES=new Set(['start','snapshot','upgrade-offer','upgrade-pick','round-end','end','resume']);
+const DAY=86400000,GAMES=new Set(['fat-fish','bumper','survivor','tower-defense']);
+const TYPES=new Set(['start','snapshot','upgrade-offer','upgrade-pick','round-end','end','resume','build','upgrade','sell','rally','wave-start','wave-end','leak','bombard','suspend']);
 const NUMBERS={level:40,round:20,score:1e8,kills:1e6,health:1e5,maxHealth:1e5,damage:1e6,fireRate:100,shots:144,speed:10000,armor:10000,luck:100,energy:1000,compute:1000,xp:1e7,xpNeed:1e7,seconds:14400,fatLevel:30,fatXp:1000,enemyCount:112,rank:6,knockouts:10000,deaths:10000};
 const CHOICES=new Set(['damage','fireRate','maxHealth','vampirism','multishot','piercing','crit','speed','magnet','chargeCooldown','fortune','energyGain','energyMax','efficiency','transformedDamage','ricebox','armor','thrust','regen','impact','frost','ricochet','orbit','nova']);
 const fault=(status,message)=>Object.assign(Error(message),{status});
@@ -38,7 +39,7 @@ export function createGameMonitor({db,presence,now=Date.now}){
     if(total+input.events.length>1200||count+input.events.length>120)throw fault(429,'统计上传过于频繁。');
     const clean=input.events.map(e=>{
       if(!e||!/^[a-f0-9-]{36}$/i.test(e.id||'')||!/^[a-f0-9-]{36}$/i.test(e.run||'')||!GAMES.has(e.game)||!TYPES.has(e.kind))throw fault(422,'游玩事件无效。');
-      const summary={};
+      const summary={};if(e.game==='tower-defense')summary.td=cleanTowerPayload(e.td);
       if(e.values){if(typeof e.values!=='object'||Array.isArray(e.values))throw fault(422,'属性格式无效。');for(const[k,v]of Object.entries(e.values)){if(!Object.hasOwn(NUMBERS,k)||!Number.isFinite(v)||v<0||v>NUMBERS[k])throw fault(422,'属性超出统计范围。');summary[k]=v;}}
       if(e.hero!==undefined){if(!['deepseek','gpt','gemini','doubao','qwen','kimi','astra'].includes(e.hero))throw fault(422,'角色无效。');summary.hero=e.hero;}
       if(e.difficulty!==undefined){if(!['relaxed','standard','hard'].includes(e.difficulty))throw fault(422,'难度无效。');summary.difficulty=e.difficulty;}
@@ -57,7 +58,7 @@ export function createGameMonitor({db,presence,now=Date.now}){
       db.exec('COMMIT');return {accepted};
     }catch(e){db.exec('ROLLBACK');throw e;}
   }
-  function report(){sample();return {current:presence.stats(),resources:{rss:process.memoryUsage().rss,uptime_seconds:Math.floor(process.uptime())},minutes:db.prepare('SELECT * FROM game_monitor_minutes WHERE minute>=? ORDER BY minute DESC,game LIMIT 1444').all(Math.floor(now()/60000)-360),daily:db.prepare('SELECT * FROM game_monitor_daily ORDER BY day DESC,game LIMIT 120').all(),events:db.prepare('SELECT id,run_key,game,kind,created,summary FROM game_play_events ORDER BY created DESC LIMIT 200').all().map(e=>({...e,summary:JSON.parse(e.summary)})),totals:db.prepare('SELECT game,kind,COUNT(*) AS count FROM game_play_events GROUP BY game,kind').all()};}
+  function report(){sample();return {tower:towerAnalysis(db),current:presence.stats(),resources:{rss:process.memoryUsage().rss,uptime_seconds:Math.floor(process.uptime())},minutes:db.prepare('SELECT * FROM game_monitor_minutes WHERE minute>=? ORDER BY minute DESC,game LIMIT 1444').all(Math.floor(now()/60000)-360),daily:db.prepare('SELECT * FROM game_monitor_daily ORDER BY day DESC,game LIMIT 120').all(),events:db.prepare('SELECT id,run_key,game,kind,created,summary FROM game_play_events ORDER BY created DESC LIMIT 200').all().map(e=>({...e,summary:JSON.parse(e.summary)})),totals:db.prepare('SELECT game,kind,COUNT(*) AS count FROM game_play_events GROUP BY game,kind').all()};}
   sample();
   const timer=setInterval(()=>{try{sample();}catch{/* Monitoring must not stop games. */}},60000);timer.unref();
   return {sample,observe,ingest,report,close(){clearInterval(timer);}};
