@@ -13,6 +13,6 @@ export function updateKimiBeams(g,t,s,list,dt,damageEnemy){
   b.missing=0;b.active=true;t.aim=Math.atan2(e.y-t.y,e.x-t.x);t.attackAt=g.time;
   const before=e.hp,amount=beamDamageDuring(s,b.charge,dt)*(g.boost?.towerId===t.id?1.8:1);damageEnemy(g,e,amount,'magic',0,t.id);b.charge=Math.min(s.beamRampSeconds,b.charge+dt);
   const row=g.stats.towerDamage[t.id];row.beamSeconds=(row.beamSeconds||0)+dt;if(e.hp<=0)row.beamKills=(row.beamKills||0)+1;
-  if(e.type==='grok'){row.beamGrokSeconds=(row.beamGrokSeconds||0)+dt;row.beamGrokDamage=(row.beamGrokDamage||0)+Math.min(before,Math.max(0,before-e.hp));if(e.hp<=0)row.beamGrokKills=(row.beamGrokKills||0)+1;}
+  if(e.family==='grok'||e.type==='grok'){row.beamGrokSeconds=(row.beamGrokSeconds||0)+dt;row.beamGrokDamage=(row.beamGrokDamage||0)+Math.min(before,Math.max(0,before-e.hp));if(e.hp<=0)row.beamGrokKills=(row.beamGrokKills||0)+1;}
  }
 }

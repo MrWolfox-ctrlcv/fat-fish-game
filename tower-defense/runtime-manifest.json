@@ -1,12 +1,12 @@
 {
-  "version": 2,
-  "balance": 2,
+  "version": 3,
+  "balance": 3,
   "base": "/games/tower-defense/",
   "files": [
     {
       "path": "index.html",
-      "bytes": 7812,
-      "sha256": "f04f3ed4cc4d29ecf74990351f36bfe4852222c47d5caa019467a4876248eb64"
+      "bytes": 8384,
+      "sha256": "8bada921d57463d3952f8ac82d65d43795c8b2467f4b65a0aae7e98b88c659ca"
     },
     {
       "path": "style.css",
@@ -30,23 +30,23 @@
     },
     {
       "path": "src/freebuild/main.js",
-      "bytes": 21649,
-      "sha256": "deb6821f959a200425d2667310687607ce478b67303ab87b8611170624c30e18"
+      "bytes": 25250,
+      "sha256": "ace533df617ea2728ccc804a6284f9f11ddf2e53e420f73f50147e738cb8e660"
     },
     {
       "path": "src/freebuild/data.js",
-      "bytes": 7268,
-      "sha256": "74ebf9fcfa8fb7f65af3dc335169eb3ff2399b4d93e51916e3ee0db14030a649"
+      "bytes": 7922,
+      "sha256": "dd20e15c840b73b459886f76517d248803b8c7df0ee5a41acea0dd9bf3bf3baf"
     },
     {
       "path": "src/freebuild/levels.js",
-      "bytes": 8409,
-      "sha256": "dd45ba281411b2b57c98110f2a802cc6432088dbf6c25bb2f8934535b20e224f"
+      "bytes": 9176,
+      "sha256": "8b8202c1adc46954119499d7a0d1031accc26a4d50c5a7bde9438e1060138bd5"
     },
     {
       "path": "src/freebuild/engine.js",
-      "bytes": 20553,
-      "sha256": "5c20b63505105bfc390c0281f56426f923999cccd6ad551e41526170f497c0a8"
+      "bytes": 21207,
+      "sha256": "e75743a2409539705121b7d908c44e5386a11e2b7bcc84755d5a59d662dad2ae"
     },
     {
       "path": "src/freebuild/geometry.js",
@@ -60,13 +60,13 @@
     },
     {
       "path": "src/freebuild/view.js",
-      "bytes": 986,
-      "sha256": "783609e057d2a40c83febbd148e1514e844dac5e7e5c990c8ac937a1ae9f0026"
+      "bytes": 1054,
+      "sha256": "59631bada82abc69311b106688998970228ca1b2bc19f9cab9f810e15524929c"
     },
     {
       "path": "src/freebuild/render.js",
-      "bytes": 11614,
-      "sha256": "92faabd2aad6e6b069c61795e6bfdb73779708aea193243a5399b795bb2ca729"
+      "bytes": 11577,
+      "sha256": "05428d7a3ab60d32d1f61135a5ce9cb32b7a7075f0540f1dfd3f3113c83432d9"
     },
     {
       "path": "src/freebuild/metrics.js",
@@ -75,18 +75,18 @@
     },
     {
       "path": "src/freebuild/telemetry.js",
-      "bytes": 5814,
-      "sha256": "3e914cd26fbde1a1905890c1e7943fb977a66c94634240276864ab8a00d13e8f"
+      "bytes": 5848,
+      "sha256": "8d113543e293353d9ea7909499212742fb1a4d932549a7981c07f43fd3af0d00"
     },
     {
       "path": "src/freebuild/beams.js",
-      "bytes": 1567,
-      "sha256": "da74459e21394f44253539ea1f24b0f3362377ad76b50d1009dd72baba8a4754"
+      "bytes": 1586,
+      "sha256": "d4f7b03c2b953b42b3e041b0dc8d5c29bfb8c6827dadb11b606add2f7d1716e4"
     },
     {
       "path": "src/freebuild/controls.css",
-      "bytes": 1264,
-      "sha256": "97da424ba9896d4cee628a0571abf1d76862b9242a97a4bf3862243650c56cf1"
+      "bytes": 1727,
+      "sha256": "58d91665628ec2b81fddee8ead15105f3acf1e68e0eaba765c62de8bcfeba538"
     },
     {
       "path": "assets/supply-lodge.webp",
@@ -247,6 +247,26 @@
       "path": "sprites/awake.png",
       "bytes": 233219,
       "sha256": "518222b686257ea898a96a4a65429d38c726973090bdfd5888bc1ce83c390e64"
+    },
+    {
+      "path": "src/freebuild/progress.js",
+      "bytes": 1104,
+      "sha256": "b2b2135eb5fc50659adafc831d789b6082943e2bad495ad86566221f3b1db66f"
+    },
+    {
+      "path": "src/freebuild/difficulty.js",
+      "bytes": 323,
+      "sha256": "57f28440a1ec87b7023951485fffbed34f5c53c3af87877ff8f71695a6dd251f"
+    },
+    {
+      "path": "src/freebuild/deployment.js",
+      "bytes": 575,
+      "sha256": "1c70cc477b478dab010fc6d0044f4a62570a16a7bd2a85eac25c72dd6c390658"
+    },
+    {
+      "path": "src/freebuild/deployment.css",
+      "bytes": 2113,
+      "sha256": "0087a8f14494b24ee65c45fcc1787c0af1e38d553ccdb917c88431f2e0871637"
     }
   ]
 }

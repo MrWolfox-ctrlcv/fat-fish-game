@@ -28,12 +28,14 @@ export const TECHS={
  giant_bombard:{name:'白饭征集令',short:'征集令',branch:'giant',cost:1500,max:0,repeatable:true,description:'每次支付1500金币，对全图敌人造成2500物理伤害。'}
 };
 export const ENEMIES={
- silly:{name:'降智龙',sprite:'silly',hp:85,speed:62,physicalResist:0,magicResist:0,damage:9,interval:1.1,coins:8,leak:1,radius:15,tip:'基础敌人，GLM箭塔即可应对。'},
- grok:{name:'Grok',sprite:'grok',hp:420,speed:38,physicalResist:.82,magicResist:.05,damage:28,interval:1.3,coins:22,leak:2,radius:22,tip:'物抗82%、法抗5%，用Kimi持续法伤应对。'},
+ silly:{family:'gpt',tier:'low',name:'GPT · 低级',sprite:'silly',hp:85,speed:55,physicalResist:0,magicResist:0,damage:7,interval:1.1,coins:8,leak:1,radius:15,tip:'基础敌人，GLM箭塔即可应对。'},
+ grok:{family:'grok',tier:'mid',name:'Grok · 重甲',sprite:'grok',hp:420,speed:38,physicalResist:.6,magicResist:.05,damage:80,interval:1.3,coins:22,leak:2,radius:22,tip:'物抗60%、法抗5%，用Kimi持续法伤应对。'},
  gemma:{name:'猫仔 · Gemma',sprite:null,hp:24,speed:42,physicalResist:0,magicResist:0,damage:3,interval:1.2,coins:2,leak:1,radius:9,tip:'低速低血，数量很多，适合范围攻击。'},
- cat:{name:'极其猫',sprite:'cat',hp:220,speed:68,physicalResist:.1,magicResist:.1,damage:12,interval:.9,coins:22,leak:2,radius:18,auraRange:190,auraBoost:.8,tip:'190范围内猫仔加速80%，光环不叠加。'},
- normal:{name:'正常龙',sprite:'awake',hp:1100,speed:72,physicalResist:.35,magicResist:.35,damage:42,interval:1,coins:65,leak:3,radius:22,tip:'生命、速度、双抗和攻击均中高，配合兵营阻挡与集中火力。'},
- claude:{name:'Claude',sprite:'claude',hp:12000,speed:30,physicalResist:0,magicResist:0,damage:18,interval:1.6,coins:260,leak:4,radius:25,absorbRange:230,tip:'无双抗的纯血牛，吸收230范围内友军受到的全部伤害；承伤耗尽后余伤回到原目标。'}
+ cat:{family:'gemini',tier:'support',name:'Gemini',sprite:'cat',hp:220,speed:68,physicalResist:.1,magicResist:.1,damage:12,interval:.9,coins:22,leak:2,radius:18,auraRange:190,auraBoost:.8,tip:'190范围内猫仔加速80%，光环不叠加。'},
+ normal:{family:'gpt',tier:'mid',name:'GPT · 中级',sprite:'awake',hp:650,speed:58,physicalResist:.1,magicResist:.1,damage:28,interval:1,coins:65,leak:3,radius:22,tip:'生命、速度、双抗和攻击均中高，配合兵营阻挡与集中火力。'},
+ gpt_elite:{family:'gpt',tier:'elite',name:'GPT · 精英',sprite:'awake',hp:2100,speed:40,physicalResist:.35,magicResist:.35,damage:100,interval:1.3,coins:100,leak:3,radius:25,tip:''},
+ grok_elite:{family:'grok',tier:'elite',name:'Grok · 精英',sprite:'grok',hp:1600,speed:30,physicalResist:.8,magicResist:.05,damage:3000,interval:2.4,coins:110,leak:4,radius:26,tip:''},
+ claude:{family:'claude',tier:'special',name:'Claude',sprite:'claude',hp:12000,speed:30,physicalResist:0,magicResist:0,damage:18,interval:1.6,coins:260,leak:4,radius:25,absorbRange:230,tip:'无双抗的纯血牛，吸收230范围内友军受到的全部伤害；承伤耗尽后余伤回到原目标。'}
 };
 export const availableBranches=(type,stage)=>Object.entries(BRANCHES).filter(([,b])=>b.tower===type&&b.minStage<=stage);
 export function towerStats(t){
@@ -52,3 +54,5 @@ export function towerStats(t){
 }
 export function upgradePrice(t,kind='level'){const k=t.tech||{};const cost=kind==='level'?TOWERS[t.type].upgrades[t.level-1]:BRANCHES[kind]?.cost??(TECHS[kind]?Math.round(TECHS[kind].cost*(1+(k[kind]||0)*.5)):Infinity);return Math.ceil(cost*(t.coupon?.75:1));}
 export function effectiveDamage(e,amount,type='physical',penetration=0){const r=type==='magic'?(e.magicResist||0):(e.physicalResist||0);return Math.max(0,amount)*(1-Math.min(.95,Math.max(0,r*(1-penetration))));}
+
+export const enemyType=(type,elite=false)=>elite?(type==='grok'?'grok_elite':type==='silly'||type==='normal'?'gpt_elite':type):type;
