@@ -1,10 +1,16 @@
-export function beamDamageDuring(s,charge,dt){const ramp=s.beamRampSeconds,gain=s.beamRampMax-1,area=t=>t+gain*(t<=ramp?t*t/(2*ramp):t-ramp/2);return s.damage*(area(charge+dt)-area(charge));}
+export function beamMultiplierAt(s,time){const t=Math.max(0,time),k=s.beamRampKneeSeconds,m=s.beamRampKneeMultiplier;return t<=k?1+(m-1)*t/k:m+(s.beamRampMax-m)*Math.min(1,(t-k)/(s.beamRampSeconds-k));}
+export function beamDamageDuring(s,charge,dt){
+ const k=s.beamRampKneeSeconds,m=s.beamRampKneeMultiplier,r=s.beamRampSeconds,first=k*(1+m)/2;
+ const area=t=>{if(t<=k)return t+(m-1)*t*t/(2*k);const u=Math.min(t,r)-k;return first+m*u+(s.beamRampMax-m)*u*u/(2*(r-k))+s.beamRampMax*Math.max(0,t-r);};
+ return s.damage*(area(charge+dt)-area(charge));
+}
 export function updateKimiBeams(g,t,s,list,dt,damageEnemy){
  t.beams??=[];t.beams.length=s.beamCount;const occupied=new Set(t.beams.filter(Boolean).map(b=>b.targetId).filter(Boolean));
  for(let i=0;i<s.beamCount;i++){
   const b=t.beams[i]??={targetId:null,charge:0,missing:0,aimElapsed:0,active:false};b.active=false;b.aiming=false;
   let e=g.enemies.find(e=>e.id===b.targetId&&e.hp>0),inside=e&&Math.hypot(e.x-t.x,e.y-t.y)<=s.range+e.radius;
-  if(!inside){
+  const acquired=e&&(b.aimElapsed||0)>=s.beamAimSeconds-1e-9;
+  if(!e||(!inside&&!acquired)){
    if(e&&b.missing+dt<s.beamGrace){b.missing+=dt;continue;}
    occupied.delete(b.targetId);b.targetId=null;b.charge=0;b.missing=0;b.aimElapsed=0;
    e=list.find(e=>e.hp>0&&!occupied.has(e.id));if(!e)continue;b.targetId=e.id;occupied.add(e.id);
