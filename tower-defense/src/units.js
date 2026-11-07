@@ -1,3 +1,4 @@
+import {ART} from './art-assets.js';
 // One shared sheet per unit, never one decoded texture per instance.
 export const UNIT_MODELS={
  silly:{name:'降智龙',family:'enemy',height:49,palette:'#bba4e4',silhouette:'短角、短翼、空白眼',weapon:'软头练习棒',motion:'摇晃小跑，挥棒后停顿'},
@@ -13,6 +14,7 @@ export const UNIT_MODELS={
  recruit:{name:'纸扇卫',family:'ally',height:47,palette:'#a3bfdc',silhouette:'短披风、折扇、轻护甲',weapon:'短扇刃',motion:'轻快巡行，近身横扫'},
  general:{name:'千扇大将',family:'ally',height:78,palette:'#bca66e',silhouette:'大扇、金蓝重甲、旗披',weapon:'重型战扇',motion:'重步、扇面拦截、挥扇震击'}
 };
+for(const key of Object.keys(ART.unitFiles))UNIT_MODELS[key]??={name:key,height:70};
 export const SHEET={columns:4,rows:6,frame:128};
 export const ACTION_ROWS={idle:0,walk:1,attack:2,cast:3,hurt:4,death:5};
 export function unitPose(unit,time,{death=false,age=0}={}){
@@ -28,12 +30,19 @@ export function unitPose(unit,time,{death=false,age=0}={}){
 }
 export function createUnitAtlas(){
  const sheets=new Map(),pending=new Set();
- function request(key){if(sheets.has(key)||pending.has(key)||!UNIT_MODELS[key])return;pending.add(key);const img=new Image();img.decoding='async';img.onload=()=>{if(img.naturalWidth===SHEET.columns*SHEET.frame&&img.naturalHeight===SHEET.rows*SHEET.frame)sheets.set(key,img);};img.src=`/games/tower-defense/assets/units/${key}.webp`;}
+ function request(key){if(sheets.has(key)||pending.has(key)||!UNIT_MODELS[key])return;pending.add(key);const img=new Image();img.decoding='async';img.onload=()=>{if(img.naturalWidth===SHEET.columns*SHEET.frame&&img.naturalHeight===SHEET.rows*SHEET.frame)sheets.set(key,img);};img.src=ART.unitFiles[key]?ART.unitFiles[key]:`/games/tower-defense/assets/units/${key}.webp`;}
  function draw(c,key,unit,time,x,y,height,options={}){
   request(key);const img=sheets.get(key);if(!img)return false;
-  const p=options.turnaround!==undefined?{row:0,frame:options.turnaround}:unitPose(unit,time,options);c.save();c.translate(x,y);if(options.flip)c.scale(-1,1);
+  const shield=key==='glm-x-shield',p=shield?shieldPose(unit,time,options):options.turnaround!==undefined?{row:0,frame:options.turnaround}:unitPose(unit,time,options);c.save();c.translate(x,y);if(options.flip)c.scale(-1,1);
   // All frames share a cell pivot. No per-frame fitting (which would make units grow/shrink).
-  c.drawImage(img,p.frame*SHEET.frame,p.row*SHEET.frame,SHEET.frame,SHEET.frame,-height*.5,-height,height,height);c.restore();return true;
+  c.drawImage(img,p.frame*SHEET.frame,p.row*SHEET.frame,SHEET.frame,SHEET.frame,-height*.5,-height*(options.anchorY||1),height,height);c.restore();return true;
  }
  return {draw,request,loaded:()=>sheets.size};
+}
+
+export function shieldPose(unit,time,{death=false,age=0}={}){
+ if(death)return {row:5,frame:Math.min(3,Math.floor(age/.55*4))};
+ const row=unit.damageStage||0;
+ if(row>0)return {row:Math.min(3,row),frame:3};
+ return time-(unit.hurtAt??-1e6)<.3?{row:4,frame:Math.min(3,Math.floor((time-unit.hurtAt)/.3*4))}:{row:0,frame:0};
 }

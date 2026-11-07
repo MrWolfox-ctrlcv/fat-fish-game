@@ -1,0 +1,450 @@
+{
+  "version": "tower-budget-2",
+  "status": "approved_for_runtime_v7",
+  "battleTests": false,
+  "anchors": {
+    "enemy": "silly",
+    "enemyHp": 85,
+    "enemyPrice": 10,
+    "glmCost": 70,
+    "glmDamage": 12,
+    "glmInterval": 0.6,
+    "glmRange": 230,
+    "glmArea": 4
+  },
+  "pricing": {
+    "rangePower": 1,
+    "extraMagicValue": 0.2,
+    "spaceCreditPerAreaDoubling": 0.15,
+    "denseFormationOccupancy": 0.25,
+    "factoryHorizonSeconds": 30,
+    "factoryStructureBudget": 80,
+    "referencePaidOrders": 8,
+    "friendlyUnitBaseCostFraction": 0.25,
+    "friendlySpeedPower": 0.25,
+    "unitHpWeight": 0.5,
+    "unitDamageWeight": 0.35,
+    "unitBlockWeight": 0.15,
+    "cannon": {
+      "minimumPaidTargets": 3,
+      "radiusReference": 25,
+      "radiusPower": 0.5,
+      "spaceCredit": 1,
+      "mixedReferenceShares": {
+        "silly": 0.5,
+        "normal": 0.25,
+        "grok": 0.2,
+        "grok_elite": 0.05
+      },
+      "note": "群伤按至少三个目标的能力计价；范围增益另付费，4×4不补回额外单体火力。混伤按基准编队的抗性收益计价。"
+    }
+  },
+  "formation": {
+    "roadWidth": 110,
+    "miniColumns": 3,
+    "miniRadius": 9,
+    "referenceRowPitch": 30,
+    "referenceRowsEachSide": 8
+  },
+  "glm": {
+    "costs": [
+      70,
+      130,
+      225
+    ],
+    "intervals": [
+      0.6,
+      0.55,
+      0.5
+    ],
+    "ranges": [
+      230,
+      250,
+      275
+    ],
+    "area": 4,
+    "retargetSeconds": 0.25
+  },
+  "whale": {
+    "costs": [
+      130,
+      280,
+      500
+    ],
+    "intervals": [
+      2.1,
+      2,
+      1.8
+    ],
+    "ranges": [
+      245,
+      265,
+      285
+    ],
+    "radii": [
+      25,
+      35,
+      45
+    ],
+    "area": 16,
+    "physicalShare": 0.75,
+    "roleLimits": {
+      "maxRawSingleVsGlm": 0.5,
+      "maxEffectiveSingleVsGlm": 1,
+      "compareEnemies": [
+        "silly",
+        "normal",
+        "gpt_elite",
+        "grok",
+        "grok_elite",
+        "gemma",
+        "cat",
+        "claude"
+      ],
+      "note": "角色约束优先于预算：基础三级鱼无抗对单至多同级GLM一半；对现有敌人混伤结算后也不得反超。未用完的预算明确列出。"
+    }
+  },
+  "kimi": {
+    "costs": [
+      140,
+      320,
+      560
+    ],
+    "ranges": [
+      320,
+      350,
+      380
+    ],
+    "area": 9,
+    "beams": [
+      1,
+      2,
+      3
+    ],
+    "initialDpsPerBeam": [
+      1,
+      1.5,
+      2
+    ],
+    "aimSeconds": 2,
+    "lowFireSeconds": 3,
+    "rampEndFireSeconds": 6,
+    "referenceWindows": [
+      {
+        "seconds": 4,
+        "weight": 0.8
+      },
+      {
+        "seconds": 20,
+        "weight": 0.2
+      }
+    ],
+    "peakRoundStep": 5,
+    "initialAggregateFractionCeiling": 0.15,
+    "preserveAcquiredTracking": true
+  },
+  "branches": {
+    "egg": {
+      "parent": "glm3",
+      "upgradeCost": 110,
+      "range": 160,
+      "radius": 25,
+      "interval": 6,
+      "duration": 4,
+      "slow": 0.3,
+      "keepArrows": true
+    },
+    "x": {
+      "parent": "glm3",
+      "upgradeCost": 3200,
+      "range": 620,
+      "interval": 0.32,
+      "area": 4
+    },
+    "sticky": {
+      "parent": "whale3",
+      "upgradeCost": 450,
+      "range": 320,
+      "radius": 55,
+      "interval": 1.8,
+      "slow": 0.35,
+      "slowDuration": 3,
+      "area": 16
+    },
+    "giant": {
+      "parent": "whale3",
+      "upgradeCost": 4600,
+      "range": 650,
+      "radius": 100,
+      "interval": 3.8,
+      "area": 16
+    }
+  },
+  "qwen": {
+    "costs": [
+      160,
+      280,
+      460
+    ],
+    "area": 9,
+    "ranges": [
+      230,
+      250,
+      275
+    ],
+    "fieldCaps": [
+      12,
+      16,
+      20
+    ],
+    "smallBranchCost": 550,
+    "largeBranchCost": 2800,
+    "smallFieldCap": 36,
+    "bossGlobalCap": 1,
+    "bossProductionSeconds": 18
+  },
+  "models": [
+    {
+      "id": "small1",
+      "kind": "small",
+      "tier": 1,
+      "nominalPrice": 15,
+      "productionCost": 15,
+      "damage": 6,
+      "interval": 1.2,
+      "speed": 100,
+      "physicalResist": 0.05,
+      "magicResist": 0.05,
+      "block": 1,
+      "columns": 3,
+      "abilityBudget": 0
+    },
+    {
+      "id": "small2",
+      "kind": "small",
+      "tier": 2,
+      "nominalPrice": 16,
+      "productionCost": 14,
+      "damage": 7,
+      "interval": 1.2,
+      "speed": 105,
+      "physicalResist": 0.08,
+      "magicResist": 0.08,
+      "block": 1,
+      "columns": 3,
+      "abilityBudget": 0
+    },
+    {
+      "id": "normal2",
+      "kind": "normal",
+      "tier": 2,
+      "nominalPrice": 40,
+      "productionCost": 40,
+      "damage": 12,
+      "interval": 1.6,
+      "speed": 80,
+      "physicalResist": 0.08,
+      "magicResist": 0.08,
+      "block": 1,
+      "columns": 2,
+      "abilityBudget": 0
+    },
+    {
+      "id": "small3",
+      "kind": "small",
+      "tier": 3,
+      "nominalPrice": 20,
+      "productionCost": 12,
+      "damage": 9,
+      "interval": 1.15,
+      "speed": 110,
+      "physicalResist": 0.1,
+      "magicResist": 0.1,
+      "block": 1,
+      "columns": 3,
+      "abilityBudget": 0
+    },
+    {
+      "id": "normal3",
+      "kind": "normal",
+      "tier": 3,
+      "nominalPrice": 50,
+      "productionCost": 32,
+      "damage": 16,
+      "interval": 1.5,
+      "speed": 85,
+      "physicalResist": 0.1,
+      "magicResist": 0.1,
+      "block": 1,
+      "columns": 2,
+      "abilityBudget": 0
+    },
+    {
+      "id": "massSmall",
+      "kind": "small",
+      "tier": 4,
+      "nominalPrice": 20,
+      "productionCost": 5,
+      "damage": 9,
+      "interval": 1.15,
+      "speed": 110,
+      "physicalResist": 0.1,
+      "magicResist": 0.1,
+      "block": 1,
+      "columns": 3,
+      "abilityBudget": 0
+    },
+    {
+      "id": "boss",
+      "kind": "large",
+      "tier": 4,
+      "nominalPrice": 750,
+      "productionCost": 750,
+      "damage": 120,
+      "interval": 3.2,
+      "speed": 35,
+      "physicalResist": 0.15,
+      "magicResist": 0.15,
+      "block": 3,
+      "columns": 1,
+      "abilityBudget": 120,
+      "executeBudget": 80,
+      "summonBudget": 40,
+      "executeCooldown": 12,
+      "summonInterval": 12,
+      "summonCount": 2,
+      "summonLiveCap": 6
+    }
+  ],
+  "research": {
+    "egg_count": {
+      "prices": [
+        100,
+        150,
+        200
+      ],
+      "totalEggs": [
+        2,
+        3,
+        4
+      ]
+    },
+    "egg_venom": {
+      "prices": [
+        120,
+        180,
+        240
+      ],
+      "duration": 3
+    },
+    "egg_coupon": {
+      "prices": [
+        120
+      ],
+      "discount": 0.25,
+      "damagePenalty": 0.2
+    },
+    "x_speed": {
+      "prices": [
+        900,
+        1350,
+        1800
+      ]
+    },
+    "x_pierce": {
+      "prices": [
+        1000,
+        1500,
+        2000
+      ],
+      "penetration": [
+        0.25,
+        0.5,
+        0.75
+      ],
+      "referenceArmor": 0.6,
+      "counterOpportunity": 0.5
+    },
+    "x_shield": {
+      "prices": [
+        1200,
+        1800,
+        2400
+      ],
+      "blocks": [
+        2,
+        3,
+        4
+      ],
+      "respawnSeconds": 12
+    },
+    "sticky_side": {
+      "prices": [
+        240,
+        360,
+        480
+      ],
+      "hitDamage": 8,
+      "intervals": [
+        2.3,
+        2,
+        1.7
+      ],
+      "poisonDuration": 6
+    },
+    "sticky_burn": {
+      "prices": [
+        260,
+        390,
+        520
+      ],
+      "duration": 4
+    },
+    "sticky_loader": {
+      "prices": [
+        280,
+        420,
+        560
+      ]
+    },
+    "giant_cluster": {
+      "prices": [
+        1100,
+        1650,
+        2200
+      ],
+      "children": [
+        2,
+        4,
+        6
+      ],
+      "radius": 40
+    },
+    "giant_crush": {
+      "prices": [
+        1500,
+        2250,
+        3000
+      ],
+      "intervals": [
+        18,
+        15,
+        12
+      ],
+      "referenceTargets": [
+        4,
+        6,
+        8
+      ],
+      "length": 1200,
+      "speed": 470
+    },
+    "giant_bombard": {
+      "costPerUse": 1500,
+      "referenceTargets": 6,
+      "glmEquivalentFiringSeconds": 12,
+      "cooldown": 5
+    }
+  },
+  "scopeNote": "单项研究先按各自未研究父塔推导；完整组合另按全量投资与相互作用重算，不把多个提升率直接相乘。参数取整误差和条件性收益单列。所有数值是策划方案，不覆盖当前战斗代码。"
+}

@@ -10,10 +10,10 @@ export function cleanTowerPayload(input){if(!input||typeof input!=='object'||Arr
  else if(k==='phase')clean[k]=['planning','battle','intermission','won','lost'].includes(v)?v:fail();
  else if(k==='result')clean[k]=['won','lost','abandoned'].includes(v)?v:fail();
  else if(k==='paused')clean[k]=typeof v==='boolean'?v:fail();
- else if(['seconds','gold','earned','spent','lives','kills','earlyGold','bombards','physical','magic','alive','queued','allies','speed','bonus','baseLost'].includes(k))clean[k]=numeric(v);
+ else if(['seconds','gold','earned','spent','lives','kills','earlyGold','bombards','physical','magic','alive','queued','allies','speed','bonus','baseLost','productionSpent','unitLosses'].includes(k))clean[k]=numeric(v);
  else if(k==='tower')clean[k]=tower(v);
  else if(k==='towers'){if(!Array.isArray(v)||v.length>80)fail();clean[k]=v.map(tower);}
- else if(k==='waves'){if(!Array.isArray(v)||v.length>8)fail();clean[k]=v.map(row=>{const result={};for(const[name,n]of Object.entries(row)){if(name==='furthest'){if(!Array.isArray(n)||n.length>2)fail();result[name]=n.map(x=>numeric(x,100));}else if(['wave','alive','remainingHp','threat','lateEnemies','peakAlive','peakHp','peakThreat','peakLate','leaks','baseLost'].includes(name))result[name]=numeric(n);else fail();}return result;});}
+ else if(k==='waves'){if(!Array.isArray(v)||v.length>8)fail();clean[k]=v.map(row=>{const result={};for(const[name,n]of Object.entries(row)){if(name==='furthest'){if(!Array.isArray(n)||n.length>2)fail();result[name]=n.map(x=>numeric(x,100));}else if(['wave','alive','remainingHp','threat','lateEnemies','peakAlive','peakHp','peakThreat','peakLate','leaks','baseLost','remainingBudget','peakBudget'].includes(name))result[name]=numeric(n);else fail();}return result;});}
  else fail();
  }if(!clean.stage||clean.wave===undefined||!clean.map)fail();return clean;}
 export function towerAnalysis(db){

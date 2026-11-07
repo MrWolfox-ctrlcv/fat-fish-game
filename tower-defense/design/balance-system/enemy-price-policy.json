@@ -1,0 +1,208 @@
+{
+  "version": "enemy-budget-2",
+  "status": "approved_for_runtime_v7",
+  "battleTests": false,
+  "anchors": {
+    "enemy": {
+      "id": "silly",
+      "name": "降智GPT",
+      "price": 10,
+      "hp": 85,
+      "speed": 55,
+      "damage": 7,
+      "interval": 1.1,
+      "physicalResist": 0,
+      "magicResist": 0,
+      "leak": 1
+    },
+    "tower": {
+      "id": "glm",
+      "level": 1,
+      "cost": 70,
+      "damage": 12,
+      "interval": 0.6,
+      "range": 230
+    }
+  },
+  "weights": {
+    "durability": 0.75,
+    "melee": 0.15,
+    "leak": 0.1
+  },
+  "magicArmorExchangeRate": 0.5,
+  "pricingNote": "威胁点是敌军预算，不是击杀赏金。系数和标价是明确的策划初值；没有声称由真人数据拟合。两标尺只能确定尺度，不能唯一确定全部角色属性。",
+  "rounding": {
+    "below500": 5,
+    "atLeast500": 10
+  },
+  "profiles": [
+    {
+      "id": "silly",
+      "name": "降智GPT",
+      "price": 10,
+      "speed": 55,
+      "physicalResist": 0,
+      "magicResist": 0,
+      "damage": 7,
+      "interval": 1.1,
+      "leak": 1,
+      "columns": 2,
+      "abilityBudget": 0,
+      "role": "基础标尺",
+      "maxHp": 85
+    },
+    {
+      "id": "normal",
+      "name": "中级GPT",
+      "price": 25,
+      "speed": 55,
+      "physicalResist": 0.05,
+      "magicResist": 0.05,
+      "damage": 14,
+      "interval": 1.1,
+      "leak": 1,
+      "columns": 2,
+      "abilityBudget": 0,
+      "role": "均衡普通兵",
+      "maxHp": 175
+    },
+    {
+      "id": "gpt_elite",
+      "name": "精英GPT",
+      "price": 120,
+      "speed": 38,
+      "physicalResist": 0.25,
+      "magicResist": 0.25,
+      "damage": 56,
+      "interval": 1.3,
+      "leak": 3,
+      "columns": 1,
+      "abilityBudget": 0,
+      "role": "慢速高属性精英",
+      "maxHp": 770
+    },
+    {
+      "id": "grok",
+      "name": "中级Grok",
+      "price": 55,
+      "speed": 38,
+      "physicalResist": 0.6,
+      "magicResist": 0.05,
+      "damage": 80,
+      "interval": 1.3,
+      "leak": 2,
+      "columns": 2,
+      "abilityBudget": 0,
+      "role": "高物抗、高近战伤害，生命适中",
+      "maxHp": 210
+    },
+    {
+      "id": "grok_elite",
+      "name": "精英Grok",
+      "price": 245,
+      "speed": 30,
+      "physicalResist": 0.8,
+      "magicResist": 0.05,
+      "damage": 3000,
+      "interval": 2.4,
+      "leak": 4,
+      "columns": 1,
+      "abilityBudget": 20,
+      "ability": "一击击倒普通友军的额外预算；与近战DPS的对数预算分列",
+      "role": "高甲斩杀精英",
+      "maxHp": 500
+    },
+    {
+      "id": "gemma",
+      "name": "猫仔Gemma",
+      "price": 2,
+      "speed": 60,
+      "physicalResist": 0,
+      "magicResist": 0,
+      "damage": 3,
+      "interval": 1.2,
+      "leak": 1,
+      "columns": 3,
+      "abilityBudget": 0,
+      "role": "低血量mini群体",
+      "maxHp": 20
+    },
+    {
+      "id": "cat",
+      "name": "Gemini",
+      "price": 8,
+      "speed": 80,
+      "physicalResist": 0,
+      "magicResist": 0,
+      "damage": 3,
+      "interval": 1.1,
+      "leak": 1,
+      "columns": 2,
+      "abilityBudget": 3.36,
+      "aura": {
+        "range": 190,
+        "speedBoost": 0.8,
+        "referenceTargets": 6,
+        "referenceUptime": 0.35
+      },
+      "role": "比降智GPT脆弱的快速支援，依靠加速猫仔而非自身作战",
+      "maxHp": 35
+    },
+    {
+      "id": "claude",
+      "name": "Claude",
+      "price": 315,
+      "speed": 30,
+      "physicalResist": 0,
+      "magicResist": 0,
+      "damage": 18,
+      "interval": 1.6,
+      "leak": 4,
+      "columns": 1,
+      "abilityBudget": 40,
+      "absorbRange": 230,
+      "role": "无双抗血牛、范围承伤",
+      "maxHp": 3200
+    }
+  ],
+  "waveRules": {
+    "burstWindowsSeconds": [
+      5,
+      10,
+      20
+    ],
+    "referenceWindowSeconds": 10,
+    "eliteBudgetShareLimit": 0.2,
+    "sameRouteEliteSpacingSeconds": 6,
+    "budgetSlackFiller": "silly",
+    "requiredMetrics": [
+      "totalBudget",
+      "budgetPerSpawnSecond",
+      "peakBudget5Seconds",
+      "peakBudget10Seconds",
+      "budgetByRoute",
+      "highArmorShare",
+      "eliteShare",
+      "supportShare",
+      "firstEncounterUnlocks",
+      "actualSpendableGold"
+    ],
+    "difficulty": {
+      "easy": 0.8,
+      "normal": 1,
+      "hard": 1.25
+    },
+    "difficultyNote": "拟议仅调敌军预算；不能同时再无偿叠加现有血量/攻击/出怪倍率。初见教学波可单独指定构成与精英上限。"
+  },
+  "speedUpdateNote": "猫仔60/Gemini80速度保留；猫仔20生命、2点，Gemini35生命、零双抗、8点。强单体按集中优势上调价格；其他已认可生命上限保持。",
+  "concentration": {
+    "effectiveHpExponent": 1.15,
+    "note": "等效生命集中在单体时超线性计价；降智GPT保持指数归一化标尺。"
+  },
+  "aoeFragility": {
+    "referenceDamage": 46,
+    "physicalShare": 0.75,
+    "extraColumnExposure": 0.3333333333333333,
+    "source": "新塔模型三级大肥鱼46混伤；用基础主力等级作为AOE弱势参照，技能预算单列。"
+  }
+}

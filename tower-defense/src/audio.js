@@ -1,25 +1,25 @@
 // Procedural effects share one context and one noise buffer; music is loaded on demand.
+const EFFECTS={arrow:'free-sfx-v1/bow-public-preview', 'x-arrow':'free-sfx-v4/bow-bright-1',cannon:'free-sfx-v1/cannon-public-preview','giant-cannon':'free-sfx-v4/cannon-short-1',summon:'free-sfx-v4/qin-tail-1',splash:'free-sfx-v1/splat-public-preview',laser:'free-sfx-v1/beam-public-preview',...Object.fromEntries(['shield-hit','shield-crack-30','shield-crack-60','shield-crack-90','shield-shatter'].map(k=>[k,'preview-v1/'+k]))};
+const QWEN_PHRASES={'summon-small':[0,.98],'summon-normal':[.98,2.06],'summon-large':[2.06,3.5644]};
 const STORE='oua.tower.audio.v1';
 const clamp=(n,min=0,max=1)=>Math.max(min,Math.min(max,n));
-const TRACKS={coast:new URL('../assets/audio/shallow-bay-v2.mp3',import.meta.url),boss:new URL('../assets/audio/star-crown-v2.mp3',import.meta.url)};
+const TRACKS={coast:new URL('../assets/audio/full-bgm-v1/coast-full.mp3',import.meta.url),boss:new URL('../assets/audio/full-bgm-v1/battle-full.mp3',import.meta.url)};
 export function createSoundtrack(){
  let settings={enabled:true,music:.22,effects:.55};
  try{const s=JSON.parse(localStorage.getItem(STORE));if(s){settings.enabled=s.enabled!==false;for(const k of ['music','effects'])if(Number.isFinite(s[k]))settings[k]=clamp(s[k]);}}catch{}
  let ctx,master,musicBus,fxBus,noise,active=true,scene='coast',unlocked=false,previewUntil=0,previewTimer,current=null,serial=0,loading=0,musicFailed=false;
- const cache=new Map(),voices=new Set(),last=new Map();
+ const media=new globalThis.Audio();media.preload='none';media.loop=true;const cache=new Map(),voices=new Set(),last=new Map();
  function ensure(){if(ctx)return;const Audio=globalThis.AudioContext||globalThis.webkitAudioContext;if(!Audio)return;
   ctx=new Audio();master=ctx.createGain();musicBus=ctx.createGain();fxBus=ctx.createGain();const limiter=ctx.createDynamicsCompressor();limiter.threshold.value=-12;limiter.knee.value=12;limiter.ratio.value=6;limiter.attack.value=.003;limiter.release.value=.18;musicBus.connect(master);fxBus.connect(master);master.connect(limiter).connect(ctx.destination);
   noise=ctx.createBuffer(1,ctx.sampleRate,ctx.sampleRate);const a=noise.getChannelData(0);let v=0;for(let i=0;i<a.length;i++){v=.7*v+.3*(Math.random()*2-1);a[i]=v;}
   ctx.onstatechange=sync;volumes();
  }
- function volumes(){if(!ctx)return;const t=ctx.currentTime;master.gain.setTargetAtTime(settings.enabled?1:0,t,.025);musicBus.gain.setTargetAtTime(settings.music,t,.06);fxBus.gain.setTargetAtTime(settings.effects,t,.025);}
- function stopMusic(){serial++;if(!current)return;const old=current;current=null;const t=ctx.currentTime;old.gain.gain.cancelScheduledValues(t);old.gain.gain.setTargetAtTime(0,t,.12);try{old.source.stop(t+.65);}catch{}}
- async function music(){if(!ctx||!unlocked||!active||!settings.enabled||settings.music===0||scene==='end'){stopMusic();return;}if(current?.key===scene)return;const key=scene,ticket=++serial;loading++;
-  try{if(!cache.has(key))cache.set(key,fetch(TRACKS[key]).then(r=>{if(!r.ok)throw Error('music unavailable');return r.arrayBuffer();}).then(b=>ctx.decodeAudioData(b)));
-   const buffer=await cache.get(key);if(ticket!==serial||!active||!settings.enabled||settings.music===0||scene!==key)return;
-   const old=current,source=ctx.createBufferSource(),gain=ctx.createGain();source.buffer=buffer;source.loop=true;gain.gain.value=0;source.connect(gain).connect(musicBus);source.onended=()=>{source.disconnect();gain.disconnect();};source.start();gain.gain.setTargetAtTime(1,ctx.currentTime,.4);current={source,gain,key};
-   if(old){old.gain.gain.setTargetAtTime(0,ctx.currentTime,.25);try{old.source.stop(ctx.currentTime+1.3);}catch{}}musicFailed=false;
-  }catch{musicFailed=true;cache.delete(key);}finally{loading--;}
+ function volumes(){media.volume=settings.enabled?settings.music:0;if(!ctx)return;const t=ctx.currentTime;master.gain.setTargetAtTime(settings.enabled?1:0,t,.025);musicBus.gain.setTargetAtTime(settings.music,t,.06);fxBus.gain.setTargetAtTime(settings.effects,t,.025);}
+ function stopMusic(){media.pause();}
+ async function music(){if(!ctx||!unlocked||!active||!settings.enabled||settings.music===0||scene==='end'){stopMusic();return;}if(current?.key!==scene){media.src=String(TRACKS[scene]);current={key:scene};}try{await media.play();musicFailed=false;}catch{musicFailed=true;}}
+ async function sampled(cue,pan){let key=QWEN_PHRASES[cue]?EFFECTS.summon:EFFECTS[cue];if(cue==='giant-impact'){let n=1+Math.floor(Math.random()*4);if(n===sampled.previous)n=n%4+1;sampled.previous=n;key='free-sfx-v3/explosion-variation-'+n;}if(!key)return false;
+  if(!cache.has(key))cache.set(key,fetch(new URL('../assets/audio/'+key+'.mp3',import.meta.url)).then(r=>{if(!r.ok)throw Error('sound unavailable');return r.arrayBuffer();}).then(b=>ctx.decodeAudioData(b)).catch(()=>{cache.delete(key);return null;}));
+  const buffer=await cache.get(key);if(!buffer||!active||!settings.enabled||voices.size>=12)return true;const source=ctx.createBufferSource(),gain=ctx.createGain(),stereo=ctx.createStereoPanner?.();source.buffer=buffer;gain.gain.value=cue==='laser'?.24:cue==='cannon'?.5:.7;source.connect(gain);if(stereo){stereo.pan.value=pan;gain.connect(stereo).connect(fxBus);}else gain.connect(fxBus);const voice={source};voices.add(voice);source.onended=()=>{voices.delete(voice);source.disconnect();gain.disconnect();stereo?.disconnect();};const phrase=QWEN_PHRASES[cue];if(phrase){const t=ctx.currentTime,length=Math.min(buffer.duration,phrase[1])-phrase[0],level=gain.gain.value;gain.gain.setValueAtTime(0,t);gain.gain.linearRampToValueAtTime(level,t+.004);gain.gain.setValueAtTime(level,t+Math.max(.004,length-.035));gain.gain.linearRampToValueAtTime(0,t+length);source.start(t,phrase[0],length);}else source.start();if(cue==='laser')source.stop(ctx.currentTime+1.6);return true;
  }
  function sync(){if(!ctx)return;volumes();const shouldRun=unlocked&&settings.enabled&&(active||performance.now()<previewUntil);
   if(shouldRun&&ctx.state==='suspended')void ctx.resume().catch(()=>{});
@@ -33,7 +33,8 @@ export function createSoundtrack(){
   const stereo=ctx.createStereoPanner?.();gain.gain.setValueAtTime(.0001,t);gain.gain.exponentialRampToValueAtTime(Math.max(.0002,volume),t+.008);gain.gain.exponentialRampToValueAtTime(.0001,t+duration);if(stereo){stereo.pan.value=pan;gain.connect(stereo).connect(fxBus);}else gain.connect(fxBus);
   const voice={source};voices.add(voice);source.onended=()=>{voices.delete(voice);source.disconnect();filter?.disconnect();gain.disconnect();stereo?.disconnect();};source.start(t);source.stop(t+duration+.015);
  }
- function play(cue,x=640,{preview=false}={}){if(!ctx||!unlocked||!settings.enabled||settings.effects===0||(!active&&!preview))return;if(voices.size>=12&&!['warning','boss','enrage','star-impact','star-block','victory','defeat'].includes(cue))return;const now=performance.now(),cooldown={hit:160,arrow:110,cannon:180,laser:220,summon:320,splash:160,shield:500,blink:300}[cue]??180;if(now-(last.get(cue)??-Infinity)<cooldown)return;last.set(cue,now);const p=clamp((x/1280-.5)*.9,-.55,.55),n=(...a)=>tone(...a,0,p);
+ function play(cue,x=640,{preview=false}={}){if(!ctx||!unlocked||!settings.enabled||settings.effects===0||(!active&&!preview))return;if(voices.size>=12&&!['warning','boss','enrage','star-impact','star-block','victory','defeat'].includes(cue))return;const now=performance.now(),cooldown={hit:160,arrow:110,'x-arrow':110,cannon:300,'giant-cannon':500,'giant-impact':350,laser:700,summon:400,'summon-small':400,'summon-normal':400,'summon-large':400,splash:160,shield:500,blink:300}[cue]??180;if(now-(last.get(cue)??-Infinity)<cooldown)return;last.set(cue,now);const p=clamp((x/1280-.5)*.9,-.55,.55),n=(...a)=>tone(...a,0,p);
+  if(EFFECTS[cue]||QWEN_PHRASES[cue]||cue==='giant-impact'){void sampled(cue,p);return;}
   switch(cue){
    case 'build':case 'upgrade':case 'skill':{const notes=cue==='upgrade'?[392,494,587,784]:cue==='skill'?[330,440,660]:[330,440,554];notes.forEach((f,i)=>tone('sine',f,f*1.01,.24,.15,i*.065,p));break;}
    case 'arrow':n('noise',3400,900,.08,.24);n('triangle',1050,470,.08,.07);break;
