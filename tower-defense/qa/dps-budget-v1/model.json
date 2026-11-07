@@ -1,7 +1,7 @@
 {
   "version": "dps-budget-1",
   "enemyVersion": "enemy-budget-2",
-  "towerVersion": "tower-budget-2",
+  "towerVersion": "tower-budget-3",
   "battleTestsRun": 0,
   "definitions": {
     "single": "一座塔/单个单位对一个目标的总原始DPS；不是每个人都能攻击三次。",
@@ -52,24 +52,24 @@
       "id": "whale1",
       "name": "大肥鱼 1级",
       "group": "tower",
-      "singleDps": 10,
-      "threeTargetMaxTotalDps": 30,
-      "physicalSingle": 7.5,
-      "magicSingle": 2.5,
-      "radius": 25,
-      "threeMiniFrontDps": 10,
+      "singleDps": 6.666666666666666,
+      "threeTargetMaxTotalDps": 20,
+      "physicalSingle": 5,
+      "magicSingle": 1.6666666666666665,
+      "radius": 55,
+      "threeMiniFrontDps": 13.333333333333332,
       "threeMiniHitRange": {
-        "min": 1,
-        "max": 1,
-        "front": 1,
-        "mean": 1
+        "min": 2,
+        "max": 3,
+        "front": 2,
+        "mean": 2.3333333333333335
       },
-      "threeGptFrontDps": 10,
+      "threeGptFrontDps": 20,
       "threeGptHitRange": {
-        "min": 1,
-        "max": 1,
-        "front": 1,
-        "mean": 1
+        "min": 2,
+        "max": 3,
+        "front": 3,
+        "mean": 2.3333333333333335
       },
       "note": "对3上限要求三只都在爆炸内；三列mini/普通2+1另列几何结果。"
     },
@@ -77,24 +77,24 @@
       "id": "whale2",
       "name": "大肥鱼 2级",
       "group": "tower",
-      "singleDps": 17,
-      "threeTargetMaxTotalDps": 51,
-      "physicalSingle": 12.75,
-      "magicSingle": 4.25,
-      "radius": 35,
-      "threeMiniFrontDps": 34,
+      "singleDps": 12.5,
+      "threeTargetMaxTotalDps": 37.5,
+      "physicalSingle": 9.375,
+      "magicSingle": 3.125,
+      "radius": 65,
+      "threeMiniFrontDps": 37.5,
       "threeMiniHitRange": {
-        "min": 2,
+        "min": 3,
         "max": 3,
-        "front": 2,
-        "mean": 2.3333333333333335
+        "front": 3,
+        "mean": 3
       },
-      "threeGptFrontDps": 34,
+      "threeGptFrontDps": 37.5,
       "threeGptHitRange": {
-        "min": 1,
-        "max": 2,
-        "front": 2,
-        "mean": 1.6666666666666667
+        "min": 3,
+        "max": 3,
+        "front": 3,
+        "mean": 3
       },
       "note": "对3上限要求三只都在爆炸内；三列mini/普通2+1另列几何结果。"
     },
@@ -102,24 +102,24 @@
       "id": "whale3",
       "name": "大肥鱼 3级",
       "group": "tower",
-      "singleDps": 25.555555555555554,
-      "threeTargetMaxTotalDps": 76.66666666666666,
-      "physicalSingle": 19.166666666666664,
-      "magicSingle": 6.388888888888888,
-      "radius": 45,
-      "threeMiniFrontDps": 51.11111111111111,
+      "singleDps": 19.444444444444443,
+      "threeTargetMaxTotalDps": 58.33333333333333,
+      "physicalSingle": 14.583333333333332,
+      "magicSingle": 4.861111111111111,
+      "radius": 75,
+      "threeMiniFrontDps": 58.33333333333333,
       "threeMiniHitRange": {
-        "min": 2,
-        "max": 3,
-        "front": 2,
-        "mean": 2.3333333333333335
-      },
-      "threeGptFrontDps": 76.66666666666666,
-      "threeGptHitRange": {
-        "min": 2,
+        "min": 3,
         "max": 3,
         "front": 3,
-        "mean": 2.3333333333333335
+        "mean": 3
+      },
+      "threeGptFrontDps": 58.33333333333333,
+      "threeGptHitRange": {
+        "min": 3,
+        "max": 3,
+        "front": 3,
+        "mean": 3
       },
       "note": "对3上限要求三只都在爆炸内；三列mini/普通2+1另列几何结果。"
     },
@@ -244,26 +244,26 @@
       "id": "sticky",
       "name": "大肥鱼四级·糯米炮",
       "group": "tower",
-      "singleDps": 27.22222222222222,
-      "threeTargetMaxTotalDps": 81.66666666666666,
-      "physicalSingle": 20.416666666666664,
-      "magicSingle": 6.805555555555555,
-      "radius": 55,
-      "threeMiniFrontDps": 54.44444444444444,
-      "threeGptFrontDps": 81.66666666666666,
+      "singleDps": 21.666666666666668,
+      "threeTargetMaxTotalDps": 65,
+      "physicalSingle": 16.25,
+      "magicSingle": 5.416666666666667,
+      "radius": 85,
+      "threeMiniFrontDps": 65,
+      "threeGptFrontDps": 65,
       "note": "未研究副炮、灼烧、子母弹或巨肥。控制不计入DPS。"
     },
     {
       "id": "giant",
       "name": "大肥鱼四级·鲸鱼巨炮",
       "group": "tower",
-      "singleDps": 76.31578947368422,
-      "threeTargetMaxTotalDps": 228.94736842105266,
-      "physicalSingle": 57.236842105263165,
-      "magicSingle": 19.078947368421055,
-      "radius": 100,
-      "threeMiniFrontDps": 228.94736842105266,
-      "threeGptFrontDps": 228.94736842105266,
+      "singleDps": 64.47368421052632,
+      "threeTargetMaxTotalDps": 193.42105263157896,
+      "physicalSingle": 48.35526315789474,
+      "magicSingle": 16.11842105263158,
+      "radius": 125,
+      "threeMiniFrontDps": 193.42105263157896,
+      "threeGptFrontDps": 193.42105263157896,
       "note": "未研究副炮、灼烧、子母弹或巨肥。控制不计入DPS。"
     },
     {
@@ -855,13 +855,13 @@
       "price": 260,
       "cumulativeResearch": 260,
       "effect": {
-        "dotDps": 9,
+        "dotDps": 7,
         "duration": 4,
         "stacksPerSource": false
       },
       "dps": {
-        "addedSingle": 9,
-        "addedThreeMax": 27,
+        "addedSingle": 7,
+        "addedThreeMax": 21,
         "note": "目标在火区内，连续刷新；同来源不叠伤。"
       }
     },
@@ -871,13 +871,13 @@
       "price": 390,
       "cumulativeResearch": 650,
       "effect": {
-        "dotDps": 21,
+        "dotDps": 17,
         "duration": 4,
         "stacksPerSource": false
       },
       "dps": {
-        "addedSingle": 21,
-        "addedThreeMax": 63,
+        "addedSingle": 17,
+        "addedThreeMax": 51,
         "note": "目标在火区内，连续刷新；同来源不叠伤。"
       }
     },
@@ -887,13 +887,13 @@
       "price": 520,
       "cumulativeResearch": 1170,
       "effect": {
-        "dotDps": 37,
+        "dotDps": 30,
         "duration": 4,
         "stacksPerSource": false
       },
       "dps": {
-        "addedSingle": 37,
-        "addedThreeMax": 111,
+        "addedSingle": 30,
+        "addedThreeMax": 90,
         "note": "目标在火区内，连续刷新；同来源不叠伤。"
       }
     },
@@ -903,14 +903,14 @@
       "price": 280,
       "cumulativeResearch": 280,
       "effect": {
-        "interval": 1.3898419098020691,
-        "damage": 49,
-        "slowUptimeCap": 0.755481607364634,
+        "interval": 1.379688252759515,
+        "damage": 39,
+        "slowUptimeCap": 0.7610414873794095,
         "note": "加速增加的减速覆盖也消耗研究预算"
       },
       "dps": {
-        "single": 35.25580834368292,
-        "threeMax": 105.76742503104877
+        "single": 28.26725524552093,
+        "threeMax": 84.80176573656279
       }
     },
     {
@@ -919,14 +919,14 @@
       "price": 420,
       "cumulativeResearch": 700,
       "effect": {
-        "interval": 1.030004825266561,
-        "damage": 49,
+        "interval": 1.0191448268645245,
+        "damage": 39,
         "slowUptimeCap": 1,
         "note": "加速增加的减速覆盖也消耗研究预算"
       },
       "dps": {
-        "single": 47.57259266947512,
-        "threeMax": 142.71777800842534
+        "single": 38.267377679761594,
+        "threeMax": 114.80213303928478
       }
     },
     {
@@ -935,14 +935,14 @@
       "price": 560,
       "cumulativeResearch": 1260,
       "effect": {
-        "interval": 0.6926933035418392,
-        "damage": 49,
+        "interval": 0.6853897958445633,
+        "damage": 39,
         "slowUptimeCap": 1,
         "note": "加速增加的减速覆盖也消耗研究预算"
       },
       "dps": {
-        "single": 70.73837692591518,
-        "threeMax": 212.21513077774554
+        "single": 56.90192681077593,
+        "threeMax": 170.7057804323278
       }
     },
     {

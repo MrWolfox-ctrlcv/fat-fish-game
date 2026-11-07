@@ -1,0 +1,12 @@
+{
+  "version": 8,
+  "scope": "six focused checks; no full campaign or matchup matrix",
+  "checks": [
+    "default targeting: Kimi strong, cannon dense; Kimi keeps an acquired beam",
+    "actual moving straight AoE hits all three enemies",
+    "actual moving corner AoE hits all three enemies",
+    "same-world radii and prices retain the single-target role ceiling",
+    "equipment layouts expose matching projectile origins for all tiers",
+    "cannon attack -10dB, bounded tails and shared two-voice cap; side cannon distinct"
+  ]
+}

@@ -1,6 +1,6 @@
 {
-  "version": 7,
-  "balance": 7,
+  "version": 8,
+  "balance": 8,
   "base": "/games/tower-defense/",
   "files": [
     {
@@ -20,8 +20,13 @@
     },
     {
       "path": "src/audio.js",
-      "bytes": 9172,
-      "sha256": "cd0d0676941f4b061f43505923c21f187732323aedf5f5d8fb6091f2635b29ed"
+      "bytes": 9301,
+      "sha256": "a6b60304fbf4d367391e93c164a73855147032c7ee611dc665131d24d4b7f4af"
+    },
+    {
+      "path": "src/sound-mix.js",
+      "bytes": 659,
+      "sha256": "8f1aa688ea19bd05363b2b6a3b229d3a05d839950bdbd66daaf6e3ba8ddba230"
     },
     {
       "path": "src/units.js",
@@ -35,13 +40,13 @@
     },
     {
       "path": "src/art-assets.js",
-      "bytes": 3012,
-      "sha256": "42830bc5002f6caa6d2c9e1251a11842dbf6e46c0c293aebadc1dd455ec329e9"
+      "bytes": 3137,
+      "sha256": "8e5ec6ec5914efbf956201f7d4ad7b4d360cda5d1f7be3b30a416498f3b57763"
     },
     {
       "path": "src/freebuild/main.js",
-      "bytes": 27976,
-      "sha256": "e179777a4825332f7c39f805d8a22c40f9377ae5549d793a3ef869dadf082047"
+      "bytes": 28055,
+      "sha256": "fd0b041e64f2a36e30b5b16a29013acd943fbc9f4e28ef4b6831f9b8dd79b0a6"
     },
     {
       "path": "src/freebuild/data.js",
@@ -50,8 +55,8 @@
     },
     {
       "path": "src/freebuild/balance.js",
-      "bytes": 21635,
-      "sha256": "9489e5a71d82ecc52f8d1439a35c5fed384254859d553c60c540e43583616c21"
+      "bytes": 21924,
+      "sha256": "f4249f243ec4d23309e985cd46dc279a67bda7837affd4d967acb33335cd73cc"
     },
     {
       "path": "src/freebuild/campaign.js",
@@ -64,14 +69,24 @@
       "sha256": "28b6571677beeab27e40b3cf2aca7c475648a09996f762050b8b63147f6a9ef8"
     },
     {
+      "path": "src/freebuild/targeting.js",
+      "bytes": 2650,
+      "sha256": "83fc53765d3ba71cbfd392e197a1dfee66ba389321af71b8eb11d567c57395cb"
+    },
+    {
+      "path": "src/freebuild/weapons.js",
+      "bytes": 710,
+      "sha256": "0f9e5958c2e717baf07c5591ccad6a309f855e4dd151c41a677e50b97dd5560a"
+    },
+    {
       "path": "src/freebuild/levels.js",
       "bytes": 1924,
       "sha256": "940adf49e567a4dfe3757d724af3c84dd121ed7d2a7d5ba21517e236f1fa8747"
     },
     {
       "path": "src/freebuild/engine.js",
-      "bytes": 21386,
-      "sha256": "f6abfa56f5d5a7d0a78c2feb64586b5e193b06cc5506f3792a0cafea0a384da2"
+      "bytes": 21781,
+      "sha256": "f19253114a821f34f51bc2cf592a038593f91587a2b2aa0db3d3634dd4b62444"
     },
     {
       "path": "src/freebuild/geometry.js",
@@ -90,8 +105,8 @@
     },
     {
       "path": "src/freebuild/render.js",
-      "bytes": 11270,
-      "sha256": "d16225879d2bb12f0f7257871b3aa810189a6ecfd2f557b62c2e365048d82bb9"
+      "bytes": 12509,
+      "sha256": "f1896e0f14d92e6597cb036ef525cb9dd8d4663eccd68fc9ad2f4983e364fc89"
     },
     {
       "path": "src/freebuild/metrics.js",
@@ -101,7 +116,7 @@
     {
       "path": "src/freebuild/telemetry.js",
       "bytes": 5963,
-      "sha256": "84d1ff6290a32365c152d704dcc4808cf0096296c305829109ce6f5bed2bd483"
+      "sha256": "608d2c8d9784629db7cc3db07cecca2864fb401da49a4f4350b402e4d3e90989"
     },
     {
       "path": "src/freebuild/beams.js",
@@ -167,6 +182,16 @@
       "path": "assets/ui/energy-fill.webp",
       "bytes": 9440,
       "sha256": "57b7009a2e1cd15cf9a5a1321c4b12a7484df09afb3252ddcd56e9c731e97c59"
+    },
+    {
+      "path": "assets/whale-mortars.webp",
+      "bytes": 71596,
+      "sha256": "b444a8fd505e01ebe7465c44a1938b40a39af9fd031823bdfc6bbb36ec7d46b3"
+    },
+    {
+      "path": "assets/moon-prisms.webp",
+      "bytes": 71024,
+      "sha256": "f609b047b7687015c351bb8d7c9eddb87f478cc2a6518bbab607ee9d70ad98ab"
     },
     {
       "path": "assets/units/moon.webp",

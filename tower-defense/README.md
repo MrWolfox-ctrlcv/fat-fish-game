@@ -1,6 +1,6 @@
 # 肥鱼塔防
 
-2026-11-07，v7数值与素材整合。正式源码仓库为同级fat-fish-game，本目录是塔防开发源；正式运行文件在其tower-defense目录。
+2026-11-07，v8炮塔与声音修正。正式源码仓库为同级fat-fish-game，本目录是塔防开发源；正式运行文件在其tower-defense目录。
 
 自由占地：GLM 2×2，Kimi/Qwen 3×3，大肥鱼4×4。设置选择左侧/底部塔栏，单次落塔后退出建造，只在建造中显示格子；保留原扇形升级面板。入口按钮开波，出怪过半可提前开波获得随剩余时间变化的金币奖励；1/2/3倍速。
 
@@ -10,7 +10,7 @@ Qwen按单兵付费生产：小模型、普通模型、巨型Qwen；巨型全局
 
 数值必须遵循 [固定策划流程](design/BALANCE-WORKFLOW.md)。[敌军定价](design/ENEMY-PRICE-MODEL.md)、[塔与全部研究定价](design/TOWER-PRICE-MODEL.md)、[单体/对3DPS口径](design/DPS-REFERENCE.md)及两个策略JSON为来源；游戏读取生成的src/freebuild/balance.js。GLM一级和降智GPT为双标尺，威胁点与玩家金币分账。新内容先定价、反解属性、核对角色，再分配波次预算和经济。
 
-重算顺序：`node tools/balance-system/enemy-budget.mjs`、`tower-budget.mjs`、`dps-budget.mjs`、`runtime.mjs`、`campaign.mjs`（后四个同目录）。必要验证：`node qa/release-v7/verify.mjs`。本轮为9组机制检查和8关各12秒运行检查，另有183组波次预算静态审计；没有大规模对战矩阵，也没有宣称所有关卡实测通关。
+重算顺序：`node tools/balance-system/enemy-budget.mjs`、`tower-budget.mjs`、`dps-budget.mjs`、`runtime.mjs`、`campaign.mjs`（后四个同目录）。必要验证：`node qa/release-v8/verify.mjs`。本轮为9组机制检查和8关各12秒运行检查，另有183组波次预算静态审计；没有大规模对战矩阵，也没有宣称所有关卡实测通关。
 
 普通关理论完整击杀和清波总资金（不含提前奖励）为1427/2541/3891/5200/8008/10725/19547/22443。这是经济预算上限，不是玩家实际收入。三档只调整出怪威胁预算0.75/1/1.25倍，敌人自身属性不变。详细账在qa/release-v7/campaign-audit.json。
 
@@ -19,3 +19,5 @@ Qwen按单兵付费生产：小模型、普通模型、巨型Qwen；巨型全局
 角色图集共用、懒加载；完整BGM以浏览器音频流播放，后台停算静音。音效来源与CC BY 4.0古琴改编署名在credits.html。
 
 后台匿名收集经济、塔使用与位置、路线最远推进、波次峰值、塔伤害及Qwen生产支出/损失；仅管理端读数据。玩家画面不显示策划报告或分析指标。发布状态见HANDOFF.md首条及私有发布队列记录。
+
+v8：补回大炮/棱镜，发射点与装备一致；Kimi默认强敌、大肥鱼默认密集，支援为Claude/Gemini优先。基础鱼爆炸半径55/65/75，糯米85、巨炮125，和射程同单位；按原价反解伤害，修复移动预测与群体落点。普通炮声约降低10dB，尾音限1.1秒，同组最多两声，副炮单独降低。v8仅进行6组针对本次问题的必要检查，含直线/拐角移动三目标实际群伤与武器画面核对。

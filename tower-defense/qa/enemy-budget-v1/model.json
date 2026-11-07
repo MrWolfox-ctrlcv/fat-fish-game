@@ -1,10 +1,10 @@
 {
   "version": "enemy-budget-2",
-  "status": "approved_for_runtime_v7",
+  "status": "approved_for_runtime_v8",
   "battleTestsRun": 0,
   "policy": {
     "version": "enemy-budget-2",
-    "status": "approved_for_runtime_v7",
+    "status": "approved_for_runtime_v8",
     "battleTests": false,
     "anchors": {
       "enemy": {
@@ -204,7 +204,7 @@
       "note": "等效生命集中在单体时超线性计价；降智GPT保持指数归一化标尺。"
     },
     "aoeFragility": {
-      "referenceDamage": 46,
+      "referenceDamage": 35,
       "physicalShare": 0.75,
       "extraColumnExposure": 0.3333333333333333,
       "source": "新塔模型三级大肥鱼46混伤；用基础主力等级作为AOE弱势参照，技能预算单列。"

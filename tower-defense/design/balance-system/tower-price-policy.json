@@ -1,6 +1,6 @@
 {
-  "version": "tower-budget-2",
-  "status": "approved_for_runtime_v7",
+  "version": "tower-budget-3",
+  "status": "approved_for_runtime_v8",
   "battleTests": false,
   "anchors": {
     "enemy": "silly",
@@ -82,9 +82,9 @@
       285
     ],
     "radii": [
-      25,
-      35,
-      45
+      55,
+      65,
+      75
     ],
     "area": 16,
     "physicalShare": 0.75,
@@ -165,7 +165,7 @@
       "parent": "whale3",
       "upgradeCost": 450,
       "range": 320,
-      "radius": 55,
+      "radius": 85,
       "interval": 1.8,
       "slow": 0.35,
       "slowDuration": 3,
@@ -175,7 +175,7 @@
       "parent": "whale3",
       "upgradeCost": 4600,
       "range": 650,
-      "radius": 100,
+      "radius": 125,
       "interval": 3.8,
       "area": 16
     }
