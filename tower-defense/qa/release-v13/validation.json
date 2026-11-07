@@ -1,0 +1,16 @@
+{
+  "version": 13,
+  "balance": 12,
+  "imagegen_icons": 25,
+  "shared_atlas_bytes": 272594,
+  "coverage": "all four tower upgrades, six branches, twelve research/consumables, three paid troop types",
+  "browser_checks": [
+    "egg_count, egg_venom and egg_coupon have distinct art in original research panel",
+    "sticky_side, sticky_burn and sticky_loader art visually checked",
+    "Qwen small and normal production use dedicated unit icons"
+  ],
+  "names_prices_layout_retained": true,
+  "gameplay_changed": false,
+  "large_matrix_run": false,
+  "proof": "egg-panel.png"
+}

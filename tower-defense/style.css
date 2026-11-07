@@ -81,3 +81,8 @@
 #legacy-continue{background:transparent;color:#e6dfc8;border-color:#e4d8ad55;font-size:11px;padding:8px 15px;min-height:42px}
 .difficulty-select{max-width:1100px;width:100%;margin:-10px auto 0;display:flex;gap:5px;align-items:center}.difficulty-select button{min-width:76px;min-height:40px;border-radius:22px;font-size:12px;background:#fff5d80b;color:#d5dfce;border-color:#c9d9c455;padding:6px 19px}.difficulty-select button[aria-pressed=true]{background:#f2e4b8;color:#36594e;border-color:#f1d78a;font-weight:700;box-shadow:0 2px 10px #0d303522}.difficulty-select button:hover:enabled{background:#eee3c237;color:#fff5d6}.difficulty-select button[aria-pressed=true]:hover{background:#fff0c7;color:#36594e}.level-grade{position:absolute;right:10px;top:14px;border-radius:20px;background:#183f4bdc;color:#f9e7ba;border:1px solid #fff2d077;padding:5px 11px;font-size:10px}
 @media(max-width:660px){.difficulty-select{margin:-4px auto 0}.difficulty-select button{flex:1;min-height:42px}.level-grade{top:auto;bottom:12px;right:auto;left:9px;font-size:9px;background:#173e4ac7}}
+
+/* Painted ability art occupies the original icon slot; orbit/card dimensions stay unchanged. */
+.dispatch-panel.is-orbit .action-card .action-icon{position:relative;display:block;width:44px;height:33px;flex-shrink:0}
+.ability-art{position:absolute;display:block;width:44px;height:44px;left:0;top:-6px;background-repeat:no-repeat;pointer-events:none}
+.dispatch-panel.is-orbit.compact-orbit .ability-art{width:36px;height:36px;left:4px;top:-2px}

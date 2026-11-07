@@ -1,5 +1,5 @@
 {
-  "version": 12,
+  "version": 13,
   "balance": 12,
   "base": "/games/tower-defense/",
   "files": [
@@ -15,8 +15,8 @@
     },
     {
       "path": "style.css",
-      "bytes": 30679,
-      "sha256": "9aacb19d86e299e42cfacc53806627358b8a9b796f8d8cd6e08b1dec34bd9c4b"
+      "bytes": 31130,
+      "sha256": "cd9b412810c4b7f7af4bcdbdf07d2f5b02de97f839cfcac12ae144d9150dbf30"
     },
     {
       "path": "src/audio.js",
@@ -40,13 +40,13 @@
     },
     {
       "path": "src/art-assets.js",
-      "bytes": 3765,
-      "sha256": "8b655dc4aa7f7478b65295467664992d00074b18e1d8ca867e132faed7804a74"
+      "bytes": 4516,
+      "sha256": "71cb25c22445b349306f83a755d0c3ec4570e5b7ae1a7ca667c2940f256119bd"
     },
     {
       "path": "src/freebuild/main.js",
-      "bytes": 28169,
-      "sha256": "e108d59ec4682b216088ca8a0f2bf22e1984960002d593248e9bd0b25bfc4e8e"
+      "bytes": 28349,
+      "sha256": "71f6b3562653cec5de5daf8465a997db56956f6e5d7a88e39ed08eaeebc6058b"
     },
     {
       "path": "src/freebuild/data.js",
@@ -87,6 +87,11 @@
       "path": "src/freebuild/fox.js",
       "bytes": 304,
       "sha256": "811e9c34fafec096e97cf957e8956c87b6e74278182d5138d42121e9fc122062"
+    },
+    {
+      "path": "src/freebuild/upgrade-icons.js",
+      "bytes": 627,
+      "sha256": "c4d6f074afe3fd803946fa03e40a2b0a23632e47017fa28d37f9ea1dd8f64c37"
     },
     {
       "path": "src/freebuild/levels.js",
@@ -192,6 +197,11 @@
       "path": "assets/ui/energy-fill.webp",
       "bytes": 9440,
       "sha256": "57b7009a2e1cd15cf9a5a1321c4b12a7484df09afb3252ddcd56e9c731e97c59"
+    },
+    {
+      "path": "assets/upgrades-v1/icons.webp",
+      "bytes": 272594,
+      "sha256": "7cdcc890ff6812300a4c174e3a4f7672d3a9704deb2687266befdd83905c943b"
     },
     {
       "path": "assets/effects-v1/poison-puddle.webp",
