@@ -1,0 +1,73 @@
+{
+  "version": 7,
+  "checks": [
+    "generated anchors and basic cannon hard limits",
+    "Kimi low phase, ramp integral and persistent acquired lock",
+    "GLM fourth-level egg is independent slow short-range mortar",
+    "mixed cannon resolves both resistances in actual projectile impact",
+    "paid factory, no free replacements, paid units survive tower sale",
+    "boss model global cap includes queued orders",
+    "combined research grows within shared arrow budget and shields deal zero damage",
+    "all 183 wave budgets, columns, elite spacing and economy generation",
+    "runtime telemetry v7 passes real backend sanitizer"
+  ],
+  "smoke": [
+    {
+      "stage": 1,
+      "seconds": 12.000000000000176,
+      "alive": 4,
+      "queued": 5,
+      "elapsedMs": 4
+    },
+    {
+      "stage": 2,
+      "seconds": 12.000000000000176,
+      "alive": 6,
+      "queued": 12,
+      "elapsedMs": 3
+    },
+    {
+      "stage": 3,
+      "seconds": 12.000000000000176,
+      "alive": 18,
+      "queued": 43,
+      "elapsedMs": 8
+    },
+    {
+      "stage": 4,
+      "seconds": 12.000000000000176,
+      "alive": 44,
+      "queued": 123,
+      "elapsedMs": 23
+    },
+    {
+      "stage": 5,
+      "seconds": 12.000000000000176,
+      "alive": 14,
+      "queued": 35,
+      "elapsedMs": 6
+    },
+    {
+      "stage": 6,
+      "seconds": 12.000000000000176,
+      "alive": 58,
+      "queued": 185,
+      "elapsedMs": 37
+    },
+    {
+      "stage": 7,
+      "seconds": 12.000000000000176,
+      "alive": 52,
+      "queued": 146,
+      "elapsedMs": 28
+    },
+    {
+      "stage": 8,
+      "seconds": 12.000000000000176,
+      "alive": 68,
+      "queued": 228,
+      "elapsedMs": 46
+    }
+  ],
+  "scope": "targeted mechanisms plus 12 game seconds per stage; not a campaign victory or large matchup matrix"
+}

@@ -1,0 +1,2347 @@
+{
+  "version": "enemy-budget-2",
+  "status": "approved_for_runtime_v7",
+  "battleTestsRun": 0,
+  "policy": {
+    "version": "enemy-budget-2",
+    "status": "approved_for_runtime_v7",
+    "battleTests": false,
+    "anchors": {
+      "enemy": {
+        "id": "silly",
+        "name": "降智GPT",
+        "price": 10,
+        "hp": 85,
+        "speed": 55,
+        "damage": 7,
+        "interval": 1.1,
+        "physicalResist": 0,
+        "magicResist": 0,
+        "leak": 1
+      },
+      "tower": {
+        "id": "glm",
+        "level": 1,
+        "cost": 70,
+        "damage": 12,
+        "interval": 0.6,
+        "range": 230
+      }
+    },
+    "weights": {
+      "durability": 0.75,
+      "melee": 0.15,
+      "leak": 0.1
+    },
+    "magicArmorExchangeRate": 0.5,
+    "pricingNote": "威胁点是敌军预算，不是击杀赏金。系数和标价是明确的策划初值；没有声称由真人数据拟合。两标尺只能确定尺度，不能唯一确定全部角色属性。",
+    "rounding": {
+      "below500": 5,
+      "atLeast500": 10
+    },
+    "profiles": [
+      {
+        "id": "silly",
+        "name": "降智GPT",
+        "price": 10,
+        "speed": 55,
+        "physicalResist": 0,
+        "magicResist": 0,
+        "damage": 7,
+        "interval": 1.1,
+        "leak": 1,
+        "columns": 2,
+        "abilityBudget": 0,
+        "role": "基础标尺",
+        "maxHp": 85
+      },
+      {
+        "id": "normal",
+        "name": "中级GPT",
+        "price": 25,
+        "speed": 55,
+        "physicalResist": 0.05,
+        "magicResist": 0.05,
+        "damage": 14,
+        "interval": 1.1,
+        "leak": 1,
+        "columns": 2,
+        "abilityBudget": 0,
+        "role": "均衡普通兵",
+        "maxHp": 175
+      },
+      {
+        "id": "gpt_elite",
+        "name": "精英GPT",
+        "price": 120,
+        "speed": 38,
+        "physicalResist": 0.25,
+        "magicResist": 0.25,
+        "damage": 56,
+        "interval": 1.3,
+        "leak": 3,
+        "columns": 1,
+        "abilityBudget": 0,
+        "role": "慢速高属性精英",
+        "maxHp": 770
+      },
+      {
+        "id": "grok",
+        "name": "中级Grok",
+        "price": 55,
+        "speed": 38,
+        "physicalResist": 0.6,
+        "magicResist": 0.05,
+        "damage": 80,
+        "interval": 1.3,
+        "leak": 2,
+        "columns": 2,
+        "abilityBudget": 0,
+        "role": "高物抗、高近战伤害，生命适中",
+        "maxHp": 210
+      },
+      {
+        "id": "grok_elite",
+        "name": "精英Grok",
+        "price": 245,
+        "speed": 30,
+        "physicalResist": 0.8,
+        "magicResist": 0.05,
+        "damage": 3000,
+        "interval": 2.4,
+        "leak": 4,
+        "columns": 1,
+        "abilityBudget": 20,
+        "ability": "一击击倒普通友军的额外预算；与近战DPS的对数预算分列",
+        "role": "高甲斩杀精英",
+        "maxHp": 500
+      },
+      {
+        "id": "gemma",
+        "name": "猫仔Gemma",
+        "price": 2,
+        "speed": 60,
+        "physicalResist": 0,
+        "magicResist": 0,
+        "damage": 3,
+        "interval": 1.2,
+        "leak": 1,
+        "columns": 3,
+        "abilityBudget": 0,
+        "role": "低血量mini群体",
+        "maxHp": 20
+      },
+      {
+        "id": "cat",
+        "name": "Gemini",
+        "price": 8,
+        "speed": 80,
+        "physicalResist": 0,
+        "magicResist": 0,
+        "damage": 3,
+        "interval": 1.1,
+        "leak": 1,
+        "columns": 2,
+        "abilityBudget": 3.36,
+        "aura": {
+          "range": 190,
+          "speedBoost": 0.8,
+          "referenceTargets": 6,
+          "referenceUptime": 0.35
+        },
+        "role": "比降智GPT脆弱的快速支援，依靠加速猫仔而非自身作战",
+        "maxHp": 35
+      },
+      {
+        "id": "claude",
+        "name": "Claude",
+        "price": 315,
+        "speed": 30,
+        "physicalResist": 0,
+        "magicResist": 0,
+        "damage": 18,
+        "interval": 1.6,
+        "leak": 4,
+        "columns": 1,
+        "abilityBudget": 40,
+        "absorbRange": 230,
+        "role": "无双抗血牛、范围承伤",
+        "maxHp": 3200
+      }
+    ],
+    "waveRules": {
+      "burstWindowsSeconds": [
+        5,
+        10,
+        20
+      ],
+      "referenceWindowSeconds": 10,
+      "eliteBudgetShareLimit": 0.2,
+      "sameRouteEliteSpacingSeconds": 6,
+      "budgetSlackFiller": "silly",
+      "requiredMetrics": [
+        "totalBudget",
+        "budgetPerSpawnSecond",
+        "peakBudget5Seconds",
+        "peakBudget10Seconds",
+        "budgetByRoute",
+        "highArmorShare",
+        "eliteShare",
+        "supportShare",
+        "firstEncounterUnlocks",
+        "actualSpendableGold"
+      ],
+      "difficulty": {
+        "easy": 0.8,
+        "normal": 1,
+        "hard": 1.25
+      },
+      "difficultyNote": "拟议仅调敌军预算；不能同时再无偿叠加现有血量/攻击/出怪倍率。初见教学波可单独指定构成与精英上限。"
+    },
+    "speedUpdateNote": "猫仔60/Gemini80速度保留；猫仔20生命、2点，Gemini35生命、零双抗、8点。强单体按集中优势上调价格；其他已认可生命上限保持。",
+    "concentration": {
+      "effectiveHpExponent": 1.15,
+      "note": "等效生命集中在单体时超线性计价；降智GPT保持指数归一化标尺。"
+    },
+    "aoeFragility": {
+      "referenceDamage": 46,
+      "physicalShare": 0.75,
+      "extraColumnExposure": 0.3333333333333333,
+      "source": "新塔模型三级大肥鱼46混伤；用基础主力等级作为AOE弱势参照，技能预算单列。"
+    }
+  },
+  "enemies": [
+    {
+      "id": "silly",
+      "name": "降智GPT",
+      "price": 10,
+      "speed": 55,
+      "physicalResist": 0,
+      "magicResist": 0,
+      "damage": 7,
+      "interval": 1.1,
+      "leak": 1,
+      "columns": 2,
+      "abilityBudget": 0,
+      "role": "基础标尺",
+      "maxHp": 85,
+      "hp": 85,
+      "unroundedHp": 85,
+      "parts": {
+        "linearDurability": 7.5,
+        "durability": 7.5,
+        "concentrationPremium": 0,
+        "melee": 1.5,
+        "leak": 1,
+        "ability": 0,
+        "aoeRetention": 1,
+        "aoeDiscountPoints": 0,
+        "total": 10
+      },
+      "unspentBudget": 0,
+      "priceRoundingError": 0,
+      "physicalEhp": 85,
+      "magicEhp": 85,
+      "glm1FiringSeconds": 4.25,
+      "previousHp": 85
+    },
+    {
+      "id": "normal",
+      "name": "中级GPT",
+      "price": 25,
+      "speed": 55,
+      "physicalResist": 0.05,
+      "magicResist": 0.05,
+      "damage": 14,
+      "interval": 1.1,
+      "leak": 1,
+      "columns": 2,
+      "abilityBudget": 0,
+      "role": "均衡普通兵",
+      "maxHp": 175,
+      "hp": 175,
+      "unroundedHp": 175,
+      "parts": {
+        "linearDurability": 16.68160338927815,
+        "durability": 18.80677248444471,
+        "concentrationPremium": 2.1251690951665623,
+        "melee": 2.377443751081734,
+        "leak": 1,
+        "ability": 0,
+        "aoeRetention": 1,
+        "aoeDiscountPoints": 0,
+        "total": 22.184216235526446
+      },
+      "unspentBudget": 2.8157837644735544,
+      "priceRoundingError": -2.8157837644735544,
+      "physicalEhp": 184.21052631578948,
+      "magicEhp": 184.21052631578948,
+      "glm1FiringSeconds": 9.210526315789474,
+      "previousHp": 175
+    },
+    {
+      "id": "gpt_elite",
+      "name": "精英GPT",
+      "price": 120,
+      "speed": 38,
+      "physicalResist": 0.25,
+      "magicResist": 0.25,
+      "damage": 56,
+      "interval": 1.3,
+      "leak": 3,
+      "columns": 1,
+      "abilityBudget": 0,
+      "role": "慢速高属性精英",
+      "maxHp": 770,
+      "hp": 770,
+      "unroundedHp": 770,
+      "parts": {
+        "linearDurability": 73.01960784313727,
+        "durability": 108.58831524348608,
+        "concentrationPremium": 35.56870740034881,
+        "melee": 4.4366576469160535,
+        "leak": 3,
+        "ability": 0,
+        "aoeRetention": 1,
+        "aoeDiscountPoints": 0,
+        "total": 116.02497289040213
+      },
+      "unspentBudget": 3.9750271095978746,
+      "priceRoundingError": -3.9750271095978746,
+      "physicalEhp": 1026.6666666666667,
+      "magicEhp": 1026.6666666666667,
+      "glm1FiringSeconds": 51.333333333333336,
+      "previousHp": 770
+    },
+    {
+      "id": "grok",
+      "name": "中级Grok",
+      "price": 55,
+      "speed": 38,
+      "physicalResist": 0.6,
+      "magicResist": 0.05,
+      "damage": 80,
+      "interval": 1.3,
+      "leak": 2,
+      "columns": 2,
+      "abilityBudget": 0,
+      "role": "高物抗、高近战伤害，生命适中",
+      "maxHp": 210,
+      "hp": 210,
+      "unroundedHp": 210,
+      "parts": {
+        "linearDurability": 32.847593582887704,
+        "durability": 43.33180367758713,
+        "concentrationPremium": 10.484210094699428,
+        "melee": 5.123299267830744,
+        "leak": 2,
+        "ability": 0,
+        "aoeRetention": 1,
+        "aoeDiscountPoints": 0,
+        "total": 50.45510294541788
+      },
+      "unspentBudget": 4.544897054582123,
+      "priceRoundingError": -4.544897054582123,
+      "physicalEhp": 525,
+      "magicEhp": 221.05263157894737,
+      "glm1FiringSeconds": 26.25,
+      "previousHp": 210
+    },
+    {
+      "id": "grok_elite",
+      "name": "精英Grok",
+      "price": 245,
+      "speed": 30,
+      "physicalResist": 0.8,
+      "magicResist": 0.05,
+      "damage": 3000,
+      "interval": 2.4,
+      "leak": 4,
+      "columns": 1,
+      "abilityBudget": 20,
+      "ability": "一击击倒普通友军的额外预算；与近战DPS的对数预算分列",
+      "role": "高甲斩杀精英",
+      "maxHp": 500,
+      "hp": 500,
+      "unroundedHp": 500,
+      "parts": {
+        "linearDurability": 123.4871939206305,
+        "durability": 205.86960724886697,
+        "concentrationPremium": 82.38241332823647,
+        "melee": 11.437780467495983,
+        "leak": 4,
+        "ability": 20,
+        "aoeRetention": 1,
+        "aoeDiscountPoints": 0,
+        "total": 241.30738771636294
+      },
+      "unspentBudget": 3.692612283637061,
+      "priceRoundingError": -3.692612283637061,
+      "physicalEhp": 2500.0000000000005,
+      "magicEhp": 526.3157894736843,
+      "glm1FiringSeconds": 125.00000000000003,
+      "previousHp": 500
+    },
+    {
+      "id": "gemma",
+      "name": "猫仔Gemma",
+      "price": 2,
+      "speed": 60,
+      "physicalResist": 0,
+      "magicResist": 0,
+      "damage": 3,
+      "interval": 1.2,
+      "leak": 1,
+      "columns": 3,
+      "abilityBudget": 0,
+      "role": "低血量mini群体",
+      "maxHp": 20,
+      "hp": 20,
+      "unroundedHp": 20,
+      "parts": {
+        "linearDurability": 1.925133689839572,
+        "durability": 1.5495391546698956,
+        "concentrationPremium": -0.37559453516967634,
+        "melee": 0.7170709452069662,
+        "leak": 1,
+        "ability": 0,
+        "aoeRetention": 0.6000000000000001,
+        "aoeDiscountPoints": 1.3066440399507444,
+        "total": 1.9599660599261175
+      },
+      "unspentBudget": 0.0400339400738825,
+      "priceRoundingError": -0.0400339400738825,
+      "physicalEhp": 20,
+      "magicEhp": 20,
+      "glm1FiringSeconds": 1,
+      "previousHp": 20
+    },
+    {
+      "id": "cat",
+      "name": "Gemini",
+      "price": 8,
+      "speed": 80,
+      "physicalResist": 0,
+      "magicResist": 0,
+      "damage": 3,
+      "interval": 1.1,
+      "leak": 1,
+      "columns": 2,
+      "abilityBudget": 3.36,
+      "aura": {
+        "range": 190,
+        "speedBoost": 0.8,
+        "referenceTargets": 6,
+        "referenceUptime": 0.35
+      },
+      "role": "比降智GPT脆弱的快速支援，依靠加速猫仔而非自身作战",
+      "maxHp": 35,
+      "hp": 35,
+      "unroundedHp": 35,
+      "parts": {
+        "linearDurability": 4.491978609625668,
+        "durability": 3.932195006271901,
+        "concentrationPremium": -0.5597836033537669,
+        "melee": 0.7718597592446373,
+        "leak": 1,
+        "ability": 3.36,
+        "aoeRetention": 0.75,
+        "aoeDiscountPoints": 1.4260136913791346,
+        "total": 7.638041074137403
+      },
+      "unspentBudget": 0.3619589258625968,
+      "priceRoundingError": -0.3619589258625968,
+      "physicalEhp": 35,
+      "magicEhp": 35,
+      "glm1FiringSeconds": 1.75,
+      "previousHp": 35
+    },
+    {
+      "id": "claude",
+      "name": "Claude",
+      "price": 315,
+      "speed": 30,
+      "physicalResist": 0,
+      "magicResist": 0,
+      "damage": 18,
+      "interval": 1.6,
+      "leak": 4,
+      "columns": 1,
+      "abilityBudget": 40,
+      "absorbRange": 230,
+      "role": "无双抗血牛、范围承伤",
+      "maxHp": 3200,
+      "hp": 3200,
+      "unroundedHp": 3200,
+      "parts": {
+        "linearDurability": 154.01069518716577,
+        "durability": 265.4058792632372,
+        "concentrationPremium": 111.39518407607142,
+        "melee": 2.2031542248249503,
+        "leak": 4,
+        "ability": 40,
+        "aoeRetention": 1,
+        "aoeDiscountPoints": 0,
+        "total": 311.60903348806215
+      },
+      "unspentBudget": 3.3909665119378474,
+      "priceRoundingError": -3.3909665119378474,
+      "physicalEhp": 3200,
+      "magicEhp": 3200,
+      "glm1FiringSeconds": 160,
+      "previousHp": 3200
+    }
+  ],
+  "waves": [
+    {
+      "stage": "stage1",
+      "wave": 1,
+      "initialGold": 260,
+      "count": 9,
+      "totalBudget": 90,
+      "spawnSpan": 22,
+      "budgetPerSpawnSecond": 4.090909090909091,
+      "peakBudget5Seconds": 20,
+      "peakBudget10Seconds": 40,
+      "peakBudget20Seconds": 80,
+      "budgetByRoute": {
+        "0": 90
+      },
+      "highArmorShare": 0,
+      "eliteShare": 0,
+      "supportShare": 0,
+      "counts": {
+        "silly": 9
+      },
+      "note": "现有排程按新标价核算；不是旧版实际难度，也不是新战斗实测。"
+    },
+    {
+      "stage": "stage1",
+      "wave": 2,
+      "initialGold": 260,
+      "count": 14,
+      "totalBudget": 140,
+      "spawnSpan": 25,
+      "budgetPerSpawnSecond": 5.6,
+      "peakBudget5Seconds": 40,
+      "peakBudget10Seconds": 60,
+      "peakBudget20Seconds": 100,
+      "budgetByRoute": {
+        "0": 140
+      },
+      "highArmorShare": 0,
+      "eliteShare": 0,
+      "supportShare": 0,
+      "counts": {
+        "silly": 14
+      },
+      "note": "现有排程按新标价核算；不是旧版实际难度，也不是新战斗实测。"
+    },
+    {
+      "stage": "stage1",
+      "wave": 3,
+      "initialGold": 260,
+      "count": 20,
+      "totalBudget": 200,
+      "spawnSpan": 28,
+      "budgetPerSpawnSecond": 7.142857142857143,
+      "peakBudget5Seconds": 40,
+      "peakBudget10Seconds": 80,
+      "peakBudget20Seconds": 140,
+      "budgetByRoute": {
+        "0": 200
+      },
+      "highArmorShare": 0,
+      "eliteShare": 0,
+      "supportShare": 0,
+      "counts": {
+        "silly": 20
+      },
+      "note": "现有排程按新标价核算；不是旧版实际难度，也不是新战斗实测。"
+    },
+    {
+      "stage": "stage1",
+      "wave": 4,
+      "initialGold": 260,
+      "count": 26,
+      "totalBudget": 260,
+      "spawnSpan": 31,
+      "budgetPerSpawnSecond": 8.387096774193548,
+      "peakBudget5Seconds": 40,
+      "peakBudget10Seconds": 80,
+      "peakBudget20Seconds": 160,
+      "budgetByRoute": {
+        "0": 260
+      },
+      "highArmorShare": 0,
+      "eliteShare": 0,
+      "supportShare": 0,
+      "counts": {
+        "silly": 26
+      },
+      "note": "现有排程按新标价核算；不是旧版实际难度，也不是新战斗实测。"
+    },
+    {
+      "stage": "stage1",
+      "wave": 5,
+      "initialGold": 260,
+      "count": 33,
+      "totalBudget": 330,
+      "spawnSpan": 34,
+      "budgetPerSpawnSecond": 9.705882352941176,
+      "peakBudget5Seconds": 60,
+      "peakBudget10Seconds": 100,
+      "peakBudget20Seconds": 200,
+      "budgetByRoute": {
+        "0": 330
+      },
+      "highArmorShare": 0,
+      "eliteShare": 0,
+      "supportShare": 0,
+      "counts": {
+        "silly": 33
+      },
+      "note": "现有排程按新标价核算；不是旧版实际难度，也不是新战斗实测。"
+    },
+    {
+      "stage": "stage1",
+      "wave": 6,
+      "initialGold": 260,
+      "count": 42,
+      "totalBudget": 420,
+      "spawnSpan": 37,
+      "budgetPerSpawnSecond": 11.35135135135135,
+      "peakBudget5Seconds": 60,
+      "peakBudget10Seconds": 120,
+      "peakBudget20Seconds": 220,
+      "budgetByRoute": {
+        "0": 420
+      },
+      "highArmorShare": 0,
+      "eliteShare": 0,
+      "supportShare": 0,
+      "counts": {
+        "silly": 42
+      },
+      "note": "现有排程按新标价核算；不是旧版实际难度，也不是新战斗实测。"
+    },
+    {
+      "stage": "stage2",
+      "wave": 1,
+      "initialGold": 350,
+      "count": 18,
+      "totalBudget": 180,
+      "spawnSpan": 32,
+      "budgetPerSpawnSecond": 5.625,
+      "peakBudget5Seconds": 40,
+      "peakBudget10Seconds": 60,
+      "peakBudget20Seconds": 100,
+      "budgetByRoute": {
+        "0": 180
+      },
+      "highArmorShare": 0,
+      "eliteShare": 0,
+      "supportShare": 0,
+      "counts": {
+        "silly": 18
+      },
+      "note": "现有排程按新标价核算；不是旧版实际难度，也不是新战斗实测。"
+    },
+    {
+      "stage": "stage2",
+      "wave": 2,
+      "initialGold": 350,
+      "count": 21,
+      "totalBudget": 255,
+      "spawnSpan": 35,
+      "budgetPerSpawnSecond": 7.285714285714286,
+      "peakBudget5Seconds": 95,
+      "peakBudget10Seconds": 115,
+      "peakBudget20Seconds": 175,
+      "budgetByRoute": {
+        "0": 255
+      },
+      "highArmorShare": 0.21568627450980393,
+      "eliteShare": 0,
+      "supportShare": 0,
+      "counts": {
+        "silly": 20,
+        "grok": 1
+      },
+      "note": "现有排程按新标价核算；不是旧版实际难度，也不是新战斗实测。"
+    },
+    {
+      "stage": "stage2",
+      "wave": 3,
+      "initialGold": 350,
+      "count": 26,
+      "totalBudget": 350,
+      "spawnSpan": 38,
+      "budgetPerSpawnSecond": 9.210526315789474,
+      "peakBudget5Seconds": 150,
+      "peakBudget10Seconds": 170,
+      "peakBudget20Seconds": 230,
+      "budgetByRoute": {
+        "0": 350
+      },
+      "highArmorShare": 0.3142857142857143,
+      "eliteShare": 0,
+      "supportShare": 0,
+      "counts": {
+        "silly": 24,
+        "grok": 2
+      },
+      "note": "现有排程按新标价核算；不是旧版实际难度，也不是新战斗实测。"
+    },
+    {
+      "stage": "stage2",
+      "wave": 4,
+      "initialGold": 350,
+      "count": 27,
+      "totalBudget": 450,
+      "spawnSpan": 41,
+      "budgetPerSpawnSecond": 10.975609756097562,
+      "peakBudget5Seconds": 150,
+      "peakBudget10Seconds": 170,
+      "peakBudget20Seconds": 230,
+      "budgetByRoute": {
+        "0": 450
+      },
+      "highArmorShare": 0.4888888888888889,
+      "eliteShare": 0,
+      "supportShare": 0,
+      "counts": {
+        "silly": 23,
+        "grok": 4
+      },
+      "note": "现有排程按新标价核算；不是旧版实际难度，也不是新战斗实测。"
+    },
+    {
+      "stage": "stage2",
+      "wave": 5,
+      "initialGold": 350,
+      "count": 33,
+      "totalBudget": 555,
+      "spawnSpan": 44,
+      "budgetPerSpawnSecond": 12.613636363636363,
+      "peakBudget5Seconds": 150,
+      "peakBudget10Seconds": 170,
+      "peakBudget20Seconds": 230,
+      "budgetByRoute": {
+        "0": 555
+      },
+      "highArmorShare": 0.4954954954954955,
+      "eliteShare": 0,
+      "supportShare": 0,
+      "counts": {
+        "silly": 28,
+        "grok": 5
+      },
+      "note": "现有排程按新标价核算；不是旧版实际难度，也不是新战斗实测。"
+    },
+    {
+      "stage": "stage2",
+      "wave": 6,
+      "initialGold": 350,
+      "count": 36,
+      "totalBudget": 675,
+      "spawnSpan": 47,
+      "budgetPerSpawnSecond": 14.361702127659575,
+      "peakBudget5Seconds": 150,
+      "peakBudget10Seconds": 170,
+      "peakBudget20Seconds": 340,
+      "budgetByRoute": {
+        "0": 675
+      },
+      "highArmorShare": 0.5703703703703704,
+      "eliteShare": 0,
+      "supportShare": 0,
+      "counts": {
+        "silly": 29,
+        "grok": 7
+      },
+      "note": "现有排程按新标价核算；不是旧版实际难度，也不是新战斗实测。"
+    },
+    {
+      "stage": "stage2",
+      "wave": 7,
+      "initialGold": 350,
+      "count": 58,
+      "totalBudget": 850,
+      "spawnSpan": 50,
+      "budgetPerSpawnSecond": 17,
+      "peakBudget5Seconds": 170,
+      "peakBudget10Seconds": 210,
+      "peakBudget20Seconds": 310,
+      "budgetByRoute": {
+        "0": 850
+      },
+      "highArmorShare": 0.38823529411764707,
+      "eliteShare": 0,
+      "supportShare": 0,
+      "counts": {
+        "silly": 52,
+        "grok": 6
+      },
+      "note": "现有排程按新标价核算；不是旧版实际难度，也不是新战斗实测。"
+    },
+    {
+      "stage": "stage3",
+      "wave": 1,
+      "initialGold": 480,
+      "count": 61,
+      "totalBudget": 274,
+      "spawnSpan": 40,
+      "budgetPerSpawnSecond": 6.85,
+      "peakBudget5Seconds": 58,
+      "peakBudget10Seconds": 84,
+      "peakBudget20Seconds": 142,
+      "budgetByRoute": {
+        "0": 136,
+        "1": 138
+      },
+      "highArmorShare": 0,
+      "eliteShare": 0,
+      "supportShare": 0,
+      "counts": {
+        "silly": 19,
+        "gemma": 42
+      },
+      "note": "现有排程按新标价核算；不是旧版实际难度，也不是新战斗实测。"
+    },
+    {
+      "stage": "stage3",
+      "wave": 2,
+      "initialGold": 480,
+      "count": 158,
+      "totalBudget": 356,
+      "spawnSpan": 44,
+      "budgetPerSpawnSecond": 8.090909090909092,
+      "peakBudget5Seconds": 56,
+      "peakBudget10Seconds": 92,
+      "peakBudget20Seconds": 164,
+      "budgetByRoute": {
+        "0": 182,
+        "1": 174
+      },
+      "highArmorShare": 0,
+      "eliteShare": 0,
+      "supportShare": 0,
+      "counts": {
+        "gemma": 153,
+        "silly": 5
+      },
+      "note": "现有排程按新标价核算；不是旧版实际难度，也不是新战斗实测。"
+    },
+    {
+      "stage": "stage3",
+      "wave": 3,
+      "initialGold": 480,
+      "count": 211,
+      "totalBudget": 454,
+      "spawnSpan": 48,
+      "budgetPerSpawnSecond": 9.458333333333334,
+      "peakBudget5Seconds": 68,
+      "peakBudget10Seconds": 110,
+      "peakBudget20Seconds": 194,
+      "budgetByRoute": {
+        "0": 236,
+        "1": 218
+      },
+      "highArmorShare": 0,
+      "eliteShare": 0,
+      "supportShare": 0,
+      "counts": {
+        "gemma": 207,
+        "silly": 4
+      },
+      "note": "现有排程按新标价核算；不是旧版实际难度，也不是新战斗实测。"
+    },
+    {
+      "stage": "stage3",
+      "wave": 4,
+      "initialGold": 480,
+      "count": 167,
+      "totalBudget": 578,
+      "spawnSpan": 52,
+      "budgetPerSpawnSecond": 11.115384615384615,
+      "peakBudget5Seconds": 166,
+      "peakBudget10Seconds": 202,
+      "peakBudget20Seconds": 256,
+      "budgetByRoute": {
+        "0": 292,
+        "1": 286
+      },
+      "highArmorShare": 0.3806228373702422,
+      "eliteShare": 0,
+      "supportShare": 0,
+      "counts": {
+        "gemma": 159,
+        "grok": 4,
+        "silly": 4
+      },
+      "note": "现有排程按新标价核算；不是旧版实际难度，也不是新战斗实测。"
+    },
+    {
+      "stage": "stage3",
+      "wave": 5,
+      "initialGold": 480,
+      "count": 264,
+      "totalBudget": 720,
+      "spawnSpan": 56,
+      "budgetPerSpawnSecond": 12.857142857142858,
+      "peakBudget5Seconds": 68,
+      "peakBudget10Seconds": 130,
+      "peakBudget20Seconds": 260,
+      "budgetByRoute": {
+        "0": 366,
+        "1": 354
+      },
+      "highArmorShare": 0,
+      "eliteShare": 0,
+      "supportShare": 0,
+      "counts": {
+        "gemma": 240,
+        "silly": 24
+      },
+      "note": "现有排程按新标价核算；不是旧版实际难度，也不是新战斗实测。"
+    },
+    {
+      "stage": "stage3",
+      "wave": 6,
+      "initialGold": 480,
+      "count": 228,
+      "totalBudget": 880,
+      "spawnSpan": 60,
+      "budgetPerSpawnSecond": 14.666666666666666,
+      "peakBudget5Seconds": 152,
+      "peakBudget10Seconds": 188,
+      "peakBudget20Seconds": 260,
+      "budgetByRoute": {
+        "0": 444,
+        "1": 436
+      },
+      "highArmorShare": 0.5,
+      "eliteShare": 0,
+      "supportShare": 0,
+      "counts": {
+        "gemma": 220,
+        "grok": 8
+      },
+      "note": "现有排程按新标价核算；不是旧版实际难度，也不是新战斗实测。"
+    },
+    {
+      "stage": "stage3",
+      "wave": 7,
+      "initialGold": 480,
+      "count": 296,
+      "totalBudget": 1040,
+      "spawnSpan": 64,
+      "budgetPerSpawnSecond": 16.25,
+      "peakBudget5Seconds": 102,
+      "peakBudget10Seconds": 178,
+      "peakBudget20Seconds": 336,
+      "budgetByRoute": {
+        "0": 526,
+        "1": 514
+      },
+      "highArmorShare": 0,
+      "eliteShare": 0,
+      "supportShare": 0,
+      "counts": {
+        "gemma": 240,
+        "silly": 56
+      },
+      "note": "现有排程按新标价核算；不是旧版实际难度，也不是新战斗实测。"
+    },
+    {
+      "stage": "stage3",
+      "wave": 8,
+      "initialGold": 480,
+      "count": 276,
+      "totalBudget": 1245,
+      "spawnSpan": 68,
+      "budgetPerSpawnSecond": 18.308823529411764,
+      "peakBudget5Seconds": 166,
+      "peakBudget10Seconds": 222,
+      "peakBudget20Seconds": 444,
+      "budgetByRoute": {
+        "0": 626,
+        "1": 619
+      },
+      "highArmorShare": 0.39759036144578314,
+      "eliteShare": 0,
+      "supportShare": 0,
+      "counts": {
+        "gemma": 240,
+        "silly": 27,
+        "grok": 9
+      },
+      "note": "现有排程按新标价核算；不是旧版实际难度，也不是新战斗实测。"
+    },
+    {
+      "stage": "stage4",
+      "wave": 1,
+      "initialGold": 650,
+      "count": 167,
+      "totalBudget": 414,
+      "spawnSpan": 40,
+      "budgetPerSpawnSecond": 10.35,
+      "peakBudget5Seconds": 62,
+      "peakBudget10Seconds": 104,
+      "peakBudget20Seconds": 202,
+      "budgetByRoute": {
+        "0": 202,
+        "1": 212
+      },
+      "highArmorShare": 0,
+      "eliteShare": 0,
+      "supportShare": 0,
+      "counts": {
+        "gemma": 157,
+        "silly": 10
+      },
+      "note": "现有排程按新标价核算；不是旧版实际难度，也不是新战斗实测。"
+    },
+    {
+      "stage": "stage4",
+      "wave": 2,
+      "initialGold": 650,
+      "count": 218,
+      "totalBudget": 532,
+      "spawnSpan": 44,
+      "budgetPerSpawnSecond": 12.090909090909092,
+      "peakBudget5Seconds": 70,
+      "peakBudget10Seconds": 128,
+      "peakBudget20Seconds": 250,
+      "budgetByRoute": {
+        "0": 270,
+        "1": 262
+      },
+      "highArmorShare": 0,
+      "eliteShare": 0,
+      "supportShare": 0.24060150375939848,
+      "counts": {
+        "gemma": 202,
+        "cat": 16
+      },
+      "note": "现有排程按新标价核算；不是旧版实际难度，也不是新战斗实测。"
+    },
+    {
+      "stage": "stage4",
+      "wave": 3,
+      "initialGold": 650,
+      "count": 263,
+      "totalBudget": 676,
+      "spawnSpan": 48,
+      "budgetPerSpawnSecond": 14.083333333333334,
+      "peakBudget5Seconds": 90,
+      "peakBudget10Seconds": 160,
+      "peakBudget20Seconds": 288,
+      "budgetByRoute": {
+        "0": 330,
+        "1": 346
+      },
+      "highArmorShare": 0,
+      "eliteShare": 0,
+      "supportShare": 0.20118343195266272,
+      "counts": {
+        "gemma": 240,
+        "cat": 17,
+        "silly": 6
+      },
+      "note": "现有排程按新标价核算；不是旧版实际难度，也不是新战斗实测。"
+    },
+    {
+      "stage": "stage4",
+      "wave": 4,
+      "initialGold": 650,
+      "count": 235,
+      "totalBudget": 849,
+      "spawnSpan": 52,
+      "budgetPerSpawnSecond": 16.326923076923077,
+      "peakBudget5Seconds": 194,
+      "peakBudget10Seconds": 252,
+      "peakBudget20Seconds": 340,
+      "budgetByRoute": {
+        "0": 426,
+        "1": 423
+      },
+      "highArmorShare": 0.32391048292108365,
+      "eliteShare": 0,
+      "supportShare": 0.1413427561837456,
+      "counts": {
+        "gemma": 212,
+        "cat": 15,
+        "silly": 3,
+        "grok": 5
+      },
+      "note": "现有排程按新标价核算；不是旧版实际难度，也不是新战斗实测。"
+    },
+    {
+      "stage": "stage4",
+      "wave": 5,
+      "initialGold": 650,
+      "count": 304,
+      "totalBudget": 1042,
+      "spawnSpan": 56,
+      "budgetPerSpawnSecond": 18.607142857142858,
+      "peakBudget5Seconds": 120,
+      "peakBudget10Seconds": 214,
+      "peakBudget20Seconds": 392,
+      "budgetByRoute": {
+        "0": 518,
+        "1": 524
+      },
+      "highArmorShare": 0,
+      "eliteShare": 0,
+      "supportShare": 0.29942418426103645,
+      "counts": {
+        "gemma": 240,
+        "cat": 39,
+        "silly": 25
+      },
+      "note": "现有排程按新标价核算；不是旧版实际难度，也不是新战斗实测。"
+    },
+    {
+      "stage": "stage4",
+      "wave": 6,
+      "initialGold": 650,
+      "count": 294,
+      "totalBudget": 1244,
+      "spawnSpan": 60,
+      "budgetPerSpawnSecond": 20.733333333333334,
+      "peakBudget5Seconds": 194,
+      "peakBudget10Seconds": 272,
+      "peakBudget20Seconds": 416,
+      "budgetByRoute": {
+        "0": 620,
+        "1": 624
+      },
+      "highArmorShare": 0.2652733118971061,
+      "eliteShare": 0,
+      "supportShare": 0.14790996784565916,
+      "counts": {
+        "gemma": 240,
+        "cat": 23,
+        "grok": 6,
+        "silly": 25
+      },
+      "note": "现有排程按新标价核算；不是旧版实际难度，也不是新战斗实测。"
+    },
+    {
+      "stage": "stage4",
+      "wave": 7,
+      "initialGold": 650,
+      "count": 353,
+      "totalBudget": 1498,
+      "spawnSpan": 64,
+      "budgetPerSpawnSecond": 23.40625,
+      "peakBudget5Seconds": 150,
+      "peakBudget10Seconds": 258,
+      "peakBudget20Seconds": 480,
+      "budgetByRoute": {
+        "0": 750,
+        "1": 748
+      },
+      "highArmorShare": 0,
+      "eliteShare": 0,
+      "supportShare": 0.29906542056074764,
+      "counts": {
+        "gemma": 240,
+        "cat": 56,
+        "silly": 57
+      },
+      "note": "现有排程按新标价核算；不是旧版实际难度，也不是新战斗实测。"
+    },
+    {
+      "stage": "stage4",
+      "wave": 8,
+      "initialGold": 650,
+      "count": 339,
+      "totalBudget": 1795,
+      "spawnSpan": 68,
+      "budgetPerSpawnSecond": 26.397058823529413,
+      "peakBudget5Seconds": 353,
+      "peakBudget10Seconds": 445,
+      "peakBudget20Seconds": 771,
+      "budgetByRoute": {
+        "0": 902,
+        "1": 893
+      },
+      "highArmorShare": 0.2590529247910863,
+      "eliteShare": 0.13649025069637882,
+      "supportShare": 0.20055710306406685,
+      "counts": {
+        "gemma": 240,
+        "silly": 49,
+        "cat": 45,
+        "grok": 4,
+        "grok_elite": 1
+      },
+      "note": "现有排程按新标价核算；不是旧版实际难度，也不是新战斗实测。"
+    },
+    {
+      "stage": "stage5",
+      "wave": 1,
+      "initialGold": 1000,
+      "count": 49,
+      "totalBudget": 640,
+      "spawnSpan": 40,
+      "budgetPerSpawnSecond": 16,
+      "peakBudget5Seconds": 110,
+      "peakBudget10Seconds": 150,
+      "peakBudget20Seconds": 300,
+      "budgetByRoute": {
+        "0": 300,
+        "1": 340
+      },
+      "highArmorShare": 0,
+      "eliteShare": 0,
+      "supportShare": 0,
+      "counts": {
+        "silly": 39,
+        "normal": 10
+      },
+      "note": "现有排程按新标价核算；不是旧版实际难度，也不是新战斗实测。"
+    },
+    {
+      "stage": "stage5",
+      "wave": 2,
+      "initialGold": 1000,
+      "count": 229,
+      "totalBudget": 849,
+      "spawnSpan": 44,
+      "budgetPerSpawnSecond": 19.295454545454547,
+      "peakBudget5Seconds": 104,
+      "peakBudget10Seconds": 202,
+      "peakBudget20Seconds": 398,
+      "budgetByRoute": {
+        "0": 423,
+        "1": 426
+      },
+      "highArmorShare": 0,
+      "eliteShare": 0,
+      "supportShare": 0,
+      "counts": {
+        "normal": 17,
+        "gemma": 212
+      },
+      "note": "现有排程按新标价核算；不是旧版实际难度，也不是新战斗实测。"
+    },
+    {
+      "stage": "stage5",
+      "wave": 3,
+      "initialGold": 1000,
+      "count": 52,
+      "totalBudget": 1081,
+      "spawnSpan": 48,
+      "budgetPerSpawnSecond": 22.520833333333332,
+      "peakBudget5Seconds": 192,
+      "peakBudget10Seconds": 258,
+      "peakBudget20Seconds": 516,
+      "budgetByRoute": {
+        "0": 541,
+        "1": 540
+      },
+      "highArmorShare": 0.4070305272895467,
+      "eliteShare": 0,
+      "supportShare": 0.1998149861239593,
+      "counts": {
+        "normal": 17,
+        "grok": 8,
+        "cat": 27
+      },
+      "note": "现有排程按新标价核算；不是旧版实际难度，也不是新战斗实测。"
+    },
+    {
+      "stage": "stage5",
+      "wave": 4,
+      "initialGold": 1000,
+      "count": 228,
+      "totalBudget": 1344,
+      "spawnSpan": 52,
+      "budgetPerSpawnSecond": 25.846153846153847,
+      "peakBudget5Seconds": 457,
+      "peakBudget10Seconds": 549,
+      "peakBudget20Seconds": 727,
+      "budgetByRoute": {
+        "0": 671,
+        "1": 673
+      },
+      "highArmorShare": 0,
+      "eliteShare": 0,
+      "supportShare": 0.234375,
+      "counts": {
+        "gemma": 202,
+        "normal": 25,
+        "claude": 1
+      },
+      "note": "现有排程按新标价核算；不是旧版实际难度，也不是新战斗实测。"
+    },
+    {
+      "stage": "stage5",
+      "wave": 5,
+      "initialGold": 1000,
+      "count": 51,
+      "totalBudget": 1635,
+      "spawnSpan": 56,
+      "budgetPerSpawnSecond": 29.196428571428573,
+      "peakBudget5Seconds": 210,
+      "peakBudget10Seconds": 310,
+      "peakBudget20Seconds": 570,
+      "budgetByRoute": {
+        "0": 830,
+        "1": 805
+      },
+      "highArmorShare": 0.4036697247706422,
+      "eliteShare": 0,
+      "supportShare": 0,
+      "counts": {
+        "normal": 39,
+        "grok": 12
+      },
+      "note": "现有排程按新标价核算；不是旧版实际难度，也不是新战斗实测。"
+    },
+    {
+      "stage": "stage5",
+      "wave": 6,
+      "initialGold": 1000,
+      "count": 49,
+      "totalBudget": 1985,
+      "spawnSpan": 60,
+      "budgetPerSpawnSecond": 33.083333333333336,
+      "peakBudget5Seconds": 525,
+      "peakBudget10Seconds": 625,
+      "peakBudget20Seconds": 775,
+      "budgetByRoute": {
+        "0": 950,
+        "1": 1035
+      },
+      "highArmorShare": 0.16624685138539042,
+      "eliteShare": 0,
+      "supportShare": 0.31738035264483627,
+      "counts": {
+        "claude": 2,
+        "normal": 41,
+        "grok": 6
+      },
+      "note": "现有排程按新标价核算；不是旧版实际难度，也不是新战斗实测。"
+    },
+    {
+      "stage": "stage5",
+      "wave": 7,
+      "initialGold": 1000,
+      "count": 347,
+      "totalBudget": 2390,
+      "spawnSpan": 64,
+      "budgetPerSpawnSecond": 37.34375,
+      "peakBudget5Seconds": 224,
+      "peakBudget10Seconds": 392,
+      "peakBudget20Seconds": 768,
+      "budgetByRoute": {
+        "0": 1172,
+        "1": 1218
+      },
+      "highArmorShare": 0,
+      "eliteShare": 0,
+      "supportShare": 0.1506276150627615,
+      "counts": {
+        "gemma": 240,
+        "cat": 45,
+        "normal": 62
+      },
+      "note": "现有排程按新标价核算；不是旧版实际难度，也不是新战斗实测。"
+    },
+    {
+      "stage": "stage5",
+      "wave": 8,
+      "initialGold": 1000,
+      "count": 73,
+      "totalBudget": 2835,
+      "spawnSpan": 68,
+      "budgetPerSpawnSecond": 41.69117647058823,
+      "peakBudget5Seconds": 695,
+      "peakBudget10Seconds": 795,
+      "peakBudget20Seconds": 995,
+      "budgetByRoute": {
+        "0": 1430,
+        "1": 1405
+      },
+      "highArmorShare": 0.15520282186948853,
+      "eliteShare": 0.08465608465608465,
+      "supportShare": 0.2222222222222222,
+      "counts": {
+        "claude": 2,
+        "normal": 61,
+        "grok": 8,
+        "gpt_elite": 2
+      },
+      "note": "现有排程按新标价核算；不是旧版实际难度，也不是新战斗实测。"
+    },
+    {
+      "stage": "stage6",
+      "wave": 1,
+      "initialGold": 1400,
+      "count": 243,
+      "totalBudget": 900,
+      "spawnSpan": 44.040000000000006,
+      "budgetPerSpawnSecond": 20.435967302452312,
+      "peakBudget5Seconds": 104,
+      "peakBudget10Seconds": 208,
+      "peakBudget20Seconds": 404,
+      "budgetByRoute": {
+        "0": 448,
+        "1": 452
+      },
+      "highArmorShare": 0,
+      "eliteShare": 0,
+      "supportShare": 0,
+      "counts": {
+        "normal": 18,
+        "gemma": 225
+      },
+      "note": "现有排程按新标价核算；不是旧版实际难度，也不是新战斗实测。"
+    },
+    {
+      "stage": "stage6",
+      "wave": 2,
+      "initialGold": 1400,
+      "count": 28,
+      "totalBudget": 1200,
+      "spawnSpan": 44,
+      "budgetPerSpawnSecond": 27.272727272727273,
+      "peakBudget5Seconds": 525,
+      "peakBudget10Seconds": 575,
+      "peakBudget20Seconds": 785,
+      "budgetByRoute": {
+        "0": 580,
+        "1": 620
+      },
+      "highArmorShare": 0.32083333333333336,
+      "eliteShare": 0,
+      "supportShare": 0.2625,
+      "counts": {
+        "normal": 20,
+        "grok": 7,
+        "claude": 1
+      },
+      "note": "现有排程按新标价核算；不是旧版实际难度，也不是新战斗实测。"
+    },
+    {
+      "stage": "stage6",
+      "wave": 3,
+      "initialGold": 1400,
+      "count": 322,
+      "totalBudget": 1544,
+      "spawnSpan": 48,
+      "budgetPerSpawnSecond": 32.166666666666664,
+      "peakBudget5Seconds": 202,
+      "peakBudget10Seconds": 354,
+      "peakBudget20Seconds": 646,
+      "budgetByRoute": {
+        "0": 770,
+        "1": 774
+      },
+      "highArmorShare": 0,
+      "eliteShare": 0,
+      "supportShare": 0.3005181347150259,
+      "counts": {
+        "gemma": 240,
+        "normal": 24,
+        "cat": 58
+      },
+      "note": "现有排程按新标价核算；不是旧版实际难度，也不是新战斗实测。"
+    },
+    {
+      "stage": "stage6",
+      "wave": 4,
+      "initialGold": 1400,
+      "count": 56,
+      "totalBudget": 1880,
+      "spawnSpan": 52,
+      "budgetPerSpawnSecond": 36.15384615384615,
+      "peakBudget5Seconds": 465,
+      "peakBudget10Seconds": 565,
+      "peakBudget20Seconds": 935,
+      "budgetByRoute": {
+        "0": 935,
+        "1": 945
+      },
+      "highArmorShare": 0,
+      "eliteShare": 0.1276595744680851,
+      "supportShare": 0.1675531914893617,
+      "counts": {
+        "gpt_elite": 2,
+        "normal": 53,
+        "claude": 1
+      },
+      "note": "现有排程按新标价核算；不是旧版实际难度，也不是新战斗实测。"
+    },
+    {
+      "stage": "stage6",
+      "wave": 5,
+      "initialGold": 1400,
+      "count": 312,
+      "totalBudget": 2280,
+      "spawnSpan": 56,
+      "budgetPerSpawnSecond": 40.714285714285715,
+      "peakBudget5Seconds": 248,
+      "peakBudget10Seconds": 440,
+      "peakBudget20Seconds": 830,
+      "budgetByRoute": {
+        "0": 1146,
+        "1": 1134
+      },
+      "highArmorShare": 0,
+      "eliteShare": 0,
+      "supportShare": 0,
+      "counts": {
+        "normal": 72,
+        "gemma": 240
+      },
+      "note": "现有排程按新标价核算；不是旧版实际难度，也不是新战斗实测。"
+    },
+    {
+      "stage": "stage6",
+      "wave": 6,
+      "initialGold": 1400,
+      "count": 59,
+      "totalBudget": 2795,
+      "spawnSpan": 60,
+      "budgetPerSpawnSecond": 46.583333333333336,
+      "peakBudget5Seconds": 525,
+      "peakBudget10Seconds": 735,
+      "peakBudget20Seconds": 995,
+      "budgetByRoute": {
+        "0": 1405,
+        "1": 1390
+      },
+      "highArmorShare": 0.295169946332737,
+      "eliteShare": 0,
+      "supportShare": 0.33810375670840787,
+      "counts": {
+        "claude": 3,
+        "grok": 15,
+        "normal": 41
+      },
+      "note": "现有排程按新标价核算；不是旧版实际难度，也不是新战斗实测。"
+    },
+    {
+      "stage": "stage6",
+      "wave": 7,
+      "initialGold": 1400,
+      "count": 376,
+      "totalBudget": 3339,
+      "spawnSpan": 64,
+      "budgetPerSpawnSecond": 52.171875,
+      "peakBudget5Seconds": 521,
+      "peakBudget10Seconds": 705,
+      "peakBudget20Seconds": 1079,
+      "budgetByRoute": {
+        "0": 1691,
+        "1": 1648
+      },
+      "highArmorShare": 0,
+      "eliteShare": 0,
+      "supportShare": 0.48188080263551963,
+      "counts": {
+        "gemma": 240,
+        "cat": 83,
+        "normal": 50,
+        "claude": 3
+      },
+      "note": "现有排程按新标价核算；不是旧版实际难度，也不是新战斗实测。"
+    },
+    {
+      "stage": "stage6",
+      "wave": 8,
+      "initialGold": 1400,
+      "count": 94,
+      "totalBudget": 3985,
+      "spawnSpan": 68,
+      "budgetPerSpawnSecond": 58.60294117647059,
+      "peakBudget5Seconds": 635,
+      "peakBudget10Seconds": 785,
+      "peakBudget20Seconds": 1205,
+      "budgetByRoute": {
+        "0": 1945,
+        "1": 2040
+      },
+      "highArmorShare": 0,
+      "eliteShare": 0.15056461731493098,
+      "supportShare": 0.3161856963613551,
+      "counts": {
+        "claude": 4,
+        "normal": 85,
+        "gpt_elite": 5
+      },
+      "note": "现有排程按新标价核算；不是旧版实际难度，也不是新战斗实测。"
+    },
+    {
+      "stage": "stage7",
+      "wave": 1,
+      "initialGold": 4200,
+      "count": 198,
+      "totalBudget": 1600,
+      "spawnSpan": 40,
+      "budgetPerSpawnSecond": 40,
+      "peakBudget5Seconds": 252,
+      "peakBudget10Seconds": 504,
+      "peakBudget20Seconds": 842,
+      "budgetByRoute": {
+        "0": 806,
+        "1": 794
+      },
+      "highArmorShare": 0.378125,
+      "eliteShare": 0,
+      "supportShare": 0,
+      "counts": {
+        "grok": 11,
+        "gemma": 160,
+        "normal": 27
+      },
+      "note": "现有排程按新标价核算；不是旧版实际难度，也不是新战斗实测。"
+    },
+    {
+      "stage": "stage7",
+      "wave": 2,
+      "initialGold": 4200,
+      "count": 111,
+      "totalBudget": 2081,
+      "spawnSpan": 44,
+      "budgetPerSpawnSecond": 47.29545454545455,
+      "peakBudget5Seconds": 368,
+      "peakBudget10Seconds": 566,
+      "peakBudget20Seconds": 962,
+      "budgetByRoute": {
+        "0": 1037,
+        "1": 1044
+      },
+      "highArmorShare": 0,
+      "eliteShare": 0.11532916866890917,
+      "supportShare": 0.1999038923594426,
+      "counts": {
+        "normal": 57,
+        "gpt_elite": 2,
+        "cat": 52
+      },
+      "note": "现有排程按新标价核算；不是旧版实际难度，也不是新战斗实测。"
+    },
+    {
+      "stage": "stage7",
+      "wave": 3,
+      "initialGold": 4200,
+      "count": 64,
+      "totalBudget": 2690,
+      "spawnSpan": 48,
+      "budgetPerSpawnSecond": 56.041666666666664,
+      "peakBudget5Seconds": 575,
+      "peakBudget10Seconds": 785,
+      "peakBudget20Seconds": 1255,
+      "budgetByRoute": {
+        "0": 1330,
+        "1": 1360
+      },
+      "highArmorShare": 0.3475836431226766,
+      "eliteShare": 0,
+      "supportShare": 0.2342007434944238,
+      "counts": {
+        "claude": 2,
+        "normal": 45,
+        "grok": 17
+      },
+      "note": "现有排程按新标价核算；不是旧版实际难度，也不是新战斗实测。"
+    },
+    {
+      "stage": "stage7",
+      "wave": 4,
+      "initialGold": 4200,
+      "count": 318,
+      "totalBudget": 3300,
+      "spawnSpan": 52,
+      "budgetPerSpawnSecond": 63.46153846153846,
+      "peakBudget5Seconds": 569,
+      "peakBudget10Seconds": 811,
+      "peakBudget20Seconds": 1251,
+      "budgetByRoute": {
+        "0": 1639,
+        "1": 1661
+      },
+      "highArmorShare": 0,
+      "eliteShare": 0,
+      "supportShare": 0.2863636363636364,
+      "counts": {
+        "claude": 3,
+        "gemma": 240,
+        "normal": 75
+      },
+      "note": "现有排程按新标价核算；不是旧版实际难度，也不是新战斗实测。"
+    },
+    {
+      "stage": "stage7",
+      "wave": 5,
+      "initialGold": 4200,
+      "count": 431,
+      "totalBudget": 3980,
+      "spawnSpan": 56,
+      "budgetPerSpawnSecond": 71.07142857142857,
+      "peakBudget5Seconds": 412,
+      "peakBudget10Seconds": 752,
+      "peakBudget20Seconds": 1454,
+      "budgetByRoute": {
+        "0": 1992,
+        "1": 1988
+      },
+      "highArmorShare": 0,
+      "eliteShare": 0,
+      "supportShare": 0.1507537688442211,
+      "counts": {
+        "normal": 116,
+        "gemma": 240,
+        "cat": 75
+      },
+      "note": "现有排程按新标价核算；不是旧版实际难度，也不是新战斗实测。"
+    },
+    {
+      "stage": "stage7",
+      "wave": 6,
+      "initialGold": 4200,
+      "count": 97,
+      "totalBudget": 4785,
+      "spawnSpan": 60,
+      "budgetPerSpawnSecond": 79.75,
+      "peakBudget5Seconds": 695,
+      "peakBudget10Seconds": 955,
+      "peakBudget20Seconds": 1545,
+      "budgetByRoute": {
+        "0": 2390,
+        "1": 2395
+      },
+      "highArmorShare": 0.2413793103448276,
+      "eliteShare": 0.15047021943573669,
+      "supportShare": 0.26332288401253917,
+      "counts": {
+        "claude": 4,
+        "normal": 66,
+        "gpt_elite": 6,
+        "grok": 21
+      },
+      "note": "现有排程按新标价核算；不是旧版实际难度，也不是新战斗实测。"
+    },
+    {
+      "stage": "stage7",
+      "wave": 7,
+      "initialGold": 4200,
+      "count": 520,
+      "totalBudget": 5678,
+      "spawnSpan": 64,
+      "budgetPerSpawnSecond": 88.71875,
+      "peakBudget5Seconds": 472,
+      "peakBudget10Seconds": 922,
+      "peakBudget20Seconds": 1778,
+      "budgetByRoute": {
+        "0": 2844,
+        "1": 2834
+      },
+      "highArmorShare": 0,
+      "eliteShare": 0,
+      "supportShare": 0.14934836209933075,
+      "counts": {
+        "gemma": 240,
+        "cat": 106,
+        "normal": 174
+      },
+      "note": "现有排程按新标价核算；不是旧版实际难度，也不是新战斗实测。"
+    },
+    {
+      "stage": "stage7",
+      "wave": 8,
+      "initialGold": 4200,
+      "count": 151,
+      "totalBudget": 6785,
+      "spawnSpan": 68,
+      "budgetPerSpawnSecond": 99.77941176470588,
+      "peakBudget5Seconds": 905,
+      "peakBudget10Seconds": 1275,
+      "peakBudget20Seconds": 2210,
+      "budgetByRoute": {
+        "0": 3510,
+        "1": 3275
+      },
+      "highArmorShare": 0.03610906411201179,
+      "eliteShare": 0.17759764185703758,
+      "supportShare": 0.3249815770081061,
+      "counts": {
+        "claude": 7,
+        "gpt_elite": 8,
+        "normal": 135,
+        "grok_elite": 1
+      },
+      "note": "现有排程按新标价核算；不是旧版实际难度，也不是新战斗实测。"
+    },
+    {
+      "stage": "stage8",
+      "wave": 1,
+      "initialGold": 4800,
+      "count": 296,
+      "totalBudget": 1880,
+      "spawnSpan": 47.220000000000006,
+      "budgetPerSpawnSecond": 39.813638288860645,
+      "peakBudget5Seconds": 254,
+      "peakBudget10Seconds": 458,
+      "peakBudget20Seconds": 904,
+      "budgetByRoute": {
+        "0": 946,
+        "1": 934
+      },
+      "highArmorShare": 0,
+      "eliteShare": 0,
+      "supportShare": 0,
+      "counts": {
+        "normal": 56,
+        "gemma": 240
+      },
+      "note": "现有排程按新标价核算；不是旧版实际难度，也不是新战斗实测。"
+    },
+    {
+      "stage": "stage8",
+      "wave": 2,
+      "initialGold": 4800,
+      "count": 362,
+      "totalBudget": 2476,
+      "spawnSpan": 47.220000000000006,
+      "budgetPerSpawnSecond": 52.43540872511647,
+      "peakBudget5Seconds": 318,
+      "peakBudget10Seconds": 570,
+      "peakBudget20Seconds": 1128,
+      "budgetByRoute": {
+        "0": 1236,
+        "1": 1240
+      },
+      "highArmorShare": 0,
+      "eliteShare": 0,
+      "supportShare": 0.20032310177705978,
+      "counts": {
+        "gemma": 240,
+        "normal": 60,
+        "cat": 62
+      },
+      "note": "现有排程按新标价核算；不是旧版实际难度，也不是新战斗实测。"
+    },
+    {
+      "stage": "stage8",
+      "wave": 3,
+      "initialGold": 4800,
+      "count": 78,
+      "totalBudget": 3200,
+      "spawnSpan": 48,
+      "budgetPerSpawnSecond": 66.66666666666667,
+      "peakBudget5Seconds": 635,
+      "peakBudget10Seconds": 835,
+      "peakBudget20Seconds": 1305,
+      "budgetByRoute": {
+        "0": 1595,
+        "1": 1605
+      },
+      "highArmorShare": 0,
+      "eliteShare": 0.15,
+      "supportShare": 0.2953125,
+      "counts": {
+        "claude": 3,
+        "gpt_elite": 4,
+        "normal": 71
+      },
+      "note": "现有排程按新标价核算；不是旧版实际难度，也不是新战斗实测。"
+    },
+    {
+      "stage": "stage8",
+      "wave": 4,
+      "initialGold": 4800,
+      "count": 84,
+      "totalBudget": 3890,
+      "spawnSpan": 52,
+      "budgetPerSpawnSecond": 74.8076923076923,
+      "peakBudget5Seconds": 575,
+      "peakBudget10Seconds": 835,
+      "peakBudget20Seconds": 1670,
+      "budgetByRoute": {
+        "0": 1935,
+        "1": 1955
+      },
+      "highArmorShare": 0.2969151670951157,
+      "eliteShare": 0,
+      "supportShare": 0.32390745501285345,
+      "counts": {
+        "claude": 4,
+        "grok": 21,
+        "normal": 59
+      },
+      "note": "现有排程按新标价核算；不是旧版实际难度，也不是新战斗实测。"
+    },
+    {
+      "stage": "stage8",
+      "wave": 5,
+      "initialGold": 4800,
+      "count": 468,
+      "totalBudget": 4684,
+      "spawnSpan": 56,
+      "budgetPerSpawnSecond": 83.64285714285714,
+      "peakBudget5Seconds": 462,
+      "peakBudget10Seconds": 868,
+      "peakBudget20Seconds": 1686,
+      "budgetByRoute": {
+        "0": 2348,
+        "1": 2336
+      },
+      "highArmorShare": 0,
+      "eliteShare": 0,
+      "supportShare": 0.1502988898377455,
+      "counts": {
+        "gemma": 240,
+        "normal": 140,
+        "cat": 88
+      },
+      "note": "现有排程按新标价核算；不是旧版实际难度，也不是新战斗实测。"
+    },
+    {
+      "stage": "stage8",
+      "wave": 6,
+      "initialGold": 4800,
+      "count": 116,
+      "totalBudget": 5595,
+      "spawnSpan": 60,
+      "budgetPerSpawnSecond": 93.25,
+      "peakBudget5Seconds": 685,
+      "peakBudget10Seconds": 885,
+      "peakBudget20Seconds": 1720,
+      "budgetByRoute": {
+        "0": 2840,
+        "1": 2755
+      },
+      "highArmorShare": 0,
+      "eliteShare": 0.15013404825737264,
+      "supportShare": 0.3941018766756032,
+      "counts": {
+        "claude": 7,
+        "gpt_elite": 7,
+        "normal": 102
+      },
+      "note": "现有排程按新标价核算；不是旧版实际难度，也不是新战斗实测。"
+    },
+    {
+      "stage": "stage8",
+      "wave": 7,
+      "initialGold": 4800,
+      "count": 126,
+      "totalBudget": 6590,
+      "spawnSpan": 64,
+      "budgetPerSpawnSecond": 102.96875,
+      "peakBudget5Seconds": 930,
+      "peakBudget10Seconds": 1300,
+      "peakBudget20Seconds": 2245,
+      "budgetByRoute": {
+        "0": 3300,
+        "1": 3290
+      },
+      "highArmorShare": 0.424886191198786,
+      "eliteShare": 0.07435508345978756,
+      "supportShare": 0.2867981790591806,
+      "counts": {
+        "claude": 6,
+        "grok": 42,
+        "normal": 76,
+        "grok_elite": 2
+      },
+      "note": "现有排程按新标价核算；不是旧版实际难度，也不是新战斗实测。"
+    },
+    {
+      "stage": "stage8",
+      "wave": 8,
+      "initialGold": 4800,
+      "count": 402,
+      "totalBudget": 7790,
+      "spawnSpan": 74,
+      "budgetPerSpawnSecond": 105.27027027027027,
+      "peakBudget5Seconds": 1010,
+      "peakBudget10Seconds": 1541,
+      "peakBudget20Seconds": 2598,
+      "budgetByRoute": {
+        "0": 4012,
+        "1": 3778
+      },
+      "highArmorShare": 0.09435173299101413,
+      "eliteShare": 0.18677792041078306,
+      "supportShare": 0.2830551989730424,
+      "counts": {
+        "claude": 7,
+        "gemma": 240,
+        "gpt_elite": 6,
+        "normal": 146,
+        "grok_elite": 3
+      },
+      "note": "现有排程按新标价核算；不是旧版实际难度，也不是新战斗实测。"
+    }
+  ],
+  "stages": [
+    {
+      "stage": "stage1",
+      "initialGold": 260,
+      "waves": 6,
+      "totalBudget": 1440,
+      "firstWaveBudget": 90,
+      "maxWaveBudget": 420,
+      "maxTenSecondBudget": 120,
+      "maxRouteBudget": 420
+    },
+    {
+      "stage": "stage2",
+      "initialGold": 350,
+      "waves": 7,
+      "totalBudget": 3315,
+      "firstWaveBudget": 180,
+      "maxWaveBudget": 850,
+      "maxTenSecondBudget": 210,
+      "maxRouteBudget": 850
+    },
+    {
+      "stage": "stage3",
+      "initialGold": 480,
+      "waves": 8,
+      "totalBudget": 5547,
+      "firstWaveBudget": 274,
+      "maxWaveBudget": 1245,
+      "maxTenSecondBudget": 222,
+      "maxRouteBudget": 626
+    },
+    {
+      "stage": "stage4",
+      "initialGold": 650,
+      "waves": 8,
+      "totalBudget": 8050,
+      "firstWaveBudget": 414,
+      "maxWaveBudget": 1795,
+      "maxTenSecondBudget": 445,
+      "maxRouteBudget": 902
+    },
+    {
+      "stage": "stage5",
+      "initialGold": 1000,
+      "waves": 8,
+      "totalBudget": 12759,
+      "firstWaveBudget": 640,
+      "maxWaveBudget": 2835,
+      "maxTenSecondBudget": 795,
+      "maxRouteBudget": 1430
+    },
+    {
+      "stage": "stage6",
+      "initialGold": 1400,
+      "waves": 8,
+      "totalBudget": 17923,
+      "firstWaveBudget": 900,
+      "maxWaveBudget": 3985,
+      "maxTenSecondBudget": 785,
+      "maxRouteBudget": 2040
+    },
+    {
+      "stage": "stage7",
+      "initialGold": 4200,
+      "waves": 8,
+      "totalBudget": 30899,
+      "firstWaveBudget": 1600,
+      "maxWaveBudget": 6785,
+      "maxTenSecondBudget": 1275,
+      "maxRouteBudget": 3510
+    },
+    {
+      "stage": "stage8",
+      "initialGold": 4800,
+      "waves": 8,
+      "totalBudget": 36105,
+      "firstWaveBudget": 1880,
+      "maxWaveBudget": 7790,
+      "maxTenSecondBudget": 1541,
+      "maxRouteBudget": 4012
+    }
+  ],
+  "example": {
+    "budget": 1000,
+    "used": 1000,
+    "unspent": 0,
+    "counts": {
+      "silly": 20,
+      "normal": 10,
+      "grok": 10
+    },
+    "selectionWeights": [
+      {
+        "id": "silly",
+        "share": 0.2,
+        "rawWeight": 0.02,
+        "probability": 0.5
+      },
+      {
+        "id": "normal",
+        "share": 0.25,
+        "rawWeight": 0.01,
+        "probability": 0.25
+      },
+      {
+        "id": "grok",
+        "share": 0.55,
+        "rawWeight": 0.01,
+        "probability": 0.25
+      }
+    ],
+    "eliteShare": 0,
+    "eliteShareExceedsDefault": false,
+    "spawns": [
+      {
+        "type": "silly",
+        "route": 0,
+        "slot": 0,
+        "at": 0
+      },
+      {
+        "type": "silly",
+        "route": 0,
+        "slot": 1,
+        "at": 0
+      },
+      {
+        "type": "silly",
+        "route": 0,
+        "slot": 0,
+        "at": 1.2
+      },
+      {
+        "type": "silly",
+        "route": 0,
+        "slot": 1,
+        "at": 1.2
+      },
+      {
+        "type": "normal",
+        "route": 0,
+        "slot": 0,
+        "at": 2.4
+      },
+      {
+        "type": "normal",
+        "route": 0,
+        "slot": 1,
+        "at": 2.4
+      },
+      {
+        "type": "normal",
+        "route": 0,
+        "slot": 0,
+        "at": 3.5999999999999996
+      },
+      {
+        "type": "normal",
+        "route": 0,
+        "slot": 1,
+        "at": 3.5999999999999996
+      },
+      {
+        "type": "grok",
+        "route": 0,
+        "slot": 0,
+        "at": 4.8
+      },
+      {
+        "type": "grok",
+        "route": 0,
+        "slot": 1,
+        "at": 4.8
+      },
+      {
+        "type": "silly",
+        "route": 0,
+        "slot": 0,
+        "at": 6
+      },
+      {
+        "type": "silly",
+        "route": 0,
+        "slot": 1,
+        "at": 6
+      },
+      {
+        "type": "silly",
+        "route": 0,
+        "slot": 0,
+        "at": 7.2
+      },
+      {
+        "type": "silly",
+        "route": 0,
+        "slot": 1,
+        "at": 7.2
+      },
+      {
+        "type": "normal",
+        "route": 0,
+        "slot": 0,
+        "at": 8.4
+      },
+      {
+        "type": "normal",
+        "route": 0,
+        "slot": 1,
+        "at": 8.4
+      },
+      {
+        "type": "normal",
+        "route": 0,
+        "slot": 0,
+        "at": 9.6
+      },
+      {
+        "type": "normal",
+        "route": 0,
+        "slot": 1,
+        "at": 9.6
+      },
+      {
+        "type": "grok",
+        "route": 0,
+        "slot": 0,
+        "at": 10.799999999999999
+      },
+      {
+        "type": "grok",
+        "route": 0,
+        "slot": 1,
+        "at": 10.799999999999999
+      },
+      {
+        "type": "silly",
+        "route": 0,
+        "slot": 0,
+        "at": 11.999999999999998
+      },
+      {
+        "type": "silly",
+        "route": 0,
+        "slot": 1,
+        "at": 11.999999999999998
+      },
+      {
+        "type": "grok",
+        "route": 0,
+        "slot": 0,
+        "at": 13.199999999999998
+      },
+      {
+        "type": "grok",
+        "route": 0,
+        "slot": 1,
+        "at": 13.199999999999998
+      },
+      {
+        "type": "grok",
+        "route": 0,
+        "slot": 0,
+        "at": 14.399999999999997
+      },
+      {
+        "type": "grok",
+        "route": 0,
+        "slot": 1,
+        "at": 14.399999999999997
+      },
+      {
+        "type": "silly",
+        "route": 0,
+        "slot": 0,
+        "at": 15.599999999999996
+      },
+      {
+        "type": "silly",
+        "route": 0,
+        "slot": 1,
+        "at": 15.599999999999996
+      },
+      {
+        "type": "normal",
+        "route": 0,
+        "slot": 0,
+        "at": 16.799999999999997
+      },
+      {
+        "type": "normal",
+        "route": 0,
+        "slot": 1,
+        "at": 16.799999999999997
+      },
+      {
+        "type": "silly",
+        "route": 0,
+        "slot": 0,
+        "at": 17.999999999999996
+      },
+      {
+        "type": "silly",
+        "route": 0,
+        "slot": 1,
+        "at": 17.999999999999996
+      },
+      {
+        "type": "silly",
+        "route": 0,
+        "slot": 0,
+        "at": 19.199999999999996
+      },
+      {
+        "type": "silly",
+        "route": 0,
+        "slot": 1,
+        "at": 19.199999999999996
+      },
+      {
+        "type": "grok",
+        "route": 0,
+        "slot": 0,
+        "at": 20.399999999999995
+      },
+      {
+        "type": "grok",
+        "route": 0,
+        "slot": 1,
+        "at": 20.399999999999995
+      },
+      {
+        "type": "silly",
+        "route": 0,
+        "slot": 0,
+        "at": 21.599999999999994
+      },
+      {
+        "type": "silly",
+        "route": 0,
+        "slot": 1,
+        "at": 21.599999999999994
+      },
+      {
+        "type": "silly",
+        "route": 0,
+        "slot": 0,
+        "at": 22.799999999999994
+      },
+      {
+        "type": "silly",
+        "route": 0,
+        "slot": 1,
+        "at": 22.799999999999994
+      }
+    ]
+  },
+  "normalization": {
+    "glm1Dps": 20,
+    "glm1BasicGptKillsPerFiringSecond": 0.23529411764705882,
+    "glm1BasicGptBudgetPerFiringSecond": 2.3529411764705883
+  }
+}

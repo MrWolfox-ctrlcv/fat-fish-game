@@ -1,0 +1,2005 @@
+{
+  "version": "tower-budget-2",
+  "status": "approved_for_runtime_v7",
+  "battleTestsRun": 0,
+  "policy": {
+    "version": "tower-budget-2",
+    "status": "approved_for_runtime_v7",
+    "battleTests": false,
+    "anchors": {
+      "enemy": "silly",
+      "enemyHp": 85,
+      "enemyPrice": 10,
+      "glmCost": 70,
+      "glmDamage": 12,
+      "glmInterval": 0.6,
+      "glmRange": 230,
+      "glmArea": 4
+    },
+    "pricing": {
+      "rangePower": 1,
+      "extraMagicValue": 0.2,
+      "spaceCreditPerAreaDoubling": 0.15,
+      "denseFormationOccupancy": 0.25,
+      "factoryHorizonSeconds": 30,
+      "factoryStructureBudget": 80,
+      "referencePaidOrders": 8,
+      "friendlyUnitBaseCostFraction": 0.25,
+      "friendlySpeedPower": 0.25,
+      "unitHpWeight": 0.5,
+      "unitDamageWeight": 0.35,
+      "unitBlockWeight": 0.15,
+      "cannon": {
+        "minimumPaidTargets": 3,
+        "radiusReference": 25,
+        "radiusPower": 0.5,
+        "spaceCredit": 1,
+        "mixedReferenceShares": {
+          "silly": 0.5,
+          "normal": 0.25,
+          "grok": 0.2,
+          "grok_elite": 0.05
+        },
+        "note": "群伤按至少三个目标的能力计价；范围增益另付费，4×4不补回额外单体火力。混伤按基准编队的抗性收益计价。"
+      }
+    },
+    "formation": {
+      "roadWidth": 110,
+      "miniColumns": 3,
+      "miniRadius": 9,
+      "referenceRowPitch": 30,
+      "referenceRowsEachSide": 8
+    },
+    "glm": {
+      "costs": [
+        70,
+        130,
+        225
+      ],
+      "intervals": [
+        0.6,
+        0.55,
+        0.5
+      ],
+      "ranges": [
+        230,
+        250,
+        275
+      ],
+      "area": 4,
+      "retargetSeconds": 0.25
+    },
+    "whale": {
+      "costs": [
+        130,
+        280,
+        500
+      ],
+      "intervals": [
+        2.1,
+        2,
+        1.8
+      ],
+      "ranges": [
+        245,
+        265,
+        285
+      ],
+      "radii": [
+        25,
+        35,
+        45
+      ],
+      "area": 16,
+      "physicalShare": 0.75,
+      "roleLimits": {
+        "maxRawSingleVsGlm": 0.5,
+        "maxEffectiveSingleVsGlm": 1,
+        "compareEnemies": [
+          "silly",
+          "normal",
+          "gpt_elite",
+          "grok",
+          "grok_elite",
+          "gemma",
+          "cat",
+          "claude"
+        ],
+        "note": "角色约束优先于预算：基础三级鱼无抗对单至多同级GLM一半；对现有敌人混伤结算后也不得反超。未用完的预算明确列出。"
+      }
+    },
+    "kimi": {
+      "costs": [
+        140,
+        320,
+        560
+      ],
+      "ranges": [
+        320,
+        350,
+        380
+      ],
+      "area": 9,
+      "beams": [
+        1,
+        2,
+        3
+      ],
+      "initialDpsPerBeam": [
+        1,
+        1.5,
+        2
+      ],
+      "aimSeconds": 2,
+      "lowFireSeconds": 3,
+      "rampEndFireSeconds": 6,
+      "referenceWindows": [
+        {
+          "seconds": 4,
+          "weight": 0.8
+        },
+        {
+          "seconds": 20,
+          "weight": 0.2
+        }
+      ],
+      "peakRoundStep": 5,
+      "initialAggregateFractionCeiling": 0.15,
+      "preserveAcquiredTracking": true
+    },
+    "branches": {
+      "egg": {
+        "parent": "glm3",
+        "upgradeCost": 110,
+        "range": 160,
+        "radius": 25,
+        "interval": 6,
+        "duration": 4,
+        "slow": 0.3,
+        "keepArrows": true
+      },
+      "x": {
+        "parent": "glm3",
+        "upgradeCost": 3200,
+        "range": 620,
+        "interval": 0.32,
+        "area": 4
+      },
+      "sticky": {
+        "parent": "whale3",
+        "upgradeCost": 450,
+        "range": 320,
+        "radius": 55,
+        "interval": 1.8,
+        "slow": 0.35,
+        "slowDuration": 3,
+        "area": 16
+      },
+      "giant": {
+        "parent": "whale3",
+        "upgradeCost": 4600,
+        "range": 650,
+        "radius": 100,
+        "interval": 3.8,
+        "area": 16
+      }
+    },
+    "qwen": {
+      "costs": [
+        160,
+        280,
+        460
+      ],
+      "area": 9,
+      "ranges": [
+        230,
+        250,
+        275
+      ],
+      "fieldCaps": [
+        12,
+        16,
+        20
+      ],
+      "smallBranchCost": 550,
+      "largeBranchCost": 2800,
+      "smallFieldCap": 36,
+      "bossGlobalCap": 1,
+      "bossProductionSeconds": 18
+    },
+    "models": [
+      {
+        "id": "small1",
+        "kind": "small",
+        "tier": 1,
+        "nominalPrice": 15,
+        "productionCost": 15,
+        "damage": 6,
+        "interval": 1.2,
+        "speed": 100,
+        "physicalResist": 0.05,
+        "magicResist": 0.05,
+        "block": 1,
+        "columns": 3,
+        "abilityBudget": 0
+      },
+      {
+        "id": "small2",
+        "kind": "small",
+        "tier": 2,
+        "nominalPrice": 16,
+        "productionCost": 14,
+        "damage": 7,
+        "interval": 1.2,
+        "speed": 105,
+        "physicalResist": 0.08,
+        "magicResist": 0.08,
+        "block": 1,
+        "columns": 3,
+        "abilityBudget": 0
+      },
+      {
+        "id": "normal2",
+        "kind": "normal",
+        "tier": 2,
+        "nominalPrice": 40,
+        "productionCost": 40,
+        "damage": 12,
+        "interval": 1.6,
+        "speed": 80,
+        "physicalResist": 0.08,
+        "magicResist": 0.08,
+        "block": 1,
+        "columns": 2,
+        "abilityBudget": 0
+      },
+      {
+        "id": "small3",
+        "kind": "small",
+        "tier": 3,
+        "nominalPrice": 20,
+        "productionCost": 12,
+        "damage": 9,
+        "interval": 1.15,
+        "speed": 110,
+        "physicalResist": 0.1,
+        "magicResist": 0.1,
+        "block": 1,
+        "columns": 3,
+        "abilityBudget": 0
+      },
+      {
+        "id": "normal3",
+        "kind": "normal",
+        "tier": 3,
+        "nominalPrice": 50,
+        "productionCost": 32,
+        "damage": 16,
+        "interval": 1.5,
+        "speed": 85,
+        "physicalResist": 0.1,
+        "magicResist": 0.1,
+        "block": 1,
+        "columns": 2,
+        "abilityBudget": 0
+      },
+      {
+        "id": "massSmall",
+        "kind": "small",
+        "tier": 4,
+        "nominalPrice": 20,
+        "productionCost": 5,
+        "damage": 9,
+        "interval": 1.15,
+        "speed": 110,
+        "physicalResist": 0.1,
+        "magicResist": 0.1,
+        "block": 1,
+        "columns": 3,
+        "abilityBudget": 0
+      },
+      {
+        "id": "boss",
+        "kind": "large",
+        "tier": 4,
+        "nominalPrice": 750,
+        "productionCost": 750,
+        "damage": 120,
+        "interval": 3.2,
+        "speed": 35,
+        "physicalResist": 0.15,
+        "magicResist": 0.15,
+        "block": 3,
+        "columns": 1,
+        "abilityBudget": 120,
+        "executeBudget": 80,
+        "summonBudget": 40,
+        "executeCooldown": 12,
+        "summonInterval": 12,
+        "summonCount": 2,
+        "summonLiveCap": 6
+      }
+    ],
+    "research": {
+      "egg_count": {
+        "prices": [
+          100,
+          150,
+          200
+        ],
+        "totalEggs": [
+          2,
+          3,
+          4
+        ]
+      },
+      "egg_venom": {
+        "prices": [
+          120,
+          180,
+          240
+        ],
+        "duration": 3
+      },
+      "egg_coupon": {
+        "prices": [
+          120
+        ],
+        "discount": 0.25,
+        "damagePenalty": 0.2
+      },
+      "x_speed": {
+        "prices": [
+          900,
+          1350,
+          1800
+        ]
+      },
+      "x_pierce": {
+        "prices": [
+          1000,
+          1500,
+          2000
+        ],
+        "penetration": [
+          0.25,
+          0.5,
+          0.75
+        ],
+        "referenceArmor": 0.6,
+        "counterOpportunity": 0.5
+      },
+      "x_shield": {
+        "prices": [
+          1200,
+          1800,
+          2400
+        ],
+        "blocks": [
+          2,
+          3,
+          4
+        ],
+        "respawnSeconds": 12
+      },
+      "sticky_side": {
+        "prices": [
+          240,
+          360,
+          480
+        ],
+        "hitDamage": 8,
+        "intervals": [
+          2.3,
+          2,
+          1.7
+        ],
+        "poisonDuration": 6
+      },
+      "sticky_burn": {
+        "prices": [
+          260,
+          390,
+          520
+        ],
+        "duration": 4
+      },
+      "sticky_loader": {
+        "prices": [
+          280,
+          420,
+          560
+        ]
+      },
+      "giant_cluster": {
+        "prices": [
+          1100,
+          1650,
+          2200
+        ],
+        "children": [
+          2,
+          4,
+          6
+        ],
+        "radius": 40
+      },
+      "giant_crush": {
+        "prices": [
+          1500,
+          2250,
+          3000
+        ],
+        "intervals": [
+          18,
+          15,
+          12
+        ],
+        "referenceTargets": [
+          4,
+          6,
+          8
+        ],
+        "length": 1200,
+        "speed": 470
+      },
+      "giant_bombard": {
+        "costPerUse": 1500,
+        "referenceTargets": 6,
+        "glmEquivalentFiringSeconds": 12,
+        "cooldown": 5
+      }
+    },
+    "scopeNote": "单项研究先按各自未研究父塔推导；完整组合另按全量投资与相互作用重算，不把多个提升率直接相乘。参数取整误差和条件性收益单列。所有数值是策划方案，不覆盖当前战斗代码。"
+  },
+  "enemies": [
+    {
+      "id": "silly",
+      "name": "降智GPT",
+      "price": 10,
+      "speed": 55,
+      "physicalResist": 0,
+      "magicResist": 0,
+      "damage": 7,
+      "interval": 1.1,
+      "leak": 1,
+      "columns": 2,
+      "abilityBudget": 0,
+      "role": "基础标尺",
+      "maxHp": 85,
+      "hp": 85,
+      "unroundedHp": 85,
+      "parts": {
+        "linearDurability": 7.5,
+        "durability": 7.5,
+        "concentrationPremium": 0,
+        "melee": 1.5,
+        "leak": 1,
+        "ability": 0,
+        "aoeRetention": 1,
+        "aoeDiscountPoints": 0,
+        "total": 10
+      },
+      "unspentBudget": 0,
+      "priceRoundingError": 0,
+      "physicalEhp": 85,
+      "magicEhp": 85,
+      "glm1FiringSeconds": 4.25,
+      "previousHp": 85
+    },
+    {
+      "id": "normal",
+      "name": "中级GPT",
+      "price": 25,
+      "speed": 55,
+      "physicalResist": 0.05,
+      "magicResist": 0.05,
+      "damage": 14,
+      "interval": 1.1,
+      "leak": 1,
+      "columns": 2,
+      "abilityBudget": 0,
+      "role": "均衡普通兵",
+      "maxHp": 175,
+      "hp": 175,
+      "unroundedHp": 175,
+      "parts": {
+        "linearDurability": 16.68160338927815,
+        "durability": 18.80677248444471,
+        "concentrationPremium": 2.1251690951665623,
+        "melee": 2.377443751081734,
+        "leak": 1,
+        "ability": 0,
+        "aoeRetention": 1,
+        "aoeDiscountPoints": 0,
+        "total": 22.184216235526446
+      },
+      "unspentBudget": 2.8157837644735544,
+      "priceRoundingError": -2.8157837644735544,
+      "physicalEhp": 184.21052631578948,
+      "magicEhp": 184.21052631578948,
+      "glm1FiringSeconds": 9.210526315789474,
+      "previousHp": 175
+    },
+    {
+      "id": "gpt_elite",
+      "name": "精英GPT",
+      "price": 120,
+      "speed": 38,
+      "physicalResist": 0.25,
+      "magicResist": 0.25,
+      "damage": 56,
+      "interval": 1.3,
+      "leak": 3,
+      "columns": 1,
+      "abilityBudget": 0,
+      "role": "慢速高属性精英",
+      "maxHp": 770,
+      "hp": 770,
+      "unroundedHp": 770,
+      "parts": {
+        "linearDurability": 73.01960784313727,
+        "durability": 108.58831524348608,
+        "concentrationPremium": 35.56870740034881,
+        "melee": 4.4366576469160535,
+        "leak": 3,
+        "ability": 0,
+        "aoeRetention": 1,
+        "aoeDiscountPoints": 0,
+        "total": 116.02497289040213
+      },
+      "unspentBudget": 3.9750271095978746,
+      "priceRoundingError": -3.9750271095978746,
+      "physicalEhp": 1026.6666666666667,
+      "magicEhp": 1026.6666666666667,
+      "glm1FiringSeconds": 51.333333333333336,
+      "previousHp": 770
+    },
+    {
+      "id": "grok",
+      "name": "中级Grok",
+      "price": 55,
+      "speed": 38,
+      "physicalResist": 0.6,
+      "magicResist": 0.05,
+      "damage": 80,
+      "interval": 1.3,
+      "leak": 2,
+      "columns": 2,
+      "abilityBudget": 0,
+      "role": "高物抗、高近战伤害，生命适中",
+      "maxHp": 210,
+      "hp": 210,
+      "unroundedHp": 210,
+      "parts": {
+        "linearDurability": 32.847593582887704,
+        "durability": 43.33180367758713,
+        "concentrationPremium": 10.484210094699428,
+        "melee": 5.123299267830744,
+        "leak": 2,
+        "ability": 0,
+        "aoeRetention": 1,
+        "aoeDiscountPoints": 0,
+        "total": 50.45510294541788
+      },
+      "unspentBudget": 4.544897054582123,
+      "priceRoundingError": -4.544897054582123,
+      "physicalEhp": 525,
+      "magicEhp": 221.05263157894737,
+      "glm1FiringSeconds": 26.25,
+      "previousHp": 210
+    },
+    {
+      "id": "grok_elite",
+      "name": "精英Grok",
+      "price": 245,
+      "speed": 30,
+      "physicalResist": 0.8,
+      "magicResist": 0.05,
+      "damage": 3000,
+      "interval": 2.4,
+      "leak": 4,
+      "columns": 1,
+      "abilityBudget": 20,
+      "ability": "一击击倒普通友军的额外预算；与近战DPS的对数预算分列",
+      "role": "高甲斩杀精英",
+      "maxHp": 500,
+      "hp": 500,
+      "unroundedHp": 500,
+      "parts": {
+        "linearDurability": 123.4871939206305,
+        "durability": 205.86960724886697,
+        "concentrationPremium": 82.38241332823647,
+        "melee": 11.437780467495983,
+        "leak": 4,
+        "ability": 20,
+        "aoeRetention": 1,
+        "aoeDiscountPoints": 0,
+        "total": 241.30738771636294
+      },
+      "unspentBudget": 3.692612283637061,
+      "priceRoundingError": -3.692612283637061,
+      "physicalEhp": 2500.0000000000005,
+      "magicEhp": 526.3157894736843,
+      "glm1FiringSeconds": 125.00000000000003,
+      "previousHp": 500
+    },
+    {
+      "id": "gemma",
+      "name": "猫仔Gemma",
+      "price": 2,
+      "speed": 60,
+      "physicalResist": 0,
+      "magicResist": 0,
+      "damage": 3,
+      "interval": 1.2,
+      "leak": 1,
+      "columns": 3,
+      "abilityBudget": 0,
+      "role": "低血量mini群体",
+      "maxHp": 20,
+      "hp": 20,
+      "unroundedHp": 20,
+      "parts": {
+        "linearDurability": 1.925133689839572,
+        "durability": 1.5495391546698956,
+        "concentrationPremium": -0.37559453516967634,
+        "melee": 0.7170709452069662,
+        "leak": 1,
+        "ability": 0,
+        "aoeRetention": 0.6000000000000001,
+        "aoeDiscountPoints": 1.3066440399507444,
+        "total": 1.9599660599261175
+      },
+      "unspentBudget": 0.0400339400738825,
+      "priceRoundingError": -0.0400339400738825,
+      "physicalEhp": 20,
+      "magicEhp": 20,
+      "glm1FiringSeconds": 1,
+      "previousHp": 20
+    },
+    {
+      "id": "cat",
+      "name": "Gemini",
+      "price": 8,
+      "speed": 80,
+      "physicalResist": 0,
+      "magicResist": 0,
+      "damage": 3,
+      "interval": 1.1,
+      "leak": 1,
+      "columns": 2,
+      "abilityBudget": 3.36,
+      "aura": {
+        "range": 190,
+        "speedBoost": 0.8,
+        "referenceTargets": 6,
+        "referenceUptime": 0.35
+      },
+      "role": "比降智GPT脆弱的快速支援，依靠加速猫仔而非自身作战",
+      "maxHp": 35,
+      "hp": 35,
+      "unroundedHp": 35,
+      "parts": {
+        "linearDurability": 4.491978609625668,
+        "durability": 3.932195006271901,
+        "concentrationPremium": -0.5597836033537669,
+        "melee": 0.7718597592446373,
+        "leak": 1,
+        "ability": 3.36,
+        "aoeRetention": 0.75,
+        "aoeDiscountPoints": 1.4260136913791346,
+        "total": 7.638041074137403
+      },
+      "unspentBudget": 0.3619589258625968,
+      "priceRoundingError": -0.3619589258625968,
+      "physicalEhp": 35,
+      "magicEhp": 35,
+      "glm1FiringSeconds": 1.75,
+      "previousHp": 35
+    },
+    {
+      "id": "claude",
+      "name": "Claude",
+      "price": 315,
+      "speed": 30,
+      "physicalResist": 0,
+      "magicResist": 0,
+      "damage": 18,
+      "interval": 1.6,
+      "leak": 4,
+      "columns": 1,
+      "abilityBudget": 40,
+      "absorbRange": 230,
+      "role": "无双抗血牛、范围承伤",
+      "maxHp": 3200,
+      "hp": 3200,
+      "unroundedHp": 3200,
+      "parts": {
+        "linearDurability": 154.01069518716577,
+        "durability": 265.4058792632372,
+        "concentrationPremium": 111.39518407607142,
+        "melee": 2.2031542248249503,
+        "leak": 4,
+        "ability": 40,
+        "aoeRetention": 1,
+        "aoeDiscountPoints": 0,
+        "total": 311.60903348806215
+      },
+      "unspentBudget": 3.3909665119378474,
+      "priceRoundingError": -3.3909665119378474,
+      "physicalEhp": 3200,
+      "magicEhp": 3200,
+      "glm1FiringSeconds": 160,
+      "previousHp": 3200
+    }
+  ],
+  "glm": [
+    {
+      "id": "glm1",
+      "name": "GLM 1级",
+      "tier": 1,
+      "range": 230,
+      "area": 4,
+      "coefficient": 3.5,
+      "magicFactor": 1,
+      "aoeBudgetFactor": 1,
+      "footprintFactor": 1,
+      "cost": 70,
+      "interval": 0.6,
+      "damage": 12,
+      "dps": 20,
+      "unroundedDps": 20,
+      "pricedFire": 70,
+      "roundingDelta": 0,
+      "geometricHits": 1,
+      "effectiveHits": 1,
+      "retargetSeconds": 0.25
+    },
+    {
+      "id": "glm2",
+      "name": "GLM 2级",
+      "tier": 2,
+      "range": 250,
+      "area": 4,
+      "coefficient": 3.804347826086956,
+      "magicFactor": 1,
+      "aoeBudgetFactor": 1,
+      "footprintFactor": 1,
+      "cost": 130,
+      "interval": 0.55,
+      "damage": 19,
+      "dps": 34.54545454545454,
+      "unroundedDps": 34.17142857142858,
+      "pricedFire": 131.42292490118572,
+      "roundingDelta": 1.4229249011857235,
+      "geometricHits": 1,
+      "effectiveHits": 1,
+      "retargetSeconds": 0.25
+    },
+    {
+      "id": "glm3",
+      "name": "GLM 3级",
+      "tier": 3,
+      "range": 275,
+      "area": 4,
+      "coefficient": 4.184782608695652,
+      "magicFactor": 1,
+      "aoeBudgetFactor": 1,
+      "footprintFactor": 1,
+      "cost": 225,
+      "interval": 0.5,
+      "damage": 27,
+      "dps": 54,
+      "unroundedDps": 53.76623376623377,
+      "pricedFire": 225.97826086956522,
+      "roundingDelta": 0.9782608695652186,
+      "geometricHits": 1,
+      "effectiveHits": 1,
+      "retargetSeconds": 0.25
+    }
+  ],
+  "whale": [
+    {
+      "id": "whale1",
+      "name": "大肥鱼 1级",
+      "tier": 1,
+      "range": 245,
+      "area": 16,
+      "radius": 25,
+      "magicShare": 0.25,
+      "pricingClass": "cannon",
+      "coefficient": 12.478023097826089,
+      "magicFactor": 1.115625,
+      "aoeBudgetFactor": 3,
+      "footprintFactor": 1,
+      "geometricHits": 3,
+      "effectiveHits": 1.5,
+      "cost": 130,
+      "interval": 2.1,
+      "damage": 21,
+      "dps": 10,
+      "physicalShare": 0.75,
+      "budgetDps": 10.418316986658608,
+      "roleCap": 10,
+      "pricedFire": 124.78023097826089,
+      "unallocatedBudget": 5.219769021739111,
+      "singleTargetComparison": [
+        {
+          "enemy": "silly",
+          "glmDps": 20,
+          "whaleDps": 10,
+          "ratio": 0.5
+        },
+        {
+          "enemy": "normal",
+          "glmDps": 19,
+          "whaleDps": 9.5,
+          "ratio": 0.5
+        },
+        {
+          "enemy": "gpt_elite",
+          "glmDps": 15,
+          "whaleDps": 7.5,
+          "ratio": 0.5
+        },
+        {
+          "enemy": "grok",
+          "glmDps": 8,
+          "whaleDps": 5.375000000000001,
+          "ratio": 0.6718750000000001
+        },
+        {
+          "enemy": "grok_elite",
+          "glmDps": 3.999999999999999,
+          "whaleDps": 3.8749999999999996,
+          "ratio": 0.9687500000000001
+        },
+        {
+          "enemy": "gemma",
+          "glmDps": 20,
+          "whaleDps": 10,
+          "ratio": 0.5
+        },
+        {
+          "enemy": "cat",
+          "glmDps": 20,
+          "whaleDps": 10,
+          "ratio": 0.5
+        },
+        {
+          "enemy": "claude",
+          "glmDps": 20,
+          "whaleDps": 10,
+          "ratio": 0.5
+        }
+      ]
+    },
+    {
+      "id": "whale2",
+      "name": "大肥鱼 2级",
+      "tier": 2,
+      "range": 265,
+      "area": 16,
+      "radius": 35,
+      "magicShare": 0.25,
+      "pricingClass": "cannon",
+      "coefficient": 15.969436529188753,
+      "magicFactor": 1.115625,
+      "aoeBudgetFactor": 3.5496478698597693,
+      "footprintFactor": 1,
+      "geometricHits": 4.333333333333333,
+      "effectiveHits": 1.8333333333333333,
+      "cost": 280,
+      "interval": 2,
+      "damage": 34,
+      "dps": 17,
+      "physicalShare": 0.75,
+      "budgetDps": 17.533492774664854,
+      "roleCap": 17.27272727272727,
+      "pricedFire": 271.4804209962088,
+      "unallocatedBudget": 8.519579003791193,
+      "singleTargetComparison": [
+        {
+          "enemy": "silly",
+          "glmDps": 34.54545454545454,
+          "whaleDps": 17,
+          "ratio": 0.4921052631578948
+        },
+        {
+          "enemy": "normal",
+          "glmDps": 32.81818181818181,
+          "whaleDps": 16.15,
+          "ratio": 0.49210526315789477
+        },
+        {
+          "enemy": "gpt_elite",
+          "glmDps": 25.909090909090907,
+          "whaleDps": 12.75,
+          "ratio": 0.49210526315789477
+        },
+        {
+          "enemy": "grok",
+          "glmDps": 13.818181818181817,
+          "whaleDps": 9.137500000000001,
+          "ratio": 0.6612664473684212
+        },
+        {
+          "enemy": "grok_elite",
+          "glmDps": 6.9090909090909065,
+          "whaleDps": 6.5874999999999995,
+          "ratio": 0.9534539473684214
+        },
+        {
+          "enemy": "gemma",
+          "glmDps": 34.54545454545454,
+          "whaleDps": 17,
+          "ratio": 0.4921052631578948
+        },
+        {
+          "enemy": "cat",
+          "glmDps": 34.54545454545454,
+          "whaleDps": 17,
+          "ratio": 0.4921052631578948
+        },
+        {
+          "enemy": "claude",
+          "glmDps": 34.54545454545454,
+          "whaleDps": 17,
+          "ratio": 0.4921052631578948
+        }
+      ]
+    },
+    {
+      "id": "whale3",
+      "name": "大肥鱼 3级",
+      "tier": 3,
+      "range": 285,
+      "area": 16,
+      "radius": 45,
+      "magicShare": 0.25,
+      "pricingClass": "cannon",
+      "coefficient": 19.474253249123795,
+      "magicFactor": 1.115625,
+      "aoeBudgetFactor": 4.024922359499621,
+      "footprintFactor": 1,
+      "geometricHits": 7,
+      "effectiveHits": 2.5,
+      "cost": 500,
+      "interval": 1.8,
+      "damage": 46,
+      "dps": 25.555555555555554,
+      "physicalShare": 0.75,
+      "budgetDps": 25.67492543122271,
+      "roleCap": 27,
+      "pricedFire": 497.67536081094136,
+      "unallocatedBudget": 2.3246391890586438,
+      "singleTargetComparison": [
+        {
+          "enemy": "silly",
+          "glmDps": 54,
+          "whaleDps": 25.555555555555554,
+          "ratio": 0.4732510288065843
+        },
+        {
+          "enemy": "normal",
+          "glmDps": 51.3,
+          "whaleDps": 24.277777777777775,
+          "ratio": 0.4732510288065843
+        },
+        {
+          "enemy": "gpt_elite",
+          "glmDps": 40.5,
+          "whaleDps": 19.166666666666664,
+          "ratio": 0.4732510288065843
+        },
+        {
+          "enemy": "grok",
+          "glmDps": 21.6,
+          "whaleDps": 13.736111111111112,
+          "ratio": 0.6359310699588477
+        },
+        {
+          "enemy": "grok_elite",
+          "glmDps": 10.799999999999997,
+          "whaleDps": 9.902777777777775,
+          "ratio": 0.9169238683127572
+        },
+        {
+          "enemy": "gemma",
+          "glmDps": 54,
+          "whaleDps": 25.555555555555554,
+          "ratio": 0.4732510288065843
+        },
+        {
+          "enemy": "cat",
+          "glmDps": 54,
+          "whaleDps": 25.555555555555554,
+          "ratio": 0.4732510288065843
+        },
+        {
+          "enemy": "claude",
+          "glmDps": 54,
+          "whaleDps": 25.555555555555554,
+          "ratio": 0.4732510288065843
+        }
+      ]
+    }
+  ],
+  "kimi": [
+    {
+      "id": "kimi1",
+      "name": "Kimi 1级",
+      "tier": 1,
+      "range": 320,
+      "area": 9,
+      "magicShare": 1,
+      "cost": 140,
+      "beams": 1,
+      "initialDpsPerBeam": 1,
+      "totalInitialDps": 1,
+      "initialToGlmRatio": 0.05,
+      "aimSeconds": 2,
+      "lowFireSeconds": 3,
+      "rampEndFireSeconds": 6,
+      "peakDpsPerBeam": 210,
+      "unroundedPeak": 205.31667635012326,
+      "referenceDps": 28.794999999999998,
+      "pricedFire": 143.14297477604154,
+      "roundingDelta": 3.142974776041541,
+      "theoryTtk": {
+        "gemma": 5.684390748201551,
+        "silly": 6.520009978762612,
+        "grok": 7.487663159054215,
+        "grok_elite": 8.98483709273183,
+        "claude": 21.71666666666667
+      }
+    },
+    {
+      "id": "kimi2",
+      "name": "Kimi 2级",
+      "tier": 2,
+      "range": 350,
+      "area": 9,
+      "magicShare": 1,
+      "cost": 320,
+      "beams": 2,
+      "initialDpsPerBeam": 1.5,
+      "totalInitialDps": 3,
+      "initialToGlmRatio": 0.08684210526315791,
+      "aimSeconds": 2,
+      "lowFireSeconds": 3,
+      "rampEndFireSeconds": 6,
+      "peakDpsPerBeam": 215,
+      "unroundedPeak": 213.03482493303886,
+      "referenceDps": 59.385000000000005,
+      "pricedFire": 322.8849349904855,
+      "roundingDelta": 2.884934990485476,
+      "theoryTtk": {
+        "gemma": 5.639257057374737,
+        "silly": 6.483163167433812,
+        "grok": 7.445951798938765,
+        "grok_elite": 8.916585067319462,
+        "claude": 21.35232558139535
+      }
+    },
+    {
+      "id": "kimi3",
+      "name": "Kimi 3级",
+      "tier": 3,
+      "range": 380,
+      "area": 9,
+      "magicShare": 1,
+      "cost": 560,
+      "beams": 3,
+      "initialDpsPerBeam": 2,
+      "totalInitialDps": 6,
+      "initialToGlmRatio": 0.1111111111111111,
+      "aimSeconds": 2,
+      "lowFireSeconds": 3,
+      "rampEndFireSeconds": 6,
+      "peakDpsPerBeam": 230,
+      "unroundedPeak": 227.63951704549254,
+      "referenceDps": 95.82000000000002,
+      "pricedFire": 565.6434212054301,
+      "roundingDelta": 5.643421205430059,
+      "theoryTtk": {
+        "gemma": 5.581231388453431,
+        "silly": 6.4157798693495005,
+        "grok": 7.352753839429383,
+        "grok_elite": 8.749199084668193,
+        "claude": 20.37391304347826
+      }
+    }
+  ],
+  "factories": [
+    {
+      "id": "qwen1",
+      "name": "Qwen 1级",
+      "tier": 1,
+      "cost": 160,
+      "range": 230,
+      "area": 9,
+      "structureBudget": 80,
+      "discountBudget": 0,
+      "lineBudget": 80,
+      "fieldCap": 12,
+      "options": [
+        {
+          "id": "small1",
+          "kind": "small",
+          "tier": 1,
+          "nominalPrice": 15,
+          "productionCost": 15,
+          "damage": 6,
+          "interval": 1.2,
+          "speed": 100,
+          "physicalResist": 0.05,
+          "magicResist": 0.05,
+          "block": 1,
+          "columns": 3,
+          "abilityBudget": 0,
+          "hp": 100,
+          "unroundedHp": 100.07232142857141,
+          "backPrice": 14.992163312693497,
+          "roundingDelta": -0.007836687306502554,
+          "productionSeconds": 5.625
+        }
+      ]
+    },
+    {
+      "id": "qwen2",
+      "name": "Qwen 2级",
+      "tier": 2,
+      "cost": 280,
+      "range": 250,
+      "area": 9,
+      "structureBudget": 86.95652173913044,
+      "discountBudget": 8,
+      "lineBudget": 185.04347826086956,
+      "fieldCap": 16,
+      "options": [
+        {
+          "id": "small2",
+          "kind": "small",
+          "tier": 2,
+          "nominalPrice": 16,
+          "productionCost": 14,
+          "damage": 7,
+          "interval": 1.2,
+          "speed": 105,
+          "physicalResist": 0.08,
+          "magicResist": 0.08,
+          "block": 1,
+          "columns": 3,
+          "abilityBudget": 0,
+          "hp": 100,
+          "unroundedHp": 101.83486793932386,
+          "backPrice": 15.79217229728659,
+          "roundingDelta": -0.20782770271340922,
+          "productionSeconds": 2.593984962406015
+        },
+        {
+          "id": "normal2",
+          "kind": "normal",
+          "tier": 2,
+          "nominalPrice": 40,
+          "productionCost": 40,
+          "damage": 12,
+          "interval": 1.6,
+          "speed": 80,
+          "physicalResist": 0.08,
+          "magicResist": 0.08,
+          "block": 1,
+          "columns": 2,
+          "abilityBudget": 0,
+          "hp": 335,
+          "unroundedHp": 334.0076213762382,
+          "backPrice": 40.10501496634651,
+          "roundingDelta": 0.1050149663465092,
+          "productionSeconds": 6.484962406015038
+        }
+      ]
+    },
+    {
+      "id": "qwen3",
+      "name": "Qwen 3级",
+      "tier": 3,
+      "cost": 460,
+      "range": 275,
+      "area": 9,
+      "structureBudget": 95.65217391304347,
+      "discountBudget": 104,
+      "lineBudget": 260.3478260869565,
+      "fieldCap": 20,
+      "options": [
+        {
+          "id": "small3",
+          "kind": "small",
+          "tier": 3,
+          "nominalPrice": 20,
+          "productionCost": 12,
+          "damage": 9,
+          "interval": 1.15,
+          "speed": 110,
+          "physicalResist": 0.1,
+          "magicResist": 0.1,
+          "block": 1,
+          "columns": 3,
+          "abilityBudget": 0,
+          "hp": 125,
+          "unroundedHp": 126.83562442588504,
+          "backPrice": 19.784980118987473,
+          "roundingDelta": -0.21501988101252678,
+          "productionSeconds": 2.304609218436874
+        },
+        {
+          "id": "normal3",
+          "kind": "normal",
+          "tier": 3,
+          "nominalPrice": 50,
+          "productionCost": 32,
+          "damage": 16,
+          "interval": 1.5,
+          "speed": 85,
+          "physicalResist": 0.1,
+          "magicResist": 0.1,
+          "block": 1,
+          "columns": 2,
+          "abilityBudget": 0,
+          "hp": 405,
+          "unroundedHp": 403.7596033312848,
+          "backPrice": 50.13622660722778,
+          "roundingDelta": 0.13622660722778335,
+          "productionSeconds": 5.761523046092185
+        }
+      ]
+    }
+  ],
+  "branches": [
+    {
+      "id": "egg",
+      "name": "GLM四级·毒鸡蛋",
+      "cost": 335,
+      "parentCost": 225,
+      "parent": "glm3",
+      "upgradeCost": 110,
+      "range": 160,
+      "radius": 25,
+      "interval": 6,
+      "duration": 4,
+      "slow": 0.3,
+      "keepArrows": true,
+      "area": 4,
+      "arrowDamage": 27,
+      "arrowInterval": 0.5,
+      "arrowRange": 275,
+      "controlBudget": 44.99999999999999,
+      "fireBudget": 65,
+      "dotDps": 23,
+      "pricedIncrement": 112.19999999999999
+    },
+    {
+      "id": "x",
+      "name": "GLM四级·X",
+      "range": 620,
+      "area": 4,
+      "coefficient": 9.434782608695652,
+      "magicFactor": 1,
+      "aoeBudgetFactor": 1,
+      "footprintFactor": 1,
+      "cost": 3425,
+      "interval": 0.32,
+      "damage": 117,
+      "dps": 365.625,
+      "unroundedDps": 363.0184331797235,
+      "pricedFire": 3449.592391304348,
+      "roundingDelta": 24.592391304347984,
+      "geometricHits": 1,
+      "effectiveHits": 1,
+      "upgradeCost": 3200
+    },
+    {
+      "id": "sticky",
+      "name": "大肥鱼四级·糯米炮",
+      "range": 320,
+      "area": 16,
+      "radius": 55,
+      "magicShare": 0.25,
+      "pricingClass": "cannon",
+      "coefficient": 24.173582633807044,
+      "magicFactor": 1.115625,
+      "aoeBudgetFactor": 4.449719092257398,
+      "footprintFactor": 1,
+      "cost": 950,
+      "interval": 1.8,
+      "damage": 49,
+      "dps": 27.22222222222222,
+      "unroundedDps": 27.23358565861257,
+      "pricedFire": 658.0586383647473,
+      "roundingDelta": -0.2746949685861182,
+      "geometricHits": 9,
+      "effectiveHits": 3,
+      "controlBudget": 291.66666666666663,
+      "slow": 0.35,
+      "slowDuration": 3,
+      "upgradeCost": 450
+    },
+    {
+      "id": "giant",
+      "name": "大肥鱼四级·鲸鱼巨炮",
+      "range": 650,
+      "area": 16,
+      "radius": 100,
+      "magicShare": 0.25,
+      "pricingClass": "cannon",
+      "coefficient": 66.20991847826087,
+      "magicFactor": 1.115625,
+      "aoeBudgetFactor": 6,
+      "footprintFactor": 1,
+      "cost": 5100,
+      "interval": 3.8,
+      "damage": 290,
+      "dps": 76.31578947368422,
+      "unroundedDps": 77.0277341705913,
+      "pricedFire": 5052.862199656752,
+      "roundingDelta": -47.13780034324827,
+      "geometricHits": 19.666666666666668,
+      "effectiveHits": 5.666666666666667,
+      "upgradeCost": 4600
+    },
+    {
+      "id": "mass",
+      "name": "Qwen四级·小模型量产",
+      "cost": 1010,
+      "range": 300,
+      "area": 9,
+      "structureBudget": 104.34782608695653,
+      "discountBudget": 120,
+      "lineBudget": 785.6521739130435,
+      "fieldCap": 36,
+      "options": [
+        {
+          "id": "massSmall",
+          "kind": "small",
+          "tier": 4,
+          "nominalPrice": 20,
+          "productionCost": 5,
+          "damage": 9,
+          "interval": 1.15,
+          "speed": 110,
+          "physicalResist": 0.1,
+          "magicResist": 0.1,
+          "block": 1,
+          "columns": 3,
+          "abilityBudget": 0,
+          "hp": 125,
+          "unroundedHp": 126.83562442588504,
+          "backPrice": 19.784980118987473,
+          "roundingDelta": -0.21501988101252678,
+          "productionSeconds": 0.7636967349197565
+        }
+      ]
+    },
+    {
+      "id": "large",
+      "name": "Qwen四级·巨型Qwen",
+      "cost": 3260,
+      "range": 320,
+      "area": 9,
+      "globalBossCap": 1,
+      "structureBudget": 111.30434782608695,
+      "discountBudget": 712.0108695652173,
+      "lineBudget": 2436.6847826086955,
+      "referencePaidOrders": 1,
+      "options": [
+        {
+          "id": "boss",
+          "kind": "large",
+          "tier": 4,
+          "nominalPrice": 1462.0108695652173,
+          "productionCost": 750,
+          "damage": 120,
+          "interval": 3.2,
+          "speed": 35,
+          "physicalResist": 0.15,
+          "magicResist": 0.15,
+          "block": 3,
+          "columns": 1,
+          "abilityBudget": 120,
+          "executeBudget": 80,
+          "summonBudget": 40,
+          "executeCooldown": 12,
+          "summonInterval": 12,
+          "summonCount": 2,
+          "summonLiveCap": 6,
+          "hp": 14250,
+          "unroundedHp": 14246.989784983132,
+          "backPrice": 1462.2912739048497,
+          "roundingDelta": 0.2804043396324687,
+          "productionSeconds": 18
+        }
+      ]
+    }
+  ],
+  "models": [
+    {
+      "id": "small1",
+      "kind": "small",
+      "tier": 1,
+      "nominalPrice": 15,
+      "productionCost": 15,
+      "damage": 6,
+      "interval": 1.2,
+      "speed": 100,
+      "physicalResist": 0.05,
+      "magicResist": 0.05,
+      "block": 1,
+      "columns": 3,
+      "abilityBudget": 0,
+      "hp": 100,
+      "unroundedHp": 100.07232142857141,
+      "backPrice": 14.992163312693497,
+      "roundingDelta": -0.007836687306502554
+    },
+    {
+      "id": "small2",
+      "kind": "small",
+      "tier": 2,
+      "nominalPrice": 16,
+      "productionCost": 14,
+      "damage": 7,
+      "interval": 1.2,
+      "speed": 105,
+      "physicalResist": 0.08,
+      "magicResist": 0.08,
+      "block": 1,
+      "columns": 3,
+      "abilityBudget": 0,
+      "hp": 100,
+      "unroundedHp": 101.83486793932386,
+      "backPrice": 15.79217229728659,
+      "roundingDelta": -0.20782770271340922
+    },
+    {
+      "id": "normal2",
+      "kind": "normal",
+      "tier": 2,
+      "nominalPrice": 40,
+      "productionCost": 40,
+      "damage": 12,
+      "interval": 1.6,
+      "speed": 80,
+      "physicalResist": 0.08,
+      "magicResist": 0.08,
+      "block": 1,
+      "columns": 2,
+      "abilityBudget": 0,
+      "hp": 335,
+      "unroundedHp": 334.0076213762382,
+      "backPrice": 40.10501496634651,
+      "roundingDelta": 0.1050149663465092
+    },
+    {
+      "id": "small3",
+      "kind": "small",
+      "tier": 3,
+      "nominalPrice": 20,
+      "productionCost": 12,
+      "damage": 9,
+      "interval": 1.15,
+      "speed": 110,
+      "physicalResist": 0.1,
+      "magicResist": 0.1,
+      "block": 1,
+      "columns": 3,
+      "abilityBudget": 0,
+      "hp": 125,
+      "unroundedHp": 126.83562442588504,
+      "backPrice": 19.784980118987473,
+      "roundingDelta": -0.21501988101252678
+    },
+    {
+      "id": "normal3",
+      "kind": "normal",
+      "tier": 3,
+      "nominalPrice": 50,
+      "productionCost": 32,
+      "damage": 16,
+      "interval": 1.5,
+      "speed": 85,
+      "physicalResist": 0.1,
+      "magicResist": 0.1,
+      "block": 1,
+      "columns": 2,
+      "abilityBudget": 0,
+      "hp": 405,
+      "unroundedHp": 403.7596033312848,
+      "backPrice": 50.13622660722778,
+      "roundingDelta": 0.13622660722778335
+    },
+    {
+      "id": "massSmall",
+      "kind": "small",
+      "tier": 4,
+      "nominalPrice": 20,
+      "productionCost": 5,
+      "damage": 9,
+      "interval": 1.15,
+      "speed": 110,
+      "physicalResist": 0.1,
+      "magicResist": 0.1,
+      "block": 1,
+      "columns": 3,
+      "abilityBudget": 0,
+      "hp": 125,
+      "unroundedHp": 126.83562442588504,
+      "backPrice": 19.784980118987473,
+      "roundingDelta": -0.21501988101252678
+    },
+    {
+      "id": "boss",
+      "kind": "large",
+      "tier": 4,
+      "nominalPrice": 1462.0108695652173,
+      "productionCost": 750,
+      "damage": 120,
+      "interval": 3.2,
+      "speed": 35,
+      "physicalResist": 0.15,
+      "magicResist": 0.15,
+      "block": 3,
+      "columns": 1,
+      "abilityBudget": 120,
+      "executeBudget": 80,
+      "summonBudget": 40,
+      "executeCooldown": 12,
+      "summonInterval": 12,
+      "summonCount": 2,
+      "summonLiveCap": 6,
+      "hp": 14250,
+      "unroundedHp": 14246.989784983132,
+      "backPrice": 1462.2912739048497,
+      "roundingDelta": 0.2804043396324687
+    }
+  ],
+  "research": [
+    {
+      "id": "egg_count",
+      "rank": 1,
+      "price": 100,
+      "cumulativeResearch": 100,
+      "effect": {
+        "eggs": 2,
+        "dotDpsPerZone": 29
+      }
+    },
+    {
+      "id": "egg_count",
+      "rank": 2,
+      "price": 150,
+      "cumulativeResearch": 250,
+      "effect": {
+        "eggs": 3,
+        "dotDpsPerZone": 36
+      }
+    },
+    {
+      "id": "egg_count",
+      "rank": 3,
+      "price": 200,
+      "cumulativeResearch": 450,
+      "effect": {
+        "eggs": 4,
+        "dotDpsPerZone": 45
+      }
+    },
+    {
+      "id": "egg_venom",
+      "rank": 1,
+      "price": 120,
+      "cumulativeResearch": 120,
+      "effect": {
+        "poisonDps": 24,
+        "duration": 3,
+        "stacksPerSource": false
+      }
+    },
+    {
+      "id": "egg_venom",
+      "rank": 2,
+      "price": 180,
+      "cumulativeResearch": 300,
+      "effect": {
+        "poisonDps": 60,
+        "duration": 3,
+        "stacksPerSource": false
+      }
+    },
+    {
+      "id": "egg_venom",
+      "rank": 3,
+      "price": 240,
+      "cumulativeResearch": 540,
+      "effect": {
+        "poisonDps": 108,
+        "duration": 3,
+        "stacksPerSource": false
+      }
+    },
+    {
+      "id": "egg_coupon",
+      "rank": 1,
+      "price": 120,
+      "cumulativeResearch": 120,
+      "effect": {
+        "discount": 0.25,
+        "permanentDamagePenalty": 0.2,
+        "valuation": "按目标未来升级逐项取整；无可用升级时无经济收益"
+      }
+    },
+    {
+      "id": "x_speed",
+      "rank": 1,
+      "price": 900,
+      "cumulativeResearch": 900,
+      "effect": {
+        "interval": 0.2552299572756974,
+        "rawDps": 458.41013824884794
+      }
+    },
+    {
+      "id": "x_speed",
+      "rank": 2,
+      "price": 1350,
+      "cumulativeResearch": 2250,
+      "effect": {
+        "interval": 0.1945144608312584,
+        "rawDps": 601.4976958525345
+      }
+    },
+    {
+      "id": "x_speed",
+      "rank": 3,
+      "price": 1800,
+      "cumulativeResearch": 4050,
+      "effect": {
+        "interval": 0.14767485822306237,
+        "rawDps": 792.2811059907834
+      }
+    },
+    {
+      "id": "x_pierce",
+      "rank": 1,
+      "price": 1000,
+      "cumulativeResearch": 1000,
+      "effect": {
+        "penetration": 0.25,
+        "damage": 127,
+        "interval": 0.32,
+        "counterPremium": 1.1875,
+        "note": "研究价同时购买穿甲与箭矢强化"
+      }
+    },
+    {
+      "id": "x_pierce",
+      "rank": 2,
+      "price": 1500,
+      "cumulativeResearch": 2500,
+      "effect": {
+        "penetration": 0.5,
+        "damage": 147,
+        "interval": 0.32,
+        "counterPremium": 1.375,
+        "note": "研究价同时购买穿甲与箭矢强化"
+      }
+    },
+    {
+      "id": "x_pierce",
+      "rank": 3,
+      "price": 2000,
+      "cumulativeResearch": 4500,
+      "effect": {
+        "penetration": 0.75,
+        "damage": 173,
+        "interval": 0.32,
+        "counterPremium": 1.5625,
+        "note": "研究价同时购买穿甲与箭矢强化"
+      }
+    },
+    {
+      "id": "x_shield",
+      "rank": 1,
+      "price": 1200,
+      "cumulativeResearch": 1200,
+      "effect": {
+        "hp": 5150,
+        "block": 2,
+        "damage": 0,
+        "respawnSeconds": 12,
+        "hitsAgainstEliteGrok": 2
+      }
+    },
+    {
+      "id": "x_shield",
+      "rank": 2,
+      "price": 1800,
+      "cumulativeResearch": 3000,
+      "effect": {
+        "hp": 12900,
+        "block": 3,
+        "damage": 0,
+        "respawnSeconds": 12,
+        "hitsAgainstEliteGrok": 5
+      }
+    },
+    {
+      "id": "x_shield",
+      "rank": 3,
+      "price": 2400,
+      "cumulativeResearch": 5400,
+      "effect": {
+        "hp": 23250,
+        "block": 4,
+        "damage": 0,
+        "respawnSeconds": 12,
+        "hitsAgainstEliteGrok": 8
+      }
+    },
+    {
+      "id": "sticky_side",
+      "rank": 1,
+      "price": 240,
+      "cumulativeResearch": 240,
+      "effect": {
+        "hitDamage": 8,
+        "interval": 2.3,
+        "poisonDpsPerLayer": 12,
+        "duration": 6,
+        "stacks": true
+      }
+    },
+    {
+      "id": "sticky_side",
+      "rank": 2,
+      "price": 360,
+      "cumulativeResearch": 600,
+      "effect": {
+        "hitDamage": 8,
+        "interval": 2,
+        "poisonDpsPerLayer": 28,
+        "duration": 6,
+        "stacks": true
+      }
+    },
+    {
+      "id": "sticky_side",
+      "rank": 3,
+      "price": 480,
+      "cumulativeResearch": 1080,
+      "effect": {
+        "hitDamage": 8,
+        "interval": 1.7,
+        "poisonDpsPerLayer": 42,
+        "duration": 6,
+        "stacks": true
+      }
+    },
+    {
+      "id": "sticky_burn",
+      "rank": 1,
+      "price": 260,
+      "cumulativeResearch": 260,
+      "effect": {
+        "dotDps": 9,
+        "duration": 4,
+        "stacksPerSource": false
+      }
+    },
+    {
+      "id": "sticky_burn",
+      "rank": 2,
+      "price": 390,
+      "cumulativeResearch": 650,
+      "effect": {
+        "dotDps": 21,
+        "duration": 4,
+        "stacksPerSource": false
+      }
+    },
+    {
+      "id": "sticky_burn",
+      "rank": 3,
+      "price": 520,
+      "cumulativeResearch": 1170,
+      "effect": {
+        "dotDps": 37,
+        "duration": 4,
+        "stacksPerSource": false
+      }
+    },
+    {
+      "id": "sticky_loader",
+      "rank": 1,
+      "price": 280,
+      "cumulativeResearch": 280,
+      "effect": {
+        "interval": 1.3898419098020691,
+        "damage": 49,
+        "slowUptimeCap": 0.755481607364634,
+        "note": "加速增加的减速覆盖也消耗研究预算"
+      }
+    },
+    {
+      "id": "sticky_loader",
+      "rank": 2,
+      "price": 420,
+      "cumulativeResearch": 700,
+      "effect": {
+        "interval": 1.030004825266561,
+        "damage": 49,
+        "slowUptimeCap": 1,
+        "note": "加速增加的减速覆盖也消耗研究预算"
+      }
+    },
+    {
+      "id": "sticky_loader",
+      "rank": 3,
+      "price": 560,
+      "cumulativeResearch": 1260,
+      "effect": {
+        "interval": 0.6926933035418392,
+        "damage": 49,
+        "slowUptimeCap": 1,
+        "note": "加速增加的减速覆盖也消耗研究预算"
+      }
+    },
+    {
+      "id": "giant_cluster",
+      "rank": 1,
+      "price": 1100,
+      "cumulativeResearch": 1100,
+      "effect": {
+        "children": 2,
+        "childDamage": 50,
+        "radius": 40
+      }
+    },
+    {
+      "id": "giant_cluster",
+      "rank": 2,
+      "price": 1650,
+      "cumulativeResearch": 2750,
+      "effect": {
+        "children": 4,
+        "childDamage": 63,
+        "radius": 40
+      }
+    },
+    {
+      "id": "giant_cluster",
+      "rank": 3,
+      "price": 2200,
+      "cumulativeResearch": 4950,
+      "effect": {
+        "children": 6,
+        "childDamage": 75,
+        "radius": 40
+      }
+    },
+    {
+      "id": "giant_crush",
+      "rank": 1,
+      "price": 1500,
+      "cumulativeResearch": 1500,
+      "effect": {
+        "damage": 615,
+        "interval": 18,
+        "physicalShare": 0.75,
+        "referenceTargets": 4,
+        "length": 1200,
+        "speed": 470
+      }
+    },
+    {
+      "id": "giant_crush",
+      "rank": 2,
+      "price": 2250,
+      "cumulativeResearch": 3750,
+      "effect": {
+        "damage": 850,
+        "interval": 15,
+        "physicalShare": 0.75,
+        "referenceTargets": 6,
+        "length": 1200,
+        "speed": 470
+      }
+    },
+    {
+      "id": "giant_crush",
+      "rank": 3,
+      "price": 3000,
+      "cumulativeResearch": 6750,
+      "effect": {
+        "damage": 920,
+        "interval": 12,
+        "physicalShare": 0.75,
+        "referenceTargets": 8,
+        "length": 1200,
+        "speed": 470
+      }
+    }
+  ],
+  "bombard": {
+    "id": "giant_bombard",
+    "pricePerUse": 1500,
+    "cooldown": 5,
+    "referenceTargets": 6,
+    "damagePerEnemy": 860,
+    "physicalShare": 0.75,
+    "repeatable": true
+  },
+  "investment": [
+    {
+      "id": "egg",
+      "entry": 335,
+      "research": 1110,
+      "total": 1445,
+      "productionAndConsumablesExcluded": true
+    },
+    {
+      "id": "x",
+      "entry": 3425,
+      "research": 13950,
+      "total": 17375,
+      "productionAndConsumablesExcluded": true
+    },
+    {
+      "id": "sticky",
+      "entry": 950,
+      "research": 3510,
+      "total": 4460,
+      "productionAndConsumablesExcluded": true
+    },
+    {
+      "id": "giant",
+      "entry": 5100,
+      "research": 11700,
+      "total": 16800,
+      "productionAndConsumablesExcluded": true
+    },
+    {
+      "id": "mass",
+      "entry": 1010,
+      "research": 0,
+      "total": 1010,
+      "productionAndConsumablesExcluded": true
+    },
+    {
+      "id": "large",
+      "entry": 3260,
+      "research": 0,
+      "total": 3260,
+      "productionAndConsumablesExcluded": true
+    }
+  ],
+  "roleReference": {
+    "name": "三级塔参考阵型稳态清杂上限，不是战斗实测",
+    "miniHp": 20,
+    "miniSpeed": 60,
+    "whale": 1.3888888888888888,
+    "glm": 1.3333333333333333,
+    "qwenSmall": 0.8695652173913044,
+    "qwenNormal": 0.6666666666666666,
+    "kimi": 0.5375157901903983,
+    "assumptions": "忽略弹道与到达空档；鱼采用参考有效命中数；GLM含转火；部队受每排3/2约束且已付费生产到前排。"
+  },
+  "interpretation": [
+    "模型参考输出不是实测DPS；取整差额单列。",
+    "AOE只按明确参考阵型与25%密度占用计价，不保证每炮固定命中数。",
+    "Kimi的80/20是条件性输出的设计折价，不是玩家实际目标分布。",
+    "Qwen建造投资与每名部队生产费分账，没有免费自动补员。",
+    "研究表为未研究父塔的单项预算反解；完整组合不能机械叠乘。",
+    "本表是预算推导；v7运行时与发布验证见design/BALANCE-WORKFLOW.md及发布记录。"
+  ]
+}

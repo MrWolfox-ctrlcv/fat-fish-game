@@ -1,0 +1,3740 @@
+{
+  "version": 7,
+  "kind": "budget_audit_not_battle_test",
+  "earlyRewardsExcluded": true,
+  "rows": [
+    {
+      "stage": 1,
+      "wave": 1,
+      "difficulty": "easy",
+      "budget": 68,
+      "actualBudget": 60,
+      "count": 6,
+      "routeBudgets": [
+        60
+      ],
+      "peak10": 20,
+      "bounty": 36,
+      "clearReward": 38,
+      "cumulativeAvailable": 334,
+      "counts": {
+        "silly": 6
+      }
+    },
+    {
+      "stage": 1,
+      "wave": 2,
+      "difficulty": "easy",
+      "budget": 105,
+      "actualBudget": 100,
+      "count": 10,
+      "routeBudgets": [
+        100
+      ],
+      "peak10": 40,
+      "bounty": 60,
+      "clearReward": 43,
+      "cumulativeAvailable": 437,
+      "counts": {
+        "silly": 10
+      }
+    },
+    {
+      "stage": 1,
+      "wave": 3,
+      "difficulty": "easy",
+      "budget": 150,
+      "actualBudget": 150,
+      "count": 15,
+      "routeBudgets": [
+        150
+      ],
+      "peak10": 60,
+      "bounty": 90,
+      "clearReward": 48,
+      "cumulativeAvailable": 575,
+      "counts": {
+        "silly": 15
+      }
+    },
+    {
+      "stage": 1,
+      "wave": 4,
+      "difficulty": "easy",
+      "budget": 195,
+      "actualBudget": 190,
+      "count": 19,
+      "routeBudgets": [
+        190
+      ],
+      "peak10": 60,
+      "bounty": 114,
+      "clearReward": 53,
+      "cumulativeAvailable": 742,
+      "counts": {
+        "silly": 19
+      }
+    },
+    {
+      "stage": 1,
+      "wave": 5,
+      "difficulty": "easy",
+      "budget": 248,
+      "actualBudget": 240,
+      "count": 24,
+      "routeBudgets": [
+        240
+      ],
+      "peak10": 80,
+      "bounty": 144,
+      "clearReward": 58,
+      "cumulativeAvailable": 944,
+      "counts": {
+        "silly": 24
+      }
+    },
+    {
+      "stage": 1,
+      "wave": 6,
+      "difficulty": "easy",
+      "budget": 315,
+      "actualBudget": 310,
+      "count": 31,
+      "routeBudgets": [
+        310
+      ],
+      "peak10": 100,
+      "bounty": 186,
+      "clearReward": 63,
+      "cumulativeAvailable": 1193,
+      "counts": {
+        "silly": 31
+      }
+    },
+    {
+      "stage": 1,
+      "wave": 1,
+      "difficulty": "normal",
+      "budget": 90,
+      "actualBudget": 90,
+      "count": 9,
+      "routeBudgets": [
+        90
+      ],
+      "peak10": 40,
+      "bounty": 54,
+      "clearReward": 38,
+      "cumulativeAvailable": 352,
+      "counts": {
+        "silly": 9
+      }
+    },
+    {
+      "stage": 1,
+      "wave": 2,
+      "difficulty": "normal",
+      "budget": 140,
+      "actualBudget": 140,
+      "count": 14,
+      "routeBudgets": [
+        140
+      ],
+      "peak10": 60,
+      "bounty": 84,
+      "clearReward": 43,
+      "cumulativeAvailable": 479,
+      "counts": {
+        "silly": 14
+      }
+    },
+    {
+      "stage": 1,
+      "wave": 3,
+      "difficulty": "normal",
+      "budget": 200,
+      "actualBudget": 200,
+      "count": 20,
+      "routeBudgets": [
+        200
+      ],
+      "peak10": 80,
+      "bounty": 120,
+      "clearReward": 48,
+      "cumulativeAvailable": 647,
+      "counts": {
+        "silly": 20
+      }
+    },
+    {
+      "stage": 1,
+      "wave": 4,
+      "difficulty": "normal",
+      "budget": 260,
+      "actualBudget": 260,
+      "count": 26,
+      "routeBudgets": [
+        260
+      ],
+      "peak10": 80,
+      "bounty": 156,
+      "clearReward": 53,
+      "cumulativeAvailable": 856,
+      "counts": {
+        "silly": 26
+      }
+    },
+    {
+      "stage": 1,
+      "wave": 5,
+      "difficulty": "normal",
+      "budget": 330,
+      "actualBudget": 330,
+      "count": 33,
+      "routeBudgets": [
+        330
+      ],
+      "peak10": 100,
+      "bounty": 198,
+      "clearReward": 58,
+      "cumulativeAvailable": 1112,
+      "counts": {
+        "silly": 33
+      }
+    },
+    {
+      "stage": 1,
+      "wave": 6,
+      "difficulty": "normal",
+      "budget": 420,
+      "actualBudget": 420,
+      "count": 42,
+      "routeBudgets": [
+        420
+      ],
+      "peak10": 120,
+      "bounty": 252,
+      "clearReward": 63,
+      "cumulativeAvailable": 1427,
+      "counts": {
+        "silly": 42
+      }
+    },
+    {
+      "stage": 1,
+      "wave": 1,
+      "difficulty": "hard",
+      "budget": 113,
+      "actualBudget": 110,
+      "count": 11,
+      "routeBudgets": [
+        110
+      ],
+      "peak10": 60,
+      "bounty": 66,
+      "clearReward": 38,
+      "cumulativeAvailable": 364,
+      "counts": {
+        "silly": 11
+      }
+    },
+    {
+      "stage": 1,
+      "wave": 2,
+      "difficulty": "hard",
+      "budget": 175,
+      "actualBudget": 170,
+      "count": 17,
+      "routeBudgets": [
+        170
+      ],
+      "peak10": 80,
+      "bounty": 102,
+      "clearReward": 43,
+      "cumulativeAvailable": 509,
+      "counts": {
+        "silly": 17
+      }
+    },
+    {
+      "stage": 1,
+      "wave": 3,
+      "difficulty": "hard",
+      "budget": 250,
+      "actualBudget": 250,
+      "count": 25,
+      "routeBudgets": [
+        250
+      ],
+      "peak10": 100,
+      "bounty": 150,
+      "clearReward": 48,
+      "cumulativeAvailable": 707,
+      "counts": {
+        "silly": 25
+      }
+    },
+    {
+      "stage": 1,
+      "wave": 4,
+      "difficulty": "hard",
+      "budget": 325,
+      "actualBudget": 320,
+      "count": 32,
+      "routeBudgets": [
+        320
+      ],
+      "peak10": 100,
+      "bounty": 192,
+      "clearReward": 53,
+      "cumulativeAvailable": 952,
+      "counts": {
+        "silly": 32
+      }
+    },
+    {
+      "stage": 1,
+      "wave": 5,
+      "difficulty": "hard",
+      "budget": 413,
+      "actualBudget": 410,
+      "count": 41,
+      "routeBudgets": [
+        410
+      ],
+      "peak10": 120,
+      "bounty": 246,
+      "clearReward": 58,
+      "cumulativeAvailable": 1256,
+      "counts": {
+        "silly": 41
+      }
+    },
+    {
+      "stage": 1,
+      "wave": 6,
+      "difficulty": "hard",
+      "budget": 525,
+      "actualBudget": 520,
+      "count": 52,
+      "routeBudgets": [
+        520
+      ],
+      "peak10": 140,
+      "bounty": 312,
+      "clearReward": 63,
+      "cumulativeAvailable": 1631,
+      "counts": {
+        "silly": 52
+      }
+    },
+    {
+      "stage": 2,
+      "wave": 1,
+      "difficulty": "easy",
+      "budget": 135,
+      "actualBudget": 130,
+      "count": 13,
+      "routeBudgets": [
+        130
+      ],
+      "peak10": 40,
+      "bounty": 78,
+      "clearReward": 46,
+      "cumulativeAvailable": 474,
+      "counts": {
+        "silly": 13
+      }
+    },
+    {
+      "stage": 2,
+      "wave": 2,
+      "difficulty": "easy",
+      "budget": 195,
+      "actualBudget": 195,
+      "count": 15,
+      "routeBudgets": [
+        195
+      ],
+      "peak10": 95,
+      "bounty": 108,
+      "clearReward": 51,
+      "cumulativeAvailable": 633,
+      "counts": {
+        "silly": 14,
+        "grok": 1
+      }
+    },
+    {
+      "stage": 2,
+      "wave": 3,
+      "difficulty": "easy",
+      "budget": 263,
+      "actualBudget": 260,
+      "count": 17,
+      "routeBudgets": [
+        260
+      ],
+      "peak10": 150,
+      "bounty": 138,
+      "clearReward": 56,
+      "cumulativeAvailable": 827,
+      "counts": {
+        "silly": 15,
+        "grok": 2
+      }
+    },
+    {
+      "stage": 2,
+      "wave": 4,
+      "difficulty": "easy",
+      "budget": 338,
+      "actualBudget": 335,
+      "count": 20,
+      "routeBudgets": [
+        335
+      ],
+      "peak10": 150,
+      "bounty": 174,
+      "clearReward": 61,
+      "cumulativeAvailable": 1062,
+      "counts": {
+        "silly": 17,
+        "grok": 3
+      }
+    },
+    {
+      "stage": 2,
+      "wave": 5,
+      "difficulty": "easy",
+      "budget": 420,
+      "actualBudget": 420,
+      "count": 24,
+      "routeBudgets": [
+        420
+      ],
+      "peak10": 170,
+      "bounty": 216,
+      "clearReward": 66,
+      "cumulativeAvailable": 1344,
+      "counts": {
+        "silly": 20,
+        "grok": 4
+      }
+    },
+    {
+      "stage": 2,
+      "wave": 6,
+      "difficulty": "easy",
+      "budget": 510,
+      "actualBudget": 505,
+      "count": 28,
+      "routeBudgets": [
+        505
+      ],
+      "peak10": 170,
+      "bounty": 258,
+      "clearReward": 71,
+      "cumulativeAvailable": 1673,
+      "counts": {
+        "silly": 23,
+        "grok": 5
+      }
+    },
+    {
+      "stage": 2,
+      "wave": 7,
+      "difficulty": "easy",
+      "budget": 638,
+      "actualBudget": 630,
+      "count": 45,
+      "routeBudgets": [
+        630
+      ],
+      "peak10": 190,
+      "bounty": 342,
+      "clearReward": 76,
+      "cumulativeAvailable": 2091,
+      "counts": {
+        "silly": 41,
+        "grok": 4
+      }
+    },
+    {
+      "stage": 2,
+      "wave": 1,
+      "difficulty": "normal",
+      "budget": 180,
+      "actualBudget": 180,
+      "count": 18,
+      "routeBudgets": [
+        180
+      ],
+      "peak10": 60,
+      "bounty": 108,
+      "clearReward": 46,
+      "cumulativeAvailable": 504,
+      "counts": {
+        "silly": 18
+      }
+    },
+    {
+      "stage": 2,
+      "wave": 2,
+      "difficulty": "normal",
+      "budget": 260,
+      "actualBudget": 255,
+      "count": 21,
+      "routeBudgets": [
+        255
+      ],
+      "peak10": 115,
+      "bounty": 144,
+      "clearReward": 51,
+      "cumulativeAvailable": 699,
+      "counts": {
+        "silly": 20,
+        "grok": 1
+      }
+    },
+    {
+      "stage": 2,
+      "wave": 3,
+      "difficulty": "normal",
+      "budget": 350,
+      "actualBudget": 350,
+      "count": 26,
+      "routeBudgets": [
+        350
+      ],
+      "peak10": 170,
+      "bounty": 192,
+      "clearReward": 56,
+      "cumulativeAvailable": 947,
+      "counts": {
+        "silly": 24,
+        "grok": 2
+      }
+    },
+    {
+      "stage": 2,
+      "wave": 4,
+      "difficulty": "normal",
+      "budget": 450,
+      "actualBudget": 450,
+      "count": 27,
+      "routeBudgets": [
+        450
+      ],
+      "peak10": 170,
+      "bounty": 234,
+      "clearReward": 61,
+      "cumulativeAvailable": 1242,
+      "counts": {
+        "silly": 23,
+        "grok": 4
+      }
+    },
+    {
+      "stage": 2,
+      "wave": 5,
+      "difficulty": "normal",
+      "budget": 560,
+      "actualBudget": 555,
+      "count": 33,
+      "routeBudgets": [
+        555
+      ],
+      "peak10": 170,
+      "bounty": 288,
+      "clearReward": 66,
+      "cumulativeAvailable": 1596,
+      "counts": {
+        "silly": 28,
+        "grok": 5
+      }
+    },
+    {
+      "stage": 2,
+      "wave": 6,
+      "difficulty": "normal",
+      "budget": 680,
+      "actualBudget": 675,
+      "count": 36,
+      "routeBudgets": [
+        675
+      ],
+      "peak10": 170,
+      "bounty": 342,
+      "clearReward": 71,
+      "cumulativeAvailable": 2009,
+      "counts": {
+        "silly": 29,
+        "grok": 7
+      }
+    },
+    {
+      "stage": 2,
+      "wave": 7,
+      "difficulty": "normal",
+      "budget": 850,
+      "actualBudget": 850,
+      "count": 58,
+      "routeBudgets": [
+        850
+      ],
+      "peak10": 210,
+      "bounty": 456,
+      "clearReward": 76,
+      "cumulativeAvailable": 2541,
+      "counts": {
+        "silly": 52,
+        "grok": 6
+      }
+    },
+    {
+      "stage": 2,
+      "wave": 1,
+      "difficulty": "hard",
+      "budget": 225,
+      "actualBudget": 220,
+      "count": 22,
+      "routeBudgets": [
+        220
+      ],
+      "peak10": 80,
+      "bounty": 132,
+      "clearReward": 46,
+      "cumulativeAvailable": 528,
+      "counts": {
+        "silly": 22
+      }
+    },
+    {
+      "stage": 2,
+      "wave": 2,
+      "difficulty": "hard",
+      "budget": 325,
+      "actualBudget": 325,
+      "count": 28,
+      "routeBudgets": [
+        325
+      ],
+      "peak10": 135,
+      "bounty": 186,
+      "clearReward": 51,
+      "cumulativeAvailable": 765,
+      "counts": {
+        "silly": 27,
+        "grok": 1
+      }
+    },
+    {
+      "stage": 2,
+      "wave": 3,
+      "difficulty": "hard",
+      "budget": 438,
+      "actualBudget": 435,
+      "count": 30,
+      "routeBudgets": [
+        435
+      ],
+      "peak10": 190,
+      "bounty": 234,
+      "clearReward": 56,
+      "cumulativeAvailable": 1055,
+      "counts": {
+        "silly": 27,
+        "grok": 3
+      }
+    },
+    {
+      "stage": 2,
+      "wave": 4,
+      "difficulty": "hard",
+      "budget": 563,
+      "actualBudget": 560,
+      "count": 29,
+      "routeBudgets": [
+        560
+      ],
+      "peak10": 170,
+      "bounty": 282,
+      "clearReward": 61,
+      "cumulativeAvailable": 1398,
+      "counts": {
+        "silly": 23,
+        "grok": 6
+      }
+    },
+    {
+      "stage": 2,
+      "wave": 5,
+      "difficulty": "hard",
+      "budget": 700,
+      "actualBudget": 695,
+      "count": 38,
+      "routeBudgets": [
+        695
+      ],
+      "peak10": 190,
+      "bounty": 354,
+      "clearReward": 66,
+      "cumulativeAvailable": 1818,
+      "counts": {
+        "silly": 31,
+        "grok": 7
+      }
+    },
+    {
+      "stage": 2,
+      "wave": 6,
+      "difficulty": "hard",
+      "budget": 850,
+      "actualBudget": 845,
+      "count": 44,
+      "routeBudgets": [
+        845
+      ],
+      "peak10": 190,
+      "bounty": 426,
+      "clearReward": 71,
+      "cumulativeAvailable": 2315,
+      "counts": {
+        "silly": 35,
+        "grok": 9
+      }
+    },
+    {
+      "stage": 2,
+      "wave": 7,
+      "difficulty": "hard",
+      "budget": 1063,
+      "actualBudget": 1060,
+      "count": 70,
+      "routeBudgets": [
+        1060
+      ],
+      "peak10": 250,
+      "bounty": 564,
+      "clearReward": 76,
+      "cumulativeAvailable": 2955,
+      "counts": {
+        "silly": 62,
+        "grok": 8
+      }
+    },
+    {
+      "stage": 3,
+      "wave": 1,
+      "difficulty": "easy",
+      "budget": 210,
+      "actualBudget": 202,
+      "count": 45,
+      "routeBudgets": [
+        98,
+        104
+      ],
+      "peak10": 58,
+      "bounty": 115,
+      "clearReward": 54,
+      "cumulativeAvailable": 649,
+      "counts": {
+        "silly": 14,
+        "gemma": 31
+      }
+    },
+    {
+      "stage": 3,
+      "wave": 2,
+      "difficulty": "easy",
+      "budget": 270,
+      "actualBudget": 268,
+      "count": 118,
+      "routeBudgets": [
+        140,
+        128
+      ],
+      "peak10": 74,
+      "bounty": 138,
+      "clearReward": 59,
+      "cumulativeAvailable": 846,
+      "counts": {
+        "gemma": 114,
+        "silly": 4
+      }
+    },
+    {
+      "stage": 3,
+      "wave": 3,
+      "difficulty": "easy",
+      "budget": 345,
+      "actualBudget": 340,
+      "count": 158,
+      "routeBudgets": [
+        172,
+        168
+      ],
+      "peak10": 92,
+      "bounty": 173,
+      "clearReward": 64,
+      "cumulativeAvailable": 1083,
+      "counts": {
+        "gemma": 155,
+        "silly": 3
+      }
+    },
+    {
+      "stage": 3,
+      "wave": 4,
+      "difficulty": "easy",
+      "budget": 435,
+      "actualBudget": 433,
+      "count": 125,
+      "routeBudgets": [
+        211,
+        222
+      ],
+      "peak10": 184,
+      "bounty": 209,
+      "clearReward": 69,
+      "cumulativeAvailable": 1361,
+      "counts": {
+        "gemma": 119,
+        "silly": 3,
+        "grok": 3
+      }
+    },
+    {
+      "stage": 3,
+      "wave": 5,
+      "difficulty": "easy",
+      "budget": 540,
+      "actualBudget": 532,
+      "count": 226,
+      "routeBudgets": [
+        276,
+        256
+      ],
+      "peak10": 98,
+      "bounty": 276,
+      "clearReward": 74,
+      "cumulativeAvailable": 1711,
+      "counts": {
+        "gemma": 216,
+        "silly": 10
+      }
+    },
+    {
+      "stage": 3,
+      "wave": 6,
+      "difficulty": "easy",
+      "budget": 660,
+      "actualBudget": 660,
+      "count": 171,
+      "routeBudgets": [
+        278,
+        382
+      ],
+      "peak10": 170,
+      "bounty": 309,
+      "clearReward": 79,
+      "cumulativeAvailable": 2099,
+      "counts": {
+        "gemma": 165,
+        "grok": 6
+      }
+    },
+    {
+      "stage": 3,
+      "wave": 7,
+      "difficulty": "easy",
+      "budget": 780,
+      "actualBudget": 780,
+      "count": 270,
+      "routeBudgets": [
+        386,
+        394
+      ],
+      "peak10": 138,
+      "bounty": 420,
+      "clearReward": 84,
+      "cumulativeAvailable": 2603,
+      "counts": {
+        "gemma": 240,
+        "silly": 30
+      }
+    },
+    {
+      "stage": 3,
+      "wave": 8,
+      "difficulty": "easy",
+      "budget": 938,
+      "actualBudget": 930,
+      "count": 258,
+      "routeBudgets": [
+        456,
+        474
+      ],
+      "peak10": 202,
+      "bounty": 456,
+      "clearReward": 89,
+      "cumulativeAvailable": 3148,
+      "counts": {
+        "gemma": 240,
+        "silly": 12,
+        "grok": 6
+      }
+    },
+    {
+      "stage": 3,
+      "wave": 1,
+      "difficulty": "normal",
+      "budget": 280,
+      "actualBudget": 274,
+      "count": 61,
+      "routeBudgets": [
+        136,
+        138
+      ],
+      "peak10": 84,
+      "bounty": 156,
+      "clearReward": 54,
+      "cumulativeAvailable": 690,
+      "counts": {
+        "silly": 19,
+        "gemma": 42
+      }
+    },
+    {
+      "stage": 3,
+      "wave": 2,
+      "difficulty": "normal",
+      "budget": 360,
+      "actualBudget": 356,
+      "count": 158,
+      "routeBudgets": [
+        182,
+        174
+      ],
+      "peak10": 92,
+      "bounty": 183,
+      "clearReward": 59,
+      "cumulativeAvailable": 932,
+      "counts": {
+        "gemma": 153,
+        "silly": 5
+      }
+    },
+    {
+      "stage": 3,
+      "wave": 3,
+      "difficulty": "normal",
+      "budget": 460,
+      "actualBudget": 454,
+      "count": 211,
+      "routeBudgets": [
+        236,
+        218
+      ],
+      "peak10": 110,
+      "bounty": 231,
+      "clearReward": 64,
+      "cumulativeAvailable": 1227,
+      "counts": {
+        "gemma": 207,
+        "silly": 4
+      }
+    },
+    {
+      "stage": 3,
+      "wave": 4,
+      "difficulty": "normal",
+      "budget": 580,
+      "actualBudget": 578,
+      "count": 167,
+      "routeBudgets": [
+        292,
+        286
+      ],
+      "peak10": 202,
+      "bounty": 279,
+      "clearReward": 69,
+      "cumulativeAvailable": 1575,
+      "counts": {
+        "gemma": 159,
+        "grok": 4,
+        "silly": 4
+      }
+    },
+    {
+      "stage": 3,
+      "wave": 5,
+      "difficulty": "normal",
+      "budget": 720,
+      "actualBudget": 720,
+      "count": 264,
+      "routeBudgets": [
+        366,
+        354
+      ],
+      "peak10": 130,
+      "bounty": 384,
+      "clearReward": 74,
+      "cumulativeAvailable": 2033,
+      "counts": {
+        "gemma": 240,
+        "silly": 24
+      }
+    },
+    {
+      "stage": 3,
+      "wave": 6,
+      "difficulty": "normal",
+      "budget": 880,
+      "actualBudget": 880,
+      "count": 228,
+      "routeBudgets": [
+        444,
+        436
+      ],
+      "peak10": 188,
+      "bounty": 412,
+      "clearReward": 79,
+      "cumulativeAvailable": 2524,
+      "counts": {
+        "gemma": 220,
+        "grok": 8
+      }
+    },
+    {
+      "stage": 3,
+      "wave": 7,
+      "difficulty": "normal",
+      "budget": 1040,
+      "actualBudget": 1040,
+      "count": 296,
+      "routeBudgets": [
+        526,
+        514
+      ],
+      "peak10": 178,
+      "bounty": 576,
+      "clearReward": 84,
+      "cumulativeAvailable": 3184,
+      "counts": {
+        "gemma": 240,
+        "silly": 56
+      }
+    },
+    {
+      "stage": 3,
+      "wave": 8,
+      "difficulty": "normal",
+      "budget": 1250,
+      "actualBudget": 1245,
+      "count": 276,
+      "routeBudgets": [
+        626,
+        619
+      ],
+      "peak10": 222,
+      "bounty": 618,
+      "clearReward": 89,
+      "cumulativeAvailable": 3891,
+      "counts": {
+        "gemma": 240,
+        "silly": 27,
+        "grok": 9
+      }
+    },
+    {
+      "stage": 3,
+      "wave": 1,
+      "difficulty": "hard",
+      "budget": 350,
+      "actualBudget": 344,
+      "count": 76,
+      "routeBudgets": [
+        174,
+        170
+      ],
+      "peak10": 96,
+      "bounty": 196,
+      "clearReward": 54,
+      "cumulativeAvailable": 730,
+      "counts": {
+        "silly": 24,
+        "gemma": 52
+      }
+    },
+    {
+      "stage": 3,
+      "wave": 2,
+      "difficulty": "hard",
+      "budget": 450,
+      "actualBudget": 442,
+      "count": 197,
+      "routeBudgets": [
+        218,
+        224
+      ],
+      "peak10": 110,
+      "bounty": 227,
+      "clearReward": 59,
+      "cumulativeAvailable": 1016,
+      "counts": {
+        "gemma": 191,
+        "silly": 6
+      }
+    },
+    {
+      "stage": 3,
+      "wave": 3,
+      "difficulty": "hard",
+      "budget": 575,
+      "actualBudget": 570,
+      "count": 249,
+      "routeBudgets": [
+        286,
+        284
+      ],
+      "peak10": 128,
+      "bounty": 294,
+      "clearReward": 64,
+      "cumulativeAvailable": 1374,
+      "counts": {
+        "gemma": 240,
+        "silly": 9
+      }
+    },
+    {
+      "stage": 3,
+      "wave": 4,
+      "difficulty": "hard",
+      "budget": 725,
+      "actualBudget": 723,
+      "count": 209,
+      "routeBudgets": [
+        360,
+        363
+      ],
+      "peak10": 214,
+      "bounty": 349,
+      "clearReward": 69,
+      "cumulativeAvailable": 1792,
+      "counts": {
+        "gemma": 199,
+        "silly": 5,
+        "grok": 5
+      }
+    },
+    {
+      "stage": 3,
+      "wave": 5,
+      "difficulty": "hard",
+      "budget": 900,
+      "actualBudget": 900,
+      "count": 282,
+      "routeBudgets": [
+        446,
+        454
+      ],
+      "peak10": 170,
+      "bounty": 492,
+      "clearReward": 74,
+      "cumulativeAvailable": 2358,
+      "counts": {
+        "gemma": 240,
+        "silly": 42
+      }
+    },
+    {
+      "stage": 3,
+      "wave": 6,
+      "difficulty": "hard",
+      "budget": 1100,
+      "actualBudget": 1100,
+      "count": 257,
+      "routeBudgets": [
+        536,
+        564
+      ],
+      "peak10": 220,
+      "bounty": 522,
+      "clearReward": 79,
+      "cumulativeAvailable": 2959,
+      "counts": {
+        "gemma": 240,
+        "silly": 7,
+        "grok": 10
+      }
+    },
+    {
+      "stage": 3,
+      "wave": 7,
+      "difficulty": "hard",
+      "budget": 1300,
+      "actualBudget": 1300,
+      "count": 322,
+      "routeBudgets": [
+        646,
+        654
+      ],
+      "peak10": 218,
+      "bounty": 732,
+      "clearReward": 84,
+      "cumulativeAvailable": 3775,
+      "counts": {
+        "gemma": 240,
+        "silly": 82
+      }
+    },
+    {
+      "stage": 3,
+      "wave": 8,
+      "difficulty": "hard",
+      "budget": 1563,
+      "actualBudget": 1555,
+      "count": 298,
+      "routeBudgets": [
+        781,
+        774
+      ],
+      "peak10": 262,
+      "bounty": 786,
+      "clearReward": 89,
+      "cumulativeAvailable": 4650,
+      "counts": {
+        "gemma": 240,
+        "silly": 47,
+        "grok": 11
+      }
+    },
+    {
+      "stage": 4,
+      "wave": 1,
+      "difficulty": "easy",
+      "budget": 315,
+      "actualBudget": 306,
+      "count": 125,
+      "routeBudgets": [
+        156,
+        150
+      ],
+      "peak10": 92,
+      "bounty": 160,
+      "clearReward": 62,
+      "cumulativeAvailable": 872,
+      "counts": {
+        "gemma": 118,
+        "silly": 7
+      }
+    },
+    {
+      "stage": 4,
+      "wave": 2,
+      "difficulty": "easy",
+      "budget": 405,
+      "actualBudget": 398,
+      "count": 163,
+      "routeBudgets": [
+        206,
+        192
+      ],
+      "peak10": 104,
+      "bounty": 187,
+      "clearReward": 67,
+      "cumulativeAvailable": 1126,
+      "counts": {
+        "gemma": 151,
+        "cat": 12
+      }
+    },
+    {
+      "stage": 4,
+      "wave": 3,
+      "difficulty": "easy",
+      "budget": 510,
+      "actualBudget": 504,
+      "count": 216,
+      "routeBudgets": [
+        258,
+        246
+      ],
+      "peak10": 122,
+      "bounty": 240,
+      "clearReward": 72,
+      "cumulativeAvailable": 1438,
+      "counts": {
+        "gemma": 204,
+        "cat": 12
+      }
+    },
+    {
+      "stage": 4,
+      "wave": 4,
+      "difficulty": "easy",
+      "budget": 638,
+      "actualBudget": 636,
+      "count": 175,
+      "routeBudgets": [
+        322,
+        314
+      ],
+      "peak10": 198,
+      "bounty": 294,
+      "clearReward": 77,
+      "cumulativeAvailable": 1809,
+      "counts": {
+        "gemma": 159,
+        "grok": 4,
+        "cat": 11,
+        "silly": 1
+      }
+    },
+    {
+      "stage": 4,
+      "wave": 5,
+      "difficulty": "easy",
+      "budget": 788,
+      "actualBudget": 782,
+      "count": 276,
+      "routeBudgets": [
+        388,
+        394
+      ],
+      "peak10": 158,
+      "bounty": 369,
+      "clearReward": 82,
+      "cumulativeAvailable": 2260,
+      "counts": {
+        "gemma": 240,
+        "cat": 29,
+        "silly": 7
+      }
+    },
+    {
+      "stage": 4,
+      "wave": 6,
+      "difficulty": "easy",
+      "budget": 938,
+      "actualBudget": 933,
+      "count": 243,
+      "routeBudgets": [
+        474,
+        459
+      ],
+      "peak10": 234,
+      "bounty": 442,
+      "clearReward": 87,
+      "cumulativeAvailable": 2789,
+      "counts": {
+        "gemma": 211,
+        "cat": 17,
+        "silly": 10,
+        "grok": 5
+      }
+    },
+    {
+      "stage": 4,
+      "wave": 7,
+      "difficulty": "easy",
+      "budget": 1125,
+      "actualBudget": 1116,
+      "count": 312,
+      "routeBudgets": [
+        566,
+        550
+      ],
+      "peak10": 202,
+      "bounty": 546,
+      "clearReward": 92,
+      "cumulativeAvailable": 3427,
+      "counts": {
+        "gemma": 240,
+        "silly": 30,
+        "cat": 42
+      }
+    },
+    {
+      "stage": 4,
+      "wave": 8,
+      "difficulty": "easy",
+      "budget": 1350,
+      "actualBudget": 1349,
+      "count": 320,
+      "routeBudgets": [
+        669,
+        680
+      ],
+      "peak10": 310,
+      "bounty": 675,
+      "clearReward": 97,
+      "cumulativeAvailable": 4199,
+      "counts": {
+        "gemma": 240,
+        "silly": 44,
+        "cat": 33,
+        "grok": 3
+      }
+    },
+    {
+      "stage": 4,
+      "wave": 1,
+      "difficulty": "normal",
+      "budget": 420,
+      "actualBudget": 414,
+      "count": 167,
+      "routeBudgets": [
+        202,
+        212
+      ],
+      "peak10": 104,
+      "bounty": 217,
+      "clearReward": 62,
+      "cumulativeAvailable": 929,
+      "counts": {
+        "gemma": 157,
+        "silly": 10
+      }
+    },
+    {
+      "stage": 4,
+      "wave": 2,
+      "difficulty": "normal",
+      "budget": 540,
+      "actualBudget": 532,
+      "count": 218,
+      "routeBudgets": [
+        270,
+        262
+      ],
+      "peak10": 128,
+      "bounty": 250,
+      "clearReward": 67,
+      "cumulativeAvailable": 1246,
+      "counts": {
+        "gemma": 202,
+        "cat": 16
+      }
+    },
+    {
+      "stage": 4,
+      "wave": 3,
+      "difficulty": "normal",
+      "budget": 680,
+      "actualBudget": 676,
+      "count": 263,
+      "routeBudgets": [
+        330,
+        346
+      ],
+      "peak10": 160,
+      "bounty": 327,
+      "clearReward": 72,
+      "cumulativeAvailable": 1645,
+      "counts": {
+        "gemma": 240,
+        "cat": 17,
+        "silly": 6
+      }
+    },
+    {
+      "stage": 4,
+      "wave": 4,
+      "difficulty": "normal",
+      "budget": 850,
+      "actualBudget": 849,
+      "count": 235,
+      "routeBudgets": [
+        426,
+        423
+      ],
+      "peak10": 252,
+      "bounty": 395,
+      "clearReward": 77,
+      "cumulativeAvailable": 2117,
+      "counts": {
+        "gemma": 212,
+        "cat": 15,
+        "silly": 3,
+        "grok": 5
+      }
+    },
+    {
+      "stage": 4,
+      "wave": 5,
+      "difficulty": "normal",
+      "budget": 1050,
+      "actualBudget": 1042,
+      "count": 304,
+      "routeBudgets": [
+        518,
+        524
+      ],
+      "peak10": 214,
+      "bounty": 507,
+      "clearReward": 82,
+      "cumulativeAvailable": 2706,
+      "counts": {
+        "gemma": 240,
+        "cat": 39,
+        "silly": 25
+      }
+    },
+    {
+      "stage": 4,
+      "wave": 6,
+      "difficulty": "normal",
+      "budget": 1250,
+      "actualBudget": 1244,
+      "count": 294,
+      "routeBudgets": [
+        620,
+        624
+      ],
+      "peak10": 272,
+      "bounty": 603,
+      "clearReward": 87,
+      "cumulativeAvailable": 3396,
+      "counts": {
+        "gemma": 240,
+        "cat": 23,
+        "grok": 6,
+        "silly": 25
+      }
+    },
+    {
+      "stage": 4,
+      "wave": 7,
+      "difficulty": "normal",
+      "budget": 1500,
+      "actualBudget": 1498,
+      "count": 353,
+      "routeBudgets": [
+        750,
+        748
+      ],
+      "peak10": 258,
+      "bounty": 750,
+      "clearReward": 92,
+      "cumulativeAvailable": 4238,
+      "counts": {
+        "gemma": 240,
+        "cat": 56,
+        "silly": 57
+      }
+    },
+    {
+      "stage": 4,
+      "wave": 8,
+      "difficulty": "normal",
+      "budget": 1800,
+      "actualBudget": 1795,
+      "count": 339,
+      "routeBudgets": [
+        902,
+        893
+      ],
+      "peak10": 445,
+      "bounty": 865,
+      "clearReward": 97,
+      "cumulativeAvailable": 5200,
+      "counts": {
+        "gemma": 240,
+        "silly": 49,
+        "cat": 45,
+        "grok": 4,
+        "grok_elite": 1
+      }
+    },
+    {
+      "stage": 4,
+      "wave": 1,
+      "difficulty": "hard",
+      "budget": 525,
+      "actualBudget": 522,
+      "count": 209,
+      "routeBudgets": [
+        258,
+        264
+      ],
+      "peak10": 142,
+      "bounty": 274,
+      "clearReward": 62,
+      "cumulativeAvailable": 986,
+      "counts": {
+        "gemma": 196,
+        "silly": 13
+      }
+    },
+    {
+      "stage": 4,
+      "wave": 2,
+      "difficulty": "hard",
+      "budget": 675,
+      "actualBudget": 668,
+      "count": 263,
+      "routeBudgets": [
+        326,
+        342
+      ],
+      "peak10": 176,
+      "bounty": 315,
+      "clearReward": 67,
+      "cumulativeAvailable": 1368,
+      "counts": {
+        "gemma": 240,
+        "cat": 21,
+        "silly": 2
+      }
+    },
+    {
+      "stage": 4,
+      "wave": 3,
+      "difficulty": "hard",
+      "budget": 850,
+      "actualBudget": 848,
+      "count": 281,
+      "routeBudgets": [
+        426,
+        422
+      ],
+      "peak10": 196,
+      "bounty": 423,
+      "clearReward": 72,
+      "cumulativeAvailable": 1863,
+      "counts": {
+        "gemma": 240,
+        "cat": 21,
+        "silly": 20
+      }
+    },
+    {
+      "stage": 4,
+      "wave": 4,
+      "difficulty": "hard",
+      "budget": 1063,
+      "actualBudget": 1062,
+      "count": 275,
+      "routeBudgets": [
+        524,
+        538
+      ],
+      "peak10": 258,
+      "bounty": 501,
+      "clearReward": 77,
+      "cumulativeAvailable": 2441,
+      "counts": {
+        "gemma": 240,
+        "cat": 19,
+        "grok": 6,
+        "silly": 10
+      }
+    },
+    {
+      "stage": 4,
+      "wave": 5,
+      "difficulty": "hard",
+      "budget": 1313,
+      "actualBudget": 1312,
+      "count": 333,
+      "routeBudgets": [
+        658,
+        654
+      ],
+      "peak10": 250,
+      "bounty": 651,
+      "clearReward": 82,
+      "cumulativeAvailable": 3174,
+      "counts": {
+        "gemma": 240,
+        "cat": 49,
+        "silly": 44
+      }
+    },
+    {
+      "stage": 4,
+      "wave": 6,
+      "difficulty": "hard",
+      "budget": 1563,
+      "actualBudget": 1562,
+      "count": 318,
+      "routeBudgets": [
+        778,
+        784
+      ],
+      "peak10": 328,
+      "bounty": 765,
+      "clearReward": 87,
+      "cumulativeAvailable": 4026,
+      "counts": {
+        "gemma": 240,
+        "grok": 8,
+        "cat": 29,
+        "silly": 41
+      }
+    },
+    {
+      "stage": 4,
+      "wave": 7,
+      "difficulty": "hard",
+      "budget": 1875,
+      "actualBudget": 1870,
+      "count": 393,
+      "routeBudgets": [
+        938,
+        932
+      ],
+      "peak10": 314,
+      "bounty": 948,
+      "clearReward": 92,
+      "cumulativeAvailable": 5066,
+      "counts": {
+        "gemma": 240,
+        "silly": 83,
+        "cat": 70
+      }
+    },
+    {
+      "stage": 4,
+      "wave": 8,
+      "difficulty": "hard",
+      "budget": 2250,
+      "actualBudget": 2243,
+      "count": 377,
+      "routeBudgets": [
+        1125,
+        1118
+      ],
+      "peak10": 501,
+      "bounty": 1096,
+      "clearReward": 97,
+      "cumulativeAvailable": 6259,
+      "counts": {
+        "gemma": 240,
+        "cat": 56,
+        "grok": 6,
+        "silly": 74,
+        "grok_elite": 1
+      }
+    },
+    {
+      "stage": 5,
+      "wave": 1,
+      "difficulty": "easy",
+      "budget": 488,
+      "actualBudget": 465,
+      "count": 36,
+      "routeBudgets": [
+        225,
+        240
+      ],
+      "peak10": 130,
+      "bounty": 258,
+      "clearReward": 70,
+      "cumulativeAvailable": 1328,
+      "counts": {
+        "silly": 29,
+        "normal": 7
+      }
+    },
+    {
+      "stage": 5,
+      "wave": 2,
+      "difficulty": "easy",
+      "budget": 638,
+      "actualBudget": 618,
+      "count": 171,
+      "routeBudgets": [
+        312,
+        306
+      ],
+      "peak10": 172,
+      "bounty": 303,
+      "clearReward": 88,
+      "cumulativeAvailable": 1719,
+      "counts": {
+        "normal": 12,
+        "gemma": 159
+      }
+    },
+    {
+      "stage": 5,
+      "wave": 3,
+      "difficulty": "easy",
+      "budget": 825,
+      "actualBudget": 815,
+      "count": 39,
+      "routeBudgets": [
+        413,
+        402
+      ],
+      "peak10": 242,
+      "bounty": 360,
+      "clearReward": 106,
+      "cumulativeAvailable": 2185,
+      "counts": {
+        "normal": 13,
+        "cat": 20,
+        "grok": 6
+      }
+    },
+    {
+      "stage": 5,
+      "wave": 4,
+      "difficulty": "easy",
+      "budget": 1013,
+      "actualBudget": 1002,
+      "count": 179,
+      "routeBudgets": [
+        508,
+        494
+      ],
+      "peak10": 210,
+      "bounty": 487,
+      "clearReward": 124,
+      "cumulativeAvailable": 2796,
+      "counts": {
+        "normal": 28,
+        "gemma": 151
+      }
+    },
+    {
+      "stage": 5,
+      "wave": 5,
+      "difficulty": "easy",
+      "budget": 1238,
+      "actualBudget": 1220,
+      "count": 38,
+      "routeBudgets": [
+        595,
+        625
+      ],
+      "peak10": 260,
+      "bounty": 564,
+      "clearReward": 142,
+      "cumulativeAvailable": 3502,
+      "counts": {
+        "normal": 29,
+        "grok": 9
+      }
+    },
+    {
+      "stage": 5,
+      "wave": 6,
+      "difficulty": "easy",
+      "budget": 1500,
+      "actualBudget": 1485,
+      "count": 43,
+      "routeBudgets": [
+        725,
+        760
+      ],
+      "peak10": 515,
+      "bounty": 682,
+      "clearReward": 160,
+      "cumulativeAvailable": 4344,
+      "counts": {
+        "grok": 4,
+        "normal": 38,
+        "claude": 1
+      }
+    },
+    {
+      "stage": 5,
+      "wave": 7,
+      "difficulty": "easy",
+      "budget": 1800,
+      "actualBudget": 1794,
+      "count": 315,
+      "routeBudgets": [
+        874,
+        920
+      ],
+      "peak10": 326,
+      "bounty": 843,
+      "clearReward": 178,
+      "cumulativeAvailable": 5365,
+      "counts": {
+        "gemma": 240,
+        "cat": 33,
+        "normal": 42
+      }
+    },
+    {
+      "stage": 5,
+      "wave": 8,
+      "difficulty": "easy",
+      "budget": 2138,
+      "actualBudget": 2130,
+      "count": 51,
+      "routeBudgets": [
+        1095,
+        1035
+      ],
+      "peak10": 575,
+      "bounty": 963,
+      "clearReward": 196,
+      "cumulativeAvailable": 6524,
+      "counts": {
+        "claude": 2,
+        "normal": 42,
+        "grok": 6,
+        "gpt_elite": 1
+      }
+    },
+    {
+      "stage": 5,
+      "wave": 1,
+      "difficulty": "normal",
+      "budget": 650,
+      "actualBudget": 640,
+      "count": 49,
+      "routeBudgets": [
+        300,
+        340
+      ],
+      "peak10": 150,
+      "bounty": 354,
+      "clearReward": 70,
+      "cumulativeAvailable": 1424,
+      "counts": {
+        "silly": 39,
+        "normal": 10
+      }
+    },
+    {
+      "stage": 5,
+      "wave": 2,
+      "difficulty": "normal",
+      "budget": 850,
+      "actualBudget": 849,
+      "count": 229,
+      "routeBudgets": [
+        423,
+        426
+      ],
+      "peak10": 202,
+      "bounty": 416,
+      "clearReward": 88,
+      "cumulativeAvailable": 1928,
+      "counts": {
+        "normal": 17,
+        "gemma": 212
+      }
+    },
+    {
+      "stage": 5,
+      "wave": 3,
+      "difficulty": "normal",
+      "budget": 1100,
+      "actualBudget": 1081,
+      "count": 52,
+      "routeBudgets": [
+        541,
+        540
+      ],
+      "peak10": 258,
+      "bounty": 477,
+      "clearReward": 106,
+      "cumulativeAvailable": 2511,
+      "counts": {
+        "normal": 17,
+        "grok": 8,
+        "cat": 27
+      }
+    },
+    {
+      "stage": 5,
+      "wave": 4,
+      "difficulty": "normal",
+      "budget": 1350,
+      "actualBudget": 1344,
+      "count": 228,
+      "routeBudgets": [
+        671,
+        673
+      ],
+      "peak10": 549,
+      "bounty": 632,
+      "clearReward": 124,
+      "cumulativeAvailable": 3267,
+      "counts": {
+        "gemma": 202,
+        "normal": 25,
+        "claude": 1
+      }
+    },
+    {
+      "stage": 5,
+      "wave": 5,
+      "difficulty": "normal",
+      "budget": 1650,
+      "actualBudget": 1635,
+      "count": 51,
+      "routeBudgets": [
+        830,
+        805
+      ],
+      "peak10": 310,
+      "bounty": 756,
+      "clearReward": 142,
+      "cumulativeAvailable": 4165,
+      "counts": {
+        "normal": 39,
+        "grok": 12
+      }
+    },
+    {
+      "stage": 5,
+      "wave": 6,
+      "difficulty": "normal",
+      "budget": 2000,
+      "actualBudget": 1985,
+      "count": 49,
+      "routeBudgets": [
+        950,
+        1035
+      ],
+      "peak10": 625,
+      "bounty": 896,
+      "clearReward": 160,
+      "cumulativeAvailable": 5221,
+      "counts": {
+        "claude": 2,
+        "normal": 41,
+        "grok": 6
+      }
+    },
+    {
+      "stage": 5,
+      "wave": 7,
+      "difficulty": "normal",
+      "budget": 2400,
+      "actualBudget": 2390,
+      "count": 347,
+      "routeBudgets": [
+        1172,
+        1218
+      ],
+      "peak10": 392,
+      "bounty": 1119,
+      "clearReward": 178,
+      "cumulativeAvailable": 6518,
+      "counts": {
+        "gemma": 240,
+        "cat": 45,
+        "normal": 62
+      }
+    },
+    {
+      "stage": 5,
+      "wave": 8,
+      "difficulty": "normal",
+      "budget": 2850,
+      "actualBudget": 2835,
+      "count": 73,
+      "routeBudgets": [
+        1430,
+        1405
+      ],
+      "peak10": 795,
+      "bounty": 1294,
+      "clearReward": 196,
+      "cumulativeAvailable": 8008,
+      "counts": {
+        "claude": 2,
+        "normal": 61,
+        "grok": 8,
+        "gpt_elite": 2
+      }
+    },
+    {
+      "stage": 5,
+      "wave": 1,
+      "difficulty": "hard",
+      "budget": 813,
+      "actualBudget": 805,
+      "count": 61,
+      "routeBudgets": [
+        415,
+        390
+      ],
+      "peak10": 220,
+      "bounty": 444,
+      "clearReward": 70,
+      "cumulativeAvailable": 1514,
+      "counts": {
+        "silly": 48,
+        "normal": 13
+      }
+    },
+    {
+      "stage": 5,
+      "wave": 2,
+      "difficulty": "hard",
+      "budget": 1063,
+      "actualBudget": 1055,
+      "count": 263,
+      "routeBudgets": [
+        528,
+        527
+      ],
+      "peak10": 258,
+      "bounty": 516,
+      "clearReward": 88,
+      "cumulativeAvailable": 2118,
+      "counts": {
+        "normal": 23,
+        "gemma": 240
+      }
+    },
+    {
+      "stage": 5,
+      "wave": 3,
+      "difficulty": "hard",
+      "budget": 1375,
+      "actualBudget": 1372,
+      "count": 66,
+      "routeBudgets": [
+        680,
+        692
+      ],
+      "peak10": 324,
+      "bounty": 606,
+      "clearReward": 106,
+      "cumulativeAvailable": 2830,
+      "counts": {
+        "normal": 22,
+        "cat": 34,
+        "grok": 10
+      }
+    },
+    {
+      "stage": 5,
+      "wave": 4,
+      "difficulty": "hard",
+      "budget": 1688,
+      "actualBudget": 1670,
+      "count": 276,
+      "routeBudgets": [
+        836,
+        834
+      ],
+      "peak10": 611,
+      "bounty": 790,
+      "clearReward": 124,
+      "cumulativeAvailable": 3744,
+      "counts": {
+        "gemma": 240,
+        "normal": 35,
+        "claude": 1
+      }
+    },
+    {
+      "stage": 5,
+      "wave": 5,
+      "difficulty": "hard",
+      "budget": 2063,
+      "actualBudget": 2050,
+      "count": 64,
+      "routeBudgets": [
+        1010,
+        1040
+      ],
+      "peak10": 470,
+      "bounty": 948,
+      "clearReward": 142,
+      "cumulativeAvailable": 4834,
+      "counts": {
+        "normal": 49,
+        "grok": 15
+      }
+    },
+    {
+      "stage": 5,
+      "wave": 6,
+      "difficulty": "hard",
+      "budget": 2500,
+      "actualBudget": 2495,
+      "count": 67,
+      "routeBudgets": [
+        1260,
+        1235
+      ],
+      "peak10": 675,
+      "bounty": 1136,
+      "clearReward": 160,
+      "cumulativeAvailable": 6130,
+      "counts": {
+        "claude": 2,
+        "normal": 57,
+        "grok": 8
+      }
+    },
+    {
+      "stage": 5,
+      "wave": 7,
+      "difficulty": "hard",
+      "budget": 3000,
+      "actualBudget": 2978,
+      "count": 378,
+      "routeBudgets": [
+        1470,
+        1508
+      ],
+      "peak10": 508,
+      "bounty": 1392,
+      "clearReward": 178,
+      "cumulativeAvailable": 7700,
+      "counts": {
+        "gemma": 240,
+        "cat": 56,
+        "normal": 82
+      }
+    },
+    {
+      "stage": 5,
+      "wave": 8,
+      "difficulty": "hard",
+      "budget": 3563,
+      "actualBudget": 3540,
+      "count": 86,
+      "routeBudgets": [
+        1780,
+        1760
+      ],
+      "peak10": 795,
+      "bounty": 1604,
+      "clearReward": 196,
+      "cumulativeAvailable": 9500,
+      "counts": {
+        "claude": 3,
+        "grok": 11,
+        "normal": 70,
+        "gpt_elite": 2
+      }
+    },
+    {
+      "stage": 6,
+      "wave": 1,
+      "difficulty": "easy",
+      "budget": 675,
+      "actualBudget": 661,
+      "count": 181,
+      "routeBudgets": [
+        331,
+        330
+      ],
+      "peak10": 190,
+      "bounty": 324,
+      "clearReward": 78,
+      "cumulativeAvailable": 1802,
+      "counts": {
+        "normal": 13,
+        "gemma": 168
+      }
+    },
+    {
+      "stage": 6,
+      "wave": 2,
+      "difficulty": "easy",
+      "budget": 900,
+      "actualBudget": 900,
+      "count": 30,
+      "routeBudgets": [
+        435,
+        465
+      ],
+      "peak10": 260,
+      "bounty": 420,
+      "clearReward": 96,
+      "cumulativeAvailable": 2318,
+      "counts": {
+        "normal": 25,
+        "grok": 5
+      }
+    },
+    {
+      "stage": 6,
+      "wave": 3,
+      "difficulty": "easy",
+      "budget": 1163,
+      "actualBudget": 1149,
+      "count": 296,
+      "routeBudgets": [
+        564,
+        585
+      ],
+      "peak10": 288,
+      "bounty": 525,
+      "clearReward": 114,
+      "cumulativeAvailable": 2957,
+      "counts": {
+        "gemma": 240,
+        "cat": 43,
+        "normal": 13
+      }
+    },
+    {
+      "stage": 6,
+      "wave": 4,
+      "difficulty": "easy",
+      "budget": 1425,
+      "actualBudget": 1410,
+      "count": 41,
+      "routeBudgets": [
+        760,
+        650
+      ],
+      "peak10": 635,
+      "bounty": 653,
+      "clearReward": 132,
+      "cumulativeAvailable": 3742,
+      "counts": {
+        "normal": 39,
+        "claude": 1,
+        "gpt_elite": 1
+      }
+    },
+    {
+      "stage": 6,
+      "wave": 5,
+      "difficulty": "easy",
+      "budget": 1725,
+      "actualBudget": 1705,
+      "count": 289,
+      "routeBudgets": [
+        853,
+        852
+      ],
+      "peak10": 340,
+      "bounty": 828,
+      "clearReward": 150,
+      "cumulativeAvailable": 4720,
+      "counts": {
+        "normal": 49,
+        "gemma": 240
+      }
+    },
+    {
+      "stage": 6,
+      "wave": 6,
+      "difficulty": "easy",
+      "budget": 2100,
+      "actualBudget": 2085,
+      "count": 47,
+      "routeBudgets": [
+        1045,
+        1040
+      ],
+      "peak10": 575,
+      "bounty": 932,
+      "clearReward": 168,
+      "cumulativeAvailable": 5820,
+      "counts": {
+        "claude": 2,
+        "grok": 11,
+        "normal": 34
+      }
+    },
+    {
+      "stage": 6,
+      "wave": 7,
+      "difficulty": "easy",
+      "budget": 2513,
+      "actualBudget": 2506,
+      "count": 340,
+      "routeBudgets": [
+        1251,
+        1255
+      ],
+      "peak10": 623,
+      "bounty": 1118,
+      "clearReward": 186,
+      "cumulativeAvailable": 7124,
+      "counts": {
+        "gemma": 240,
+        "normal": 36,
+        "claude": 2,
+        "cat": 62
+      }
+    },
+    {
+      "stage": 6,
+      "wave": 8,
+      "difficulty": "easy",
+      "budget": 3000,
+      "actualBudget": 2980,
+      "count": 73,
+      "routeBudgets": [
+        1545,
+        1435
+      ],
+      "peak10": 685,
+      "bounty": 1359,
+      "clearReward": 204,
+      "cumulativeAvailable": 8687,
+      "counts": {
+        "claude": 3,
+        "gpt_elite": 3,
+        "normal": 67
+      }
+    },
+    {
+      "stage": 6,
+      "wave": 1,
+      "difficulty": "normal",
+      "budget": 900,
+      "actualBudget": 900,
+      "count": 243,
+      "routeBudgets": [
+        448,
+        452
+      ],
+      "peak10": 208,
+      "bounty": 441,
+      "clearReward": 78,
+      "cumulativeAvailable": 1919,
+      "counts": {
+        "normal": 18,
+        "gemma": 225
+      }
+    },
+    {
+      "stage": 6,
+      "wave": 2,
+      "difficulty": "normal",
+      "budget": 1200,
+      "actualBudget": 1200,
+      "count": 28,
+      "routeBudgets": [
+        580,
+        620
+      ],
+      "peak10": 575,
+      "bounty": 538,
+      "clearReward": 96,
+      "cumulativeAvailable": 2553,
+      "counts": {
+        "normal": 20,
+        "grok": 7,
+        "claude": 1
+      }
+    },
+    {
+      "stage": 6,
+      "wave": 3,
+      "difficulty": "normal",
+      "budget": 1550,
+      "actualBudget": 1544,
+      "count": 322,
+      "routeBudgets": [
+        770,
+        774
+      ],
+      "peak10": 354,
+      "bounty": 702,
+      "clearReward": 114,
+      "cumulativeAvailable": 3369,
+      "counts": {
+        "gemma": 240,
+        "normal": 24,
+        "cat": 58
+      }
+    },
+    {
+      "stage": 6,
+      "wave": 4,
+      "difficulty": "normal",
+      "budget": 1900,
+      "actualBudget": 1880,
+      "count": 56,
+      "routeBudgets": [
+        935,
+        945
+      ],
+      "peak10": 565,
+      "bounty": 876,
+      "clearReward": 132,
+      "cumulativeAvailable": 4377,
+      "counts": {
+        "gpt_elite": 2,
+        "normal": 53,
+        "claude": 1
+      }
+    },
+    {
+      "stage": 6,
+      "wave": 5,
+      "difficulty": "normal",
+      "budget": 2300,
+      "actualBudget": 2280,
+      "count": 312,
+      "routeBudgets": [
+        1146,
+        1134
+      ],
+      "peak10": 440,
+      "bounty": 1104,
+      "clearReward": 150,
+      "cumulativeAvailable": 5631,
+      "counts": {
+        "normal": 72,
+        "gemma": 240
+      }
+    },
+    {
+      "stage": 6,
+      "wave": 6,
+      "difficulty": "normal",
+      "budget": 2800,
+      "actualBudget": 2795,
+      "count": 59,
+      "routeBudgets": [
+        1405,
+        1390
+      ],
+      "peak10": 735,
+      "bounty": 1242,
+      "clearReward": 168,
+      "cumulativeAvailable": 7041,
+      "counts": {
+        "claude": 3,
+        "grok": 15,
+        "normal": 41
+      }
+    },
+    {
+      "stage": 6,
+      "wave": 7,
+      "difficulty": "normal",
+      "budget": 3350,
+      "actualBudget": 3339,
+      "count": 376,
+      "routeBudgets": [
+        1691,
+        1648
+      ],
+      "peak10": 705,
+      "bounty": 1479,
+      "clearReward": 186,
+      "cumulativeAvailable": 8706,
+      "counts": {
+        "gemma": 240,
+        "cat": 83,
+        "normal": 50,
+        "claude": 3
+      }
+    },
+    {
+      "stage": 6,
+      "wave": 8,
+      "difficulty": "normal",
+      "budget": 4000,
+      "actualBudget": 3985,
+      "count": 94,
+      "routeBudgets": [
+        1945,
+        2040
+      ],
+      "peak10": 785,
+      "bounty": 1815,
+      "clearReward": 204,
+      "cumulativeAvailable": 10725,
+      "counts": {
+        "claude": 4,
+        "normal": 85,
+        "gpt_elite": 5
+      }
+    },
+    {
+      "stage": 6,
+      "wave": 1,
+      "difficulty": "hard",
+      "budget": 1125,
+      "actualBudget": 1105,
+      "count": 265,
+      "routeBudgets": [
+        553,
+        552
+      ],
+      "peak10": 302,
+      "bounty": 540,
+      "clearReward": 78,
+      "cumulativeAvailable": 2018,
+      "counts": {
+        "normal": 25,
+        "gemma": 240
+      }
+    },
+    {
+      "stage": 6,
+      "wave": 2,
+      "difficulty": "hard",
+      "budget": 1500,
+      "actualBudget": 1485,
+      "count": 37,
+      "routeBudgets": [
+        765,
+        720
+      ],
+      "peak10": 575,
+      "bounty": 670,
+      "clearReward": 96,
+      "cumulativeAvailable": 2784,
+      "counts": {
+        "grok": 9,
+        "normal": 27,
+        "claude": 1
+      }
+    },
+    {
+      "stage": 6,
+      "wave": 3,
+      "difficulty": "hard",
+      "budget": 1938,
+      "actualBudget": 1931,
+      "count": 347,
+      "routeBudgets": [
+        959,
+        972
+      ],
+      "peak10": 436,
+      "bounty": 876,
+      "clearReward": 114,
+      "cumulativeAvailable": 3774,
+      "counts": {
+        "gemma": 240,
+        "cat": 72,
+        "normal": 35
+      }
+    },
+    {
+      "stage": 6,
+      "wave": 4,
+      "difficulty": "hard",
+      "budget": 2375,
+      "actualBudget": 2370,
+      "count": 64,
+      "routeBudgets": [
+        1185,
+        1185
+      ],
+      "peak10": 735,
+      "bounty": 1090,
+      "clearReward": 132,
+      "cumulativeAvailable": 4996,
+      "counts": {
+        "claude": 2,
+        "normal": 60,
+        "gpt_elite": 2
+      }
+    },
+    {
+      "stage": 6,
+      "wave": 5,
+      "difficulty": "hard",
+      "budget": 2875,
+      "actualBudget": 2855,
+      "count": 335,
+      "routeBudgets": [
+        1428,
+        1427
+      ],
+      "peak10": 540,
+      "bounty": 1380,
+      "clearReward": 150,
+      "cumulativeAvailable": 6526,
+      "counts": {
+        "normal": 95,
+        "gemma": 240
+      }
+    },
+    {
+      "stage": 6,
+      "wave": 6,
+      "difficulty": "hard",
+      "budget": 3500,
+      "actualBudget": 3490,
+      "count": 82,
+      "routeBudgets": [
+        1765,
+        1725
+      ],
+      "peak10": 785,
+      "bounty": 1566,
+      "clearReward": 168,
+      "cumulativeAvailable": 8260,
+      "counts": {
+        "claude": 3,
+        "grok": 19,
+        "normal": 60
+      }
+    },
+    {
+      "stage": 6,
+      "wave": 7,
+      "difficulty": "hard",
+      "budget": 4188,
+      "actualBudget": 4182,
+      "count": 424,
+      "routeBudgets": [
+        2096,
+        2086
+      ],
+      "peak10": 821,
+      "bounty": 1866,
+      "clearReward": 186,
+      "cumulativeAvailable": 10312,
+      "counts": {
+        "gemma": 240,
+        "cat": 104,
+        "normal": 77,
+        "claude": 3
+      }
+    },
+    {
+      "stage": 6,
+      "wave": 8,
+      "difficulty": "hard",
+      "budget": 5000,
+      "actualBudget": 4980,
+      "count": 130,
+      "routeBudgets": [
+        2490,
+        2490
+      ],
+      "peak10": 885,
+      "bounty": 2290,
+      "clearReward": 204,
+      "cumulativeAvailable": 12806,
+      "counts": {
+        "claude": 4,
+        "normal": 120,
+        "gpt_elite": 6
+      }
+    },
+    {
+      "stage": 7,
+      "wave": 1,
+      "difficulty": "easy",
+      "budget": 1200,
+      "actualBudget": 1180,
+      "count": 148,
+      "routeBudgets": [
+        596,
+        584
+      ],
+      "peak10": 332,
+      "bounty": 552,
+      "clearReward": 86,
+      "cumulativeAvailable": 4838,
+      "counts": {
+        "grok": 8,
+        "normal": 20,
+        "gemma": 120
+      }
+    },
+    {
+      "stage": 7,
+      "wave": 2,
+      "difficulty": "easy",
+      "budget": 1575,
+      "actualBudget": 1557,
+      "count": 85,
+      "routeBudgets": [
+        719,
+        838
+      ],
+      "peak10": 450,
+      "bounty": 712,
+      "clearReward": 104,
+      "cumulativeAvailable": 5654,
+      "counts": {
+        "normal": 45,
+        "cat": 39,
+        "gpt_elite": 1
+      }
+    },
+    {
+      "stage": 7,
+      "wave": 3,
+      "difficulty": "easy",
+      "budget": 2025,
+      "actualBudget": 2025,
+      "count": 55,
+      "routeBudgets": [
+        995,
+        1030
+      ],
+      "peak10": 785,
+      "bounty": 922,
+      "clearReward": 122,
+      "cumulativeAvailable": 6698,
+      "counts": {
+        "grok": 12,
+        "normal": 42,
+        "claude": 1
+      }
+    },
+    {
+      "stage": 7,
+      "wave": 4,
+      "difficulty": "easy",
+      "budget": 2475,
+      "actualBudget": 2460,
+      "count": 296,
+      "routeBudgets": [
+        1211,
+        1249
+      ],
+      "peak10": 661,
+      "bounty": 1148,
+      "clearReward": 140,
+      "cumulativeAvailable": 7986,
+      "counts": {
+        "claude": 2,
+        "gemma": 240,
+        "normal": 54
+      }
+    },
+    {
+      "stage": 7,
+      "wave": 5,
+      "difficulty": "easy",
+      "budget": 3000,
+      "actualBudget": 2978,
+      "count": 378,
+      "routeBudgets": [
+        1490,
+        1488
+      ],
+      "peak10": 570,
+      "bounty": 1392,
+      "clearReward": 158,
+      "cumulativeAvailable": 9536,
+      "counts": {
+        "normal": 82,
+        "gemma": 240,
+        "cat": 56
+      }
+    },
+    {
+      "stage": 7,
+      "wave": 6,
+      "difficulty": "easy",
+      "budget": 3600,
+      "actualBudget": 3580,
+      "count": 74,
+      "routeBudgets": [
+        1785,
+        1795
+      ],
+      "peak10": 905,
+      "bounty": 1606,
+      "clearReward": 176,
+      "cumulativeAvailable": 11318,
+      "counts": {
+        "claude": 3,
+        "grok": 16,
+        "gpt_elite": 4,
+        "normal": 51
+      }
+    },
+    {
+      "stage": 7,
+      "wave": 7,
+      "difficulty": "easy",
+      "budget": 4275,
+      "actualBudget": 4270,
+      "count": 446,
+      "routeBudgets": [
+        2132,
+        2138
+      ],
+      "peak10": 690,
+      "bounty": 1992,
+      "clearReward": 194,
+      "cumulativeAvailable": 13504,
+      "counts": {
+        "gemma": 240,
+        "cat": 80,
+        "normal": 126
+      }
+    },
+    {
+      "stage": 7,
+      "wave": 8,
+      "difficulty": "easy",
+      "budget": 5100,
+      "actualBudget": 5090,
+      "count": 114,
+      "routeBudgets": [
+        2650,
+        2440
+      ],
+      "peak10": 1080,
+      "bounty": 2304,
+      "clearReward": 212,
+      "cumulativeAvailable": 16020,
+      "counts": {
+        "claude": 5,
+        "gpt_elite": 6,
+        "normal": 102,
+        "grok_elite": 1
+      }
+    },
+    {
+      "stage": 7,
+      "wave": 1,
+      "difficulty": "normal",
+      "budget": 1600,
+      "actualBudget": 1600,
+      "count": 198,
+      "routeBudgets": [
+        806,
+        794
+      ],
+      "peak10": 504,
+      "bounty": 748,
+      "clearReward": 86,
+      "cumulativeAvailable": 5034,
+      "counts": {
+        "grok": 11,
+        "gemma": 160,
+        "normal": 27
+      }
+    },
+    {
+      "stage": 7,
+      "wave": 2,
+      "difficulty": "normal",
+      "budget": 2100,
+      "actualBudget": 2081,
+      "count": 111,
+      "routeBudgets": [
+        1037,
+        1044
+      ],
+      "peak10": 566,
+      "bounty": 950,
+      "clearReward": 104,
+      "cumulativeAvailable": 6088,
+      "counts": {
+        "normal": 57,
+        "gpt_elite": 2,
+        "cat": 52
+      }
+    },
+    {
+      "stage": 7,
+      "wave": 3,
+      "difficulty": "normal",
+      "budget": 2700,
+      "actualBudget": 2690,
+      "count": 64,
+      "routeBudgets": [
+        1330,
+        1360
+      ],
+      "peak10": 785,
+      "bounty": 1208,
+      "clearReward": 122,
+      "cumulativeAvailable": 7418,
+      "counts": {
+        "claude": 2,
+        "normal": 45,
+        "grok": 17
+      }
+    },
+    {
+      "stage": 7,
+      "wave": 4,
+      "difficulty": "normal",
+      "budget": 3300,
+      "actualBudget": 3300,
+      "count": 318,
+      "routeBudgets": [
+        1639,
+        1661
+      ],
+      "peak10": 811,
+      "bounty": 1530,
+      "clearReward": 140,
+      "cumulativeAvailable": 9088,
+      "counts": {
+        "claude": 3,
+        "gemma": 240,
+        "normal": 75
+      }
+    },
+    {
+      "stage": 7,
+      "wave": 5,
+      "difficulty": "normal",
+      "budget": 4000,
+      "actualBudget": 3980,
+      "count": 431,
+      "routeBudgets": [
+        1992,
+        1988
+      ],
+      "peak10": 752,
+      "bounty": 1857,
+      "clearReward": 158,
+      "cumulativeAvailable": 11103,
+      "counts": {
+        "normal": 116,
+        "gemma": 240,
+        "cat": 75
+      }
+    },
+    {
+      "stage": 7,
+      "wave": 6,
+      "difficulty": "normal",
+      "budget": 4800,
+      "actualBudget": 4785,
+      "count": 97,
+      "routeBudgets": [
+        2390,
+        2395
+      ],
+      "peak10": 955,
+      "bounty": 2146,
+      "clearReward": 176,
+      "cumulativeAvailable": 13425,
+      "counts": {
+        "claude": 4,
+        "normal": 66,
+        "gpt_elite": 6,
+        "grok": 21
+      }
+    },
+    {
+      "stage": 7,
+      "wave": 7,
+      "difficulty": "normal",
+      "budget": 5700,
+      "actualBudget": 5678,
+      "count": 520,
+      "routeBudgets": [
+        2844,
+        2834
+      ],
+      "peak10": 922,
+      "bounty": 2646,
+      "clearReward": 194,
+      "cumulativeAvailable": 16265,
+      "counts": {
+        "gemma": 240,
+        "cat": 106,
+        "normal": 174
+      }
+    },
+    {
+      "stage": 7,
+      "wave": 8,
+      "difficulty": "normal",
+      "budget": 6800,
+      "actualBudget": 6785,
+      "count": 151,
+      "routeBudgets": [
+        3510,
+        3275
+      ],
+      "peak10": 1275,
+      "bounty": 3070,
+      "clearReward": 212,
+      "cumulativeAvailable": 19547,
+      "counts": {
+        "claude": 7,
+        "gpt_elite": 8,
+        "normal": 135,
+        "grok_elite": 1
+      }
+    },
+    {
+      "stage": 7,
+      "wave": 1,
+      "difficulty": "hard",
+      "budget": 2000,
+      "actualBudget": 1995,
+      "count": 247,
+      "routeBudgets": [
+        992,
+        1003
+      ],
+      "peak10": 528,
+      "bounty": 932,
+      "clearReward": 86,
+      "cumulativeAvailable": 5218,
+      "counts": {
+        "grok": 14,
+        "gemma": 200,
+        "normal": 33
+      }
+    },
+    {
+      "stage": 7,
+      "wave": 2,
+      "difficulty": "hard",
+      "budget": 2625,
+      "actualBudget": 2605,
+      "count": 137,
+      "routeBudgets": [
+        1243,
+        1362
+      ],
+      "peak10": 648,
+      "bounty": 1188,
+      "clearReward": 104,
+      "cumulativeAvailable": 6510,
+      "counts": {
+        "normal": 69,
+        "cat": 65,
+        "gpt_elite": 3
+      }
+    },
+    {
+      "stage": 7,
+      "wave": 3,
+      "difficulty": "hard",
+      "budget": 3375,
+      "actualBudget": 3375,
+      "count": 75,
+      "routeBudgets": [
+        1710,
+        1665
+      ],
+      "peak10": 945,
+      "bounty": 1506,
+      "clearReward": 122,
+      "cumulativeAvailable": 8138,
+      "counts": {
+        "claude": 3,
+        "grok": 21,
+        "normal": 51
+      }
+    },
+    {
+      "stage": 7,
+      "wave": 4,
+      "difficulty": "hard",
+      "budget": 4125,
+      "actualBudget": 4125,
+      "count": 351,
+      "routeBudgets": [
+        2064,
+        2061
+      ],
+      "peak10": 961,
+      "bounty": 1926,
+      "clearReward": 140,
+      "cumulativeAvailable": 10204,
+      "counts": {
+        "claude": 3,
+        "gemma": 240,
+        "normal": 108
+      }
+    },
+    {
+      "stage": 7,
+      "wave": 5,
+      "difficulty": "hard",
+      "budget": 5000,
+      "actualBudget": 4999,
+      "count": 484,
+      "routeBudgets": [
+        2496,
+        2503
+      ],
+      "peak10": 934,
+      "bounty": 2331,
+      "clearReward": 158,
+      "cumulativeAvailable": 12693,
+      "counts": {
+        "normal": 151,
+        "gemma": 240,
+        "cat": 93
+      }
+    },
+    {
+      "stage": 7,
+      "wave": 6,
+      "difficulty": "hard",
+      "budget": 6000,
+      "actualBudget": 6000,
+      "count": 123,
+      "routeBudgets": [
+        3040,
+        2960
+      ],
+      "peak10": 1115,
+      "bounty": 2691,
+      "clearReward": 176,
+      "cumulativeAvailable": 15560,
+      "counts": {
+        "claude": 5,
+        "gpt_elite": 7,
+        "normal": 84,
+        "grok": 27
+      }
+    },
+    {
+      "stage": 7,
+      "wave": 7,
+      "difficulty": "hard",
+      "budget": 7125,
+      "actualBudget": 7119,
+      "count": 596,
+      "routeBudgets": [
+        3557,
+        3562
+      ],
+      "peak10": 1154,
+      "bounty": 3315,
+      "clearReward": 194,
+      "cumulativeAvailable": 19069,
+      "counts": {
+        "gemma": 240,
+        "cat": 133,
+        "normal": 223
+      }
+    },
+    {
+      "stage": 7,
+      "wave": 8,
+      "difficulty": "hard",
+      "budget": 8500,
+      "actualBudget": 8495,
+      "count": 203,
+      "routeBudgets": [
+        4255,
+        4240
+      ],
+      "peak10": 1500,
+      "bounty": 3868,
+      "clearReward": 212,
+      "cumulativeAvailable": 23149,
+      "counts": {
+        "claude": 7,
+        "normal": 184,
+        "gpt_elite": 10,
+        "grok_elite": 2
+      }
+    },
+    {
+      "stage": 8,
+      "wave": 1,
+      "difficulty": "easy",
+      "budget": 1425,
+      "actualBudget": 1405,
+      "count": 277,
+      "routeBudgets": [
+        703,
+        702
+      ],
+      "peak10": 358,
+      "bounty": 684,
+      "clearReward": 94,
+      "cumulativeAvailable": 5578,
+      "counts": {
+        "normal": 37,
+        "gemma": 240
+      }
+    },
+    {
+      "stage": 8,
+      "wave": 2,
+      "difficulty": "easy",
+      "budget": 1875,
+      "actualBudget": 1873,
+      "count": 327,
+      "routeBudgets": [
+        947,
+        926
+      ],
+      "peak10": 438,
+      "bounty": 870,
+      "clearReward": 112,
+      "cumulativeAvailable": 6560,
+      "counts": {
+        "gemma": 240,
+        "normal": 41,
+        "cat": 46
+      }
+    },
+    {
+      "stage": 8,
+      "wave": 3,
+      "difficulty": "easy",
+      "budget": 2400,
+      "actualBudget": 2390,
+      "count": 61,
+      "routeBudgets": [
+        1255,
+        1135
+      ],
+      "peak10": 735,
+      "bounty": 1097,
+      "clearReward": 130,
+      "cumulativeAvailable": 7787,
+      "counts": {
+        "claude": 2,
+        "normal": 56,
+        "gpt_elite": 3
+      }
+    },
+    {
+      "stage": 8,
+      "wave": 4,
+      "difficulty": "easy",
+      "budget": 2925,
+      "actualBudget": 2920,
+      "count": 64,
+      "routeBudgets": [
+        1455,
+        1465
+      ],
+      "peak10": 785,
+      "bounty": 1302,
+      "clearReward": 148,
+      "cumulativeAvailable": 9237,
+      "counts": {
+        "claude": 3,
+        "grok": 15,
+        "normal": 46
+      }
+    },
+    {
+      "stage": 8,
+      "wave": 5,
+      "difficulty": "easy",
+      "budget": 3525,
+      "actualBudget": 3508,
+      "count": 406,
+      "routeBudgets": [
+        1752,
+        1756
+      ],
+      "peak10": 636,
+      "bounty": 1638,
+      "clearReward": 166,
+      "cumulativeAvailable": 11041,
+      "counts": {
+        "gemma": 240,
+        "normal": 100,
+        "cat": 66
+      }
+    },
+    {
+      "stage": 8,
+      "wave": 6,
+      "difficulty": "easy",
+      "budget": 4200,
+      "actualBudget": 4200,
+      "count": 91,
+      "routeBudgets": [
+        2155,
+        2045
+      ],
+      "peak10": 785,
+      "bounty": 1897,
+      "clearReward": 184,
+      "cumulativeAvailable": 13122,
+      "counts": {
+        "claude": 5,
+        "gpt_elite": 5,
+        "normal": 81
+      }
+    },
+    {
+      "stage": 8,
+      "wave": 7,
+      "difficulty": "easy",
+      "budget": 4950,
+      "actualBudget": 4930,
+      "count": 96,
+      "routeBudgets": [
+        2455,
+        2475
+      ],
+      "peak10": 1140,
+      "bounty": 2172,
+      "clearReward": 202,
+      "cumulativeAvailable": 15496,
+      "counts": {
+        "claude": 4,
+        "grok": 31,
+        "grok_elite": 2,
+        "normal": 59
+      }
+    },
+    {
+      "stage": 8,
+      "wave": 8,
+      "difficulty": "easy",
+      "budget": 5850,
+      "actualBudget": 5840,
+      "count": 352,
+      "routeBudgets": [
+        2926,
+        2914
+      ],
+      "peak10": 1146,
+      "bounty": 2640,
+      "clearReward": 220,
+      "cumulativeAvailable": 18356,
+      "counts": {
+        "claude": 6,
+        "normal": 100,
+        "gemma": 240,
+        "gpt_elite": 4,
+        "grok_elite": 2
+      }
+    },
+    {
+      "stage": 8,
+      "wave": 1,
+      "difficulty": "normal",
+      "budget": 1900,
+      "actualBudget": 1880,
+      "count": 296,
+      "routeBudgets": [
+        946,
+        934
+      ],
+      "peak10": 458,
+      "bounty": 912,
+      "clearReward": 94,
+      "cumulativeAvailable": 5806,
+      "counts": {
+        "normal": 56,
+        "gemma": 240
+      }
+    },
+    {
+      "stage": 8,
+      "wave": 2,
+      "difficulty": "normal",
+      "budget": 2500,
+      "actualBudget": 2476,
+      "count": 362,
+      "routeBudgets": [
+        1236,
+        1240
+      ],
+      "peak10": 570,
+      "bounty": 1146,
+      "clearReward": 112,
+      "cumulativeAvailable": 7064,
+      "counts": {
+        "gemma": 240,
+        "normal": 60,
+        "cat": 62
+      }
+    },
+    {
+      "stage": 8,
+      "wave": 3,
+      "difficulty": "normal",
+      "budget": 3200,
+      "actualBudget": 3200,
+      "count": 78,
+      "routeBudgets": [
+        1595,
+        1605
+      ],
+      "peak10": 835,
+      "bounty": 1462,
+      "clearReward": 130,
+      "cumulativeAvailable": 8656,
+      "counts": {
+        "claude": 3,
+        "gpt_elite": 4,
+        "normal": 71
+      }
+    },
+    {
+      "stage": 8,
+      "wave": 4,
+      "difficulty": "normal",
+      "budget": 3900,
+      "actualBudget": 3890,
+      "count": 84,
+      "routeBudgets": [
+        1935,
+        1955
+      ],
+      "peak10": 835,
+      "bounty": 1732,
+      "clearReward": 148,
+      "cumulativeAvailable": 10536,
+      "counts": {
+        "claude": 4,
+        "grok": 21,
+        "normal": 59
+      }
+    },
+    {
+      "stage": 8,
+      "wave": 5,
+      "difficulty": "normal",
+      "budget": 4700,
+      "actualBudget": 4684,
+      "count": 468,
+      "routeBudgets": [
+        2348,
+        2336
+      ],
+      "peak10": 868,
+      "bounty": 2184,
+      "clearReward": 166,
+      "cumulativeAvailable": 12886,
+      "counts": {
+        "gemma": 240,
+        "normal": 140,
+        "cat": 88
+      }
+    },
+    {
+      "stage": 8,
+      "wave": 6,
+      "difficulty": "normal",
+      "budget": 5600,
+      "actualBudget": 5595,
+      "count": 116,
+      "routeBudgets": [
+        2840,
+        2755
+      ],
+      "peak10": 885,
+      "bounty": 2519,
+      "clearReward": 184,
+      "cumulativeAvailable": 15589,
+      "counts": {
+        "claude": 7,
+        "gpt_elite": 7,
+        "normal": 102
+      }
+    },
+    {
+      "stage": 8,
+      "wave": 7,
+      "difficulty": "normal",
+      "budget": 6600,
+      "actualBudget": 6590,
+      "count": 126,
+      "routeBudgets": [
+        3300,
+        3290
+      ],
+      "peak10": 1300,
+      "bounty": 2900,
+      "clearReward": 202,
+      "cumulativeAvailable": 18691,
+      "counts": {
+        "claude": 6,
+        "grok": 42,
+        "normal": 76,
+        "grok_elite": 2
+      }
+    },
+    {
+      "stage": 8,
+      "wave": 8,
+      "difficulty": "normal",
+      "budget": 7800,
+      "actualBudget": 7790,
+      "count": 402,
+      "routeBudgets": [
+        4012,
+        3778
+      ],
+      "peak10": 1541,
+      "bounty": 3532,
+      "clearReward": 220,
+      "cumulativeAvailable": 22443,
+      "counts": {
+        "claude": 7,
+        "gemma": 240,
+        "gpt_elite": 6,
+        "normal": 146,
+        "grok_elite": 3
+      }
+    },
+    {
+      "stage": 8,
+      "wave": 1,
+      "difficulty": "hard",
+      "budget": 2375,
+      "actualBudget": 2355,
+      "count": 315,
+      "routeBudgets": [
+        1178,
+        1177
+      ],
+      "peak10": 608,
+      "bounty": 1140,
+      "clearReward": 94,
+      "cumulativeAvailable": 6034,
+      "counts": {
+        "normal": 75,
+        "gemma": 240
+      }
+    },
+    {
+      "stage": 8,
+      "wave": 2,
+      "difficulty": "hard",
+      "budget": 3125,
+      "actualBudget": 3104,
+      "count": 398,
+      "routeBudgets": [
+        1550,
+        1554
+      ],
+      "peak10": 702,
+      "bounty": 1434,
+      "clearReward": 112,
+      "cumulativeAvailable": 7580,
+      "counts": {
+        "gemma": 240,
+        "normal": 80,
+        "cat": 78
+      }
+    },
+    {
+      "stage": 8,
+      "wave": 3,
+      "difficulty": "hard",
+      "budget": 4000,
+      "actualBudget": 3995,
+      "count": 106,
+      "routeBudgets": [
+        2040,
+        1955
+      ],
+      "peak10": 935,
+      "bounty": 1841,
+      "clearReward": 130,
+      "cumulativeAvailable": 9551,
+      "counts": {
+        "claude": 3,
+        "gpt_elite": 5,
+        "normal": 98
+      }
+    },
+    {
+      "stage": 8,
+      "wave": 4,
+      "difficulty": "hard",
+      "budget": 4875,
+      "actualBudget": 4855,
+      "count": 105,
+      "routeBudgets": [
+        2445,
+        2410
+      ],
+      "peak10": 995,
+      "bounty": 2162,
+      "clearReward": 148,
+      "cumulativeAvailable": 11861,
+      "counts": {
+        "claude": 5,
+        "normal": 74,
+        "grok": 26
+      }
+    },
+    {
+      "stage": 8,
+      "wave": 5,
+      "difficulty": "hard",
+      "budget": 5875,
+      "actualBudget": 5860,
+      "count": 530,
+      "routeBudgets": [
+        2928,
+        2932
+      ],
+      "peak10": 1050,
+      "bounty": 2730,
+      "clearReward": 166,
+      "cumulativeAvailable": 14757,
+      "counts": {
+        "gemma": 240,
+        "normal": 180,
+        "cat": 110
+      }
+    },
+    {
+      "stage": 8,
+      "wave": 6,
+      "difficulty": "hard",
+      "budget": 7000,
+      "actualBudget": 6990,
+      "count": 168,
+      "routeBudgets": [
+        3490,
+        3500
+      ],
+      "peak10": 1205,
+      "bounty": 3186,
+      "clearReward": 184,
+      "cumulativeAvailable": 18127,
+      "counts": {
+        "claude": 7,
+        "gpt_elite": 8,
+        "normal": 153
+      }
+    },
+    {
+      "stage": 8,
+      "wave": 7,
+      "difficulty": "hard",
+      "budget": 8250,
+      "actualBudget": 8250,
+      "count": 160,
+      "routeBudgets": [
+        4025,
+        4225
+      ],
+      "peak10": 1400,
+      "bounty": 3634,
+      "clearReward": 202,
+      "cumulativeAvailable": 21963,
+      "counts": {
+        "claude": 7,
+        "grok": 52,
+        "normal": 98,
+        "grok_elite": 3
+      }
+    },
+    {
+      "stage": 8,
+      "wave": 8,
+      "difficulty": "hard",
+      "budget": 9750,
+      "actualBudget": 9730,
+      "count": 472,
+      "routeBudgets": [
+        4982,
+        4748
+      ],
+      "peak10": 1666,
+      "bounty": 4458,
+      "clearReward": 220,
+      "cumulativeAvailable": 26641,
+      "counts": {
+        "claude": 7,
+        "gemma": 240,
+        "gpt_elite": 8,
+        "normal": 214,
+        "grok_elite": 3
+      }
+    }
+  ]
+}
