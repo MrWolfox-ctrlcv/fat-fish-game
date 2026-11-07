@@ -1,5 +1,5 @@
 {
-  "version": 9,
+  "version": 10,
   "balance": 8,
   "base": "/games/tower-defense/",
   "files": [
@@ -40,18 +40,18 @@
     },
     {
       "path": "src/art-assets.js",
-      "bytes": 3137,
-      "sha256": "8e5ec6ec5914efbf956201f7d4ad7b4d360cda5d1f7be3b30a416498f3b57763"
+      "bytes": 3193,
+      "sha256": "ffee081cb9dbddf9668021517de40cdbf21d8de7b2987167602828337c728ec2"
     },
     {
       "path": "src/freebuild/main.js",
-      "bytes": 28055,
-      "sha256": "fd0b041e64f2a36e30b5b16a29013acd943fbc9f4e28ef4b6831f9b8dd79b0a6"
+      "bytes": 28041,
+      "sha256": "d1fc634372a189f8a79f4e7c35819f6b829e8c92843f503c4a3ac275b24e31da"
     },
     {
       "path": "src/freebuild/data.js",
-      "bytes": 7472,
-      "sha256": "f64bb4d534eacbc4a3b739b25bb7fa30f792d1becffd9f8a3de2238cb5cf5b45"
+      "bytes": 7426,
+      "sha256": "aef1c21f4a7e827d40832768d974afaed055d24d43f290e120c188753d1eac77"
     },
     {
       "path": "src/freebuild/balance.js",
@@ -85,8 +85,8 @@
     },
     {
       "path": "src/freebuild/engine.js",
-      "bytes": 21781,
-      "sha256": "f19253114a821f34f51bc2cf592a038593f91587a2b2aa0db3d3634dd4b62444"
+      "bytes": 21843,
+      "sha256": "9c40875eadf03d5eace30e1a309df19452b5334a1d91de43666162cbae9cd7f7"
     },
     {
       "path": "src/freebuild/geometry.js",
@@ -292,6 +292,11 @@
       "path": "assets/units-v2/glm-x-shield.webp",
       "bytes": 96408,
       "sha256": "b35e57544819ff32e15beefc39b959b44eed69b8d1b8f5b86e8f7e9749067d53"
+    },
+    {
+      "path": "assets/units/silly.webp",
+      "bytes": 199886,
+      "sha256": "c76578a4ff2b56689f54029b2750547dbe8be4561befd1079d3afeef29505ced"
     },
     {
       "path": "assets/platforms-v2/glm-normal.webp",

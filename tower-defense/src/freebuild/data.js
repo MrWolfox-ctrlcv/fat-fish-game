@@ -26,7 +26,7 @@ export const TECHS={
  giant_bombard:{name:'白饭征集令',short:'征集令',branch:'giant',cost:B.bombard.pricePerUse,max:0,repeatable:true}
 };
 export const ENEMIES={
- silly:{family:'gpt',tier:'low',name:'降智龙',sprite:'awake',radius:15},
+ silly:{family:'gpt',tier:'low',name:'降智龙',sprite:'silly',radius:15},
  normal:{family:'gpt',tier:'mid',name:'正常龙',sprite:'awake',radius:22},
  gpt_elite:{family:'gpt',tier:'elite',name:'觉醒龙',sprite:'gpt-elite',radius:25},
  grok:{family:'grok',tier:'mid',name:'黑曜姬',sprite:'grok',radius:22},
@@ -65,5 +65,5 @@ for(const [id,k]of Object.entries(TECHS))k.cost??=B.research.find(r=>r.id===id&&
 for(const [id,b]of Object.entries(BRANCHES)){const v=B.branches[id==='small'?'mass':id];b.cost=v.upgradeCost??v.cost-B.factories[2].cost;}
 const bounties={silly:6,normal:12,gpt_elite:55,grok:24,grok_elite:100,gemma:1,cat:3,claude:130};
 for(const v of B.enemies)Object.assign(ENEMIES[v.id],{hp:v.hp,speed:v.speed,damage:v.damage,interval:v.interval,physicalResist:v.physicalResist,magicResist:v.magicResist,leak:v.leak,columns:v.columns,price:v.price,coins:bounties[v.id],tip:''});
-Object.assign(ENEMIES.silly,{sprite:'awake'});Object.assign(ENEMIES.gpt_elite,{sprite:'gpt-elite'});Object.assign(ENEMIES.grok_elite,{sprite:'grok-elite'});Object.assign(ENEMIES.gemma,{sprite:'gemini-mini'});
+Object.assign(ENEMIES.gpt_elite,{sprite:'gpt-elite'});Object.assign(ENEMIES.grok_elite,{sprite:'grok-elite'});Object.assign(ENEMIES.gemma,{sprite:'gemini-mini'});
 for(const b of Object.values(BRANCHES))b.description='';for(const k of Object.values(TECHS))k.description='';

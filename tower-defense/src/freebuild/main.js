@@ -14,7 +14,7 @@ import {createView,toWorld,toScreen,constrainCamera} from './view.js';
 import {installMapGestures} from './gestures.js';
 import {createSoundtrack} from '../audio.js';
 import {placeBuildMenu} from '../menu-layout.js';
-const enemyPortrait=type=>({silly:'awake',normal:'awake',gpt_elite:'awake',grok_elite:'grok',gemma:'cat'}[type]||ENEMIES[type].sprite);
+const enemyPortrait=type=>({normal:'awake',gpt_elite:'awake',grok_elite:'grok',gemma:'cat'}[type]||ENEMIES[type].sprite);
 const $=id=>document.getElementById(id),canvas=$('battle'),renderer=createRenderer(canvas),sound=createSoundtrack(),SAVE='oua.tower.freebuild.runs.v1',SCORES='oua.tower.freebuild.stars.v1',PROGRESS='oua.tower.campaign.v2',CONTROLS='oua.tower.controls.v1';
 const review=new URLSearchParams(location.search).has('review'),memory=new Map();
 const read=key=>{try{return JSON.parse(review?memory.get(key)||'null':localStorage.getItem(key));}catch{return null;}},write=(key,v)=>{try{if(review)memory.set(key,JSON.stringify(v));else localStorage.setItem(key,JSON.stringify(v));return true;}catch{return false;}};
