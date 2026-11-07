@@ -1,0 +1,17 @@
+{
+  "generator": "image_gen.imagegen",
+  "source": "art/effects-v1/poison-source.png",
+  "sourceSha256": "27f2ec4b663abe480f039cbdf104afea12086103685d09d0b65c154321d83f45",
+  "file": "assets/effects-v1/poison-puddle.webp",
+  "sha256": "f970ebd6d2c6df6b64b7a3618c820cdab284b46322cc6f0e5ebc05b0a2b651fd",
+  "bytes": 45516,
+  "frame": 128,
+  "columns": 4,
+  "rows": 2,
+  "frames": 8,
+  "fps": 8,
+  "contentFraction": 0.9,
+  "transparent": true,
+  "processing": "Fixed equal-cell extraction and format conversion only; no painted content added.",
+  "preview": "qa/release-v12/poison-loop.gif"
+}

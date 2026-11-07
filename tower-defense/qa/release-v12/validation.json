@@ -1,0 +1,18 @@
+{
+  "version": 12,
+  "checks": [
+    "fox independently turns left/right without changing the archer aim",
+    "fox-origin range boundary matches the displayed 160-unit circle; interval remains six seconds",
+    "clicking the fox itself selects its parent tower",
+    "invalid placement exits construction without spending; valid placement still exits",
+    "ImageGen poison atlas has alpha and eight frames; GIF preview loops"
+  ],
+  "browserChecks": [
+    "independent fox left/right facing",
+    "fox-centered range overlay",
+    "animated textured poison puddle",
+    "right-click deselects and hides grid",
+    "invalid road placement deselects without spending"
+  ],
+  "scope": "five focused checks; no campaign/matchup matrix"
+}

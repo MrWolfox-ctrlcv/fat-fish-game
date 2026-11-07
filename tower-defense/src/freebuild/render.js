@@ -1,4 +1,5 @@
 import {ART} from '../art-assets.js';
+import {foxOrigin} from './fox.js';
 import {weaponLayout} from './weapons.js';
 import {WORLD,TOWERS,ENEMIES,towerStats} from './data.js';
 import {getMap} from './levels.js';
@@ -24,7 +25,7 @@ export function createRenderer(canvas){
   atlas.draw(c,sprite,t,g.time,weapon?.characterX??t.x,t.y,height,{flip:Math.cos(t.aim)<0,anchorY:form==='normal'||form==='boss'?platform.characterAnchor.y:1});
   if(weapon){request('equipment-'+weapon.key,ART.equipment[weapon.key]);const im=images['equipment-'+weapon.key];if(im){const cell=im.naturalWidth/2;c.save();c.translate(weapon.x,weapon.y);if(weapon.flip)c.scale(-1,1);c.drawImage(im,(weapon.tile%2)*cell,Math.floor(weapon.tile/2)*cell,cell,cell,-weapon.width/2-weapon.recoil,-weapon.width,weapon.width,weapon.width);c.restore();}
    if(t.type==='whale'&&g.time-(t.attackAt??-100)<.12){const m=weapon.muzzle;c.save();c.translate(m.x,m.y);c.rotate(t.aim);c.fillStyle='#fff1b8';c.beginPath();c.moveTo(0,-4);c.lineTo(14,0);c.lineTo(0,4);c.closePath();c.fill();c.restore();}}
-  if(t.branch==='egg')atlas.draw(c,'glm-fox',{...t,attackAt:t.foxAttackAt},g.time,t.x+24,t.y+10,32);
+  if(t.branch==='egg'){const f=foxOrigin(t);request('poison',ART.effects.poison.file);atlas.draw(c,'glm-fox',{id:t.id,attackAt:t.foxAttackAt},g.time,f.x,f.y,32,{flip:Math.cos(t.foxAim??t.aim)<0});}
   if(t.tech.sticky_loader)atlas.draw(c,'deepseek-normal',t,g.time,t.x+35,t.y+12,39);
   if(t.coupon)label('🥚',t.x-18,t.y+23,13);label(t.branch?'Ⅳ':'Ⅰ'.repeat(t.level),t.x,t.y+size/2-2,9,'#f1ecd0');
   if(t.type==='qwen'&&t.production?.length)bar(t.x,t.y+size/2+5,size*.8,1-t.production[0].remaining/t.production[0].profile.productionSeconds,'#e6c577');
@@ -35,8 +36,9 @@ export function createRenderer(canvas){
   const dpr=Math.min(2,devicePixelRatio||1),width=Math.round(view.width*dpr),height=Math.round(view.height*dpr);if(canvas.width!==width||canvas.height!==height){canvas.width=width;canvas.height=height;}
   c.setTransform(dpr,0,0,dpr,0,0);c.fillStyle='#216d77';c.fillRect(0,0,view.width,view.height);const scale=view.scale*camera.zoom;c.translate(view.centerX-camera.x*scale,view.centerY-camera.y*scale);c.scale(scale,scale);c.drawImage(ground(g.levelId),0,0);
   if(ui.buildType){const map=getMap(g.levelId);if(!grids.has(map.id)){const layer=document.createElement('canvas');layer.width=1600;layer.height=1000;const gc=layer.getContext('2d'),grid=buildGrid(g.levelId);gc.strokeStyle='#edf3cd65';gc.lineWidth=1;for(let row=2;row<38;row++)for(let col=2;col<62;col++)if(!grid.blocked[row*64+col])gc.strokeRect(col*25+.5,row*25+.5,24,24);grids.set(map.id,layer);}c.drawImage(grids.get(map.id),0,0);}
-  for(const z of g.zones){ellipse(z.x,z.y,z.radius,z.radius,z.kind==='burn'?'#f4a15138':'#a7cf5e25');c.strokeStyle=z.kind==='burn'?'#ffe09199':'#d2df7b77';c.lineWidth=2;c.beginPath();c.arc(z.x,z.y,z.radius,0,Math.PI*2);c.stroke();}
+  for(const z of g.zones){if(z.kind==='poison'){const spec=ART.effects.poison;request('poison',spec.file);const im=images.poison;if(im){const frame=(Math.floor((g.time-(z.createdAt||0))*spec.fps)+(z.source||0))%spec.frames,w=z.radius*2/spec.contentFraction;c.save();c.globalAlpha=Math.min(1,z.remaining/.35);c.drawImage(im,frame%spec.columns*spec.frame,Math.floor(frame/spec.columns)*spec.frame,spec.frame,spec.frame,z.x-w/2,z.y-w/2,w,w);c.restore();}continue;}ellipse(z.x,z.y,z.radius,z.radius,'#f4a15138');c.strokeStyle='#ffe09199';c.lineWidth=2;c.beginPath();c.arc(z.x,z.y,z.radius,0,Math.PI*2);c.stroke();}
   const selected=g.towers.find(t=>t.id===ui.selected);if(selected){const s=towerStats(selected);ellipse(selected.x,selected.y,s.range,s.range,'#daf0ff12');c.strokeStyle='#d4e8e29a';c.setLineDash([8,8]);c.lineWidth=2;c.beginPath();c.arc(selected.x,selected.y,s.range,0,Math.PI*2);c.stroke();c.setLineDash([]);}
+  if(selected?.branch==='egg'){const f=foxOrigin(selected),radius=towerStats(selected).eggRange;ellipse(f.x,f.y,radius,radius,'#bed68c0d');c.strokeStyle='#d2e897bd';c.lineWidth=1.7;c.setLineDash([4,6]);c.beginPath();c.arc(f.x,f.y,radius,0,Math.PI*2);c.stroke();c.setLineDash([]);}
   if(selected&&(selected.type==='qwen'||selected.tech.x_shield)){c.strokeStyle='#d7e6f2';c.lineWidth=2;c.beginPath();c.moveTo(selected.x,selected.y);c.lineTo(selected.rally.x,selected.rally.y);c.stroke();label('⚑',selected.rally.x,selected.rally.y-10,24,'#e6f5f3');}
   for(const e of g.enemies)if(e.type==='claude'){ellipse(e.x,e.y,e.absorbRange,e.absorbRange,'#e9bd790a');c.strokeStyle='#eac99555';c.setLineDash([8,12]);c.lineWidth=2;c.beginPath();c.arc(e.x,e.y,e.absorbRange,0,Math.PI*2);c.stroke();c.setLineDash([]);if(g.time-(e.absorbedAt??-10)<.2){ellipse(e.x,e.y-25,35,55,'#ffe6aa28');}}
   for(const e of g.enemies)if(e.type==='cat'){ellipse(e.x,e.y,e.auraRange,e.auraRange,'#e4d28b0c');c.strokeStyle='#efcd9a55';c.lineWidth=1.5;c.beginPath();c.arc(e.x,e.y,e.auraRange,0,Math.PI*2);c.stroke();}

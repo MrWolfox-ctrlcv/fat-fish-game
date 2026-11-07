@@ -18,7 +18,7 @@ export function installMapGestures(canvas,{getView,camera,onChange,onTap,onHover
  canvas.addEventListener('pointerup',e=>finish(e));canvas.addEventListener('pointercancel',e=>finish(e,true));canvas.addEventListener('lostpointercapture',e=>finish(e,true));
  canvas.addEventListener('pointerleave',()=>onHover?.(null));
  canvas.addEventListener('wheel',e=>{e.preventDefault();const v=getView(),unit=e.deltaMode===1?16:e.deltaMode===2?v.viewportHeight:1;zoomCameraAt(v,camera,point(e),camera.zoom*Math.exp(-Math.max(-600,Math.min(600,e.deltaY*unit))*.0015));if(pointers.size){suppressTap=true;rebase();}onChange();},{passive:false});
- const cancel=()=>{pointers.clear();drag=null;pinch=null;suppressTap=true;};
+ const cancel=()=>{pointers.clear();drag=null;pinch=null;box=null;lastTap=null;suppressTap=true;};
  canvas.ownerDocument?.addEventListener('visibilitychange',()=>{if(canvas.ownerDocument.hidden)cancel();});
  return {cancel};
 }

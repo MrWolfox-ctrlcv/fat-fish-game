@@ -1,6 +1,6 @@
 {
-  "version": 11,
-  "balance": 11,
+  "version": 12,
+  "balance": 12,
   "base": "/games/tower-defense/",
   "files": [
     {
@@ -40,13 +40,13 @@
     },
     {
       "path": "src/art-assets.js",
-      "bytes": 3193,
-      "sha256": "ffee081cb9dbddf9668021517de40cdbf21d8de7b2987167602828337c728ec2"
+      "bytes": 3765,
+      "sha256": "8b655dc4aa7f7478b65295467664992d00074b18e1d8ca867e132faed7804a74"
     },
     {
       "path": "src/freebuild/main.js",
-      "bytes": 28041,
-      "sha256": "d1fc634372a189f8a79f4e7c35819f6b829e8c92843f503c4a3ac275b24e31da"
+      "bytes": 28169,
+      "sha256": "e108d59ec4682b216088ca8a0f2bf22e1984960002d593248e9bd0b25bfc4e8e"
     },
     {
       "path": "src/freebuild/data.js",
@@ -84,14 +84,19 @@
       "sha256": "3b550b184de18dc8bb7ed04e922b1299270da16bd8ad2d4d60b0c7775cbd273d"
     },
     {
+      "path": "src/freebuild/fox.js",
+      "bytes": 304,
+      "sha256": "811e9c34fafec096e97cf957e8956c87b6e74278182d5138d42121e9fc122062"
+    },
+    {
       "path": "src/freebuild/levels.js",
       "bytes": 1924,
       "sha256": "940adf49e567a4dfe3757d724af3c84dd121ed7d2a7d5ba21517e236f1fa8747"
     },
     {
       "path": "src/freebuild/engine.js",
-      "bytes": 22060,
-      "sha256": "7adbef2e367b994b9208dbd388e431fcba253027aea31cff70845bb95b90e1c0"
+      "bytes": 22399,
+      "sha256": "5e924514e932a0d92126441ecb5c56fb806621c42e1ae301b994a1e4ee1b9455"
     },
     {
       "path": "src/freebuild/geometry.js",
@@ -100,8 +105,8 @@
     },
     {
       "path": "src/freebuild/gestures.js",
-      "bytes": 3226,
-      "sha256": "8c0620352f4c9a5828278bd65b2729fec4487a1a2161740c39404f7ead11feb3"
+      "bytes": 3272,
+      "sha256": "8fb62d5f20969a4f47fe366a9790630daecd8da016417c9225f88d4ff86a61a0"
     },
     {
       "path": "src/freebuild/view.js",
@@ -110,8 +115,8 @@
     },
     {
       "path": "src/freebuild/render.js",
-      "bytes": 12703,
-      "sha256": "8d86df904b736d8f121df752b1714ffc47de97e1cd1273cf43d405a9f0d22ce5"
+      "bytes": 13498,
+      "sha256": "6b9826be7c8858314fa9c63de89a6cb2386d81684edce61a7b216308c567dd12"
     },
     {
       "path": "src/freebuild/metrics.js",
@@ -121,7 +126,7 @@
     {
       "path": "src/freebuild/telemetry.js",
       "bytes": 5964,
-      "sha256": "7a54f2f24a710f8df4d592ff9e07b89bbca99a71021f06e9eb4e9f81c0c3ca12"
+      "sha256": "880a9651bc0991e7b6f410d0832a1703cc15d6f102b08a30b79513e28a994110"
     },
     {
       "path": "src/freebuild/beams.js",
@@ -140,8 +145,8 @@
     },
     {
       "path": "src/freebuild/deployment.js",
-      "bytes": 575,
-      "sha256": "1c70cc477b478dab010fc6d0044f4a62570a16a7bd2a85eac25c72dd6c390658"
+      "bytes": 572,
+      "sha256": "18f0afebec4cf7955adf199cd7380a1a025229c318e9111fc9c5d27277a785fa"
     },
     {
       "path": "src/freebuild/controls.css",
@@ -187,6 +192,11 @@
       "path": "assets/ui/energy-fill.webp",
       "bytes": 9440,
       "sha256": "57b7009a2e1cd15cf9a5a1321c4b12a7484df09afb3252ddcd56e9c731e97c59"
+    },
+    {
+      "path": "assets/effects-v1/poison-puddle.webp",
+      "bytes": 45516,
+      "sha256": "f970ebd6d2c6df6b64b7a3618c820cdab284b46322cc6f0e5ebc05b0a2b651fd"
     },
     {
       "path": "assets/whale-mortars.webp",
