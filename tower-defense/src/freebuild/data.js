@@ -1,15 +1,15 @@
 import {BALANCE as B} from './balance.js';
 export const WORLD={width:1600,height:1000,cell:25,roadWidth:110,base:{x:1500,y:650}};
 export const TOWERS={
- glm:{id:'glm',name:'GLM',size:2,color:'#57a484',sprite:'glm',unlock:1},
- kimi:{id:'kimi',name:'Kimi',size:3,color:'#a58be8',sprite:'moon',unlock:2},
+ glm:{id:'glm',name:'嘎啦嘛',size:2,color:'#57a484',sprite:'glm',unlock:1},
+ kimi:{id:'kimi',name:'月之嘉欣',size:3,color:'#a58be8',sprite:'moon',unlock:2},
  whale:{id:'whale',name:'大肥鱼',size:4,color:'#73bfdc',sprite:'whale',unlock:3},
- qwen:{id:'qwen',name:'Qwen',size:3,color:'#c3a976',sprite:'fan',cost:160,unlock:5}
+ qwen:{id:'qwen',name:'千扇',size:3,color:'#c3a976',sprite:'fan',cost:160,unlock:5}
 };
 export const BRANCHES={
  egg:{tower:'glm',minStage:4,name:'毒鸡蛋'},sticky:{tower:'whale',minStage:6,name:'糯米大炮'},
  x:{tower:'glm',minStage:7,name:'X方向'},giant:{tower:'whale',minStage:7,name:'鲸鱼巨炮'},
- small:{tower:'qwen',minStage:8,name:'小模型'},large:{tower:'qwen',minStage:8,name:'巨型Qwen'}
+ small:{tower:'qwen',minStage:8,name:'小模型'},large:{tower:'qwen',minStage:8,name:'中大模型'}
 };
 export const TECHS={
  egg_count:{name:'投出鸡蛋数',short:'鸡蛋数',branch:'egg',max:3},
@@ -26,14 +26,14 @@ export const TECHS={
  giant_bombard:{name:'白饭征集令',short:'征集令',branch:'giant',cost:B.bombard.pricePerUse,max:0,repeatable:true}
 };
 export const ENEMIES={
- silly:{family:'gpt',tier:'low',name:'GPT · 低级',sprite:'awake',radius:15},
- normal:{family:'gpt',tier:'mid',name:'GPT · 中级',sprite:'awake',radius:22},
- gpt_elite:{family:'gpt',tier:'elite',name:'GPT · 精英',sprite:'gpt-elite',radius:25},
- grok:{family:'grok',tier:'mid',name:'Grok · 重甲',sprite:'grok',radius:22},
- grok_elite:{family:'grok',tier:'elite',name:'Grok · 精英',sprite:'grok-elite',radius:26},
- gemma:{family:'gemini',tier:'mini',name:'Gemma',sprite:'gemini-mini',radius:9},
- cat:{family:'gemini',tier:'support',name:'Gemini',sprite:'cat',radius:18,auraRange:190,auraBoost:.8},
- claude:{family:'claude',tier:'special',name:'Claude',sprite:'claude',radius:25,absorbRange:230}
+ silly:{family:'gpt',tier:'low',name:'降智龙',sprite:'awake',radius:15},
+ normal:{family:'gpt',tier:'mid',name:'正常龙',sprite:'awake',radius:22},
+ gpt_elite:{family:'gpt',tier:'elite',name:'觉醒龙',sprite:'gpt-elite',radius:25},
+ grok:{family:'grok',tier:'mid',name:'黑曜姬',sprite:'grok',radius:22},
+ grok_elite:{family:'grok',tier:'elite',name:'黑曜姬 · 精英',sprite:'grok-elite',radius:26},
+ gemma:{family:'gemini',tier:'mini',name:'猫仔',sprite:'gemini-mini',radius:9},
+ cat:{family:'gemini',tier:'support',name:'极其猫',sprite:'cat',radius:18,auraRange:190,auraBoost:.8},
+ claude:{family:'claude',tier:'special',name:'克小姐',sprite:'claude',radius:25,absorbRange:230}
 };
 export const availableBranches=(type,stage)=>Object.entries(BRANCHES).filter(([,b])=>b.tower===type&&b.minStage<=stage);
 const techEffect=(id,rank)=>B.research.find(r=>r.id===id&&r.rank===rank)?.effect||{};

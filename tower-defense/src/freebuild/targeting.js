@@ -1,7 +1,7 @@
 import {getMap} from './levels.js';
 export const defaultPriority=type=>type==='kimi'?'strong':type==='whale'?'cluster':'first';
 export const priorityName={first:'最前',strong:'强敌',cluster:'密集',support:'支援'};
-export const priorityHelp={first:'优先离终点最近的敌人',strong:'优先当前生命最高的敌人',cluster:'优先炮弹爆炸能覆盖最多敌人的落点',support:'优先Claude、Gemini等支援单位'};
+export const priorityHelp={first:'优先离终点最近的敌人',strong:'优先当前生命最高的敌人',cluster:'优先炮弹爆炸能覆盖最多敌人的落点',support:'优先克小姐、极其猫等支援单位'};
 const distance=(a,b)=>Math.hypot(a.x-b.x,a.y-b.y);
 export function predictedEnemy(g,e,seconds){const route=getMap(g.levelId).routes[e.route],speed=e.blockedBy?.length?0:e.speed*(e.boosted?1.8:1)*(1-(e.slow||0)),p=route.atDistance(e.progress+speed*seconds),lateral=e.lateral||0;return {x:p.x-Math.sin(p.angle)*lateral,y:p.y+Math.cos(p.angle)*lateral,e};}
 function denseCenter(points,radius,fallback){

@@ -1,5 +1,5 @@
 {
-  "version": 8,
+  "version": 9,
   "balance": 8,
   "base": "/games/tower-defense/",
   "files": [
@@ -50,8 +50,8 @@
     },
     {
       "path": "src/freebuild/data.js",
-      "bytes": 7459,
-      "sha256": "d1c82cbda3aeb56d70bf92322aae1cddeb98e1969637c5b123dd280b720c3cac"
+      "bytes": 7472,
+      "sha256": "f64bb4d534eacbc4a3b739b25bb7fa30f792d1becffd9f8a3de2238cb5cf5b45"
     },
     {
       "path": "src/freebuild/balance.js",
@@ -70,8 +70,8 @@
     },
     {
       "path": "src/freebuild/targeting.js",
-      "bytes": 2650,
-      "sha256": "83fc53765d3ba71cbfd392e197a1dfee66ba389321af71b8eb11d567c57395cb"
+      "bytes": 2679,
+      "sha256": "b196e184aaa6e7c990bbe5ffa664fd991f30f33523fcbd853ac41590c35d8fdc"
     },
     {
       "path": "src/freebuild/weapons.js",
