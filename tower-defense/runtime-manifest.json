@@ -60,8 +60,8 @@
     },
     {
       "path": "src/freebuild/troops.js",
-      "bytes": 4070,
-      "sha256": "39faf77053407565a6216fec1a859e0bed6a62b83958a26661d41d57f06c2c37"
+      "bytes": 4153,
+      "sha256": "28b6571677beeab27e40b3cf2aca7c475648a09996f762050b8b63147f6a9ef8"
     },
     {
       "path": "src/freebuild/levels.js",
@@ -70,8 +70,8 @@
     },
     {
       "path": "src/freebuild/engine.js",
-      "bytes": 21323,
-      "sha256": "fb141aafc89b427db8f44fbed3557a00afab2227e66b908c3f1ab24c90bc186d"
+      "bytes": 21386,
+      "sha256": "f6abfa56f5d5a7d0a78c2feb64586b5e193b06cc5506f3792a0cafea0a384da2"
     },
     {
       "path": "src/freebuild/geometry.js",
