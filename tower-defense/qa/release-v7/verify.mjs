@@ -21,4 +21,3 @@ const smoke=[];
 for(let stage=1;stage<=8;stage++){const g=createGame('stage'+stage),start=Date.now();startWave(g);step(g,12);assert.ok(g.enemies.every(e=>Number.isFinite(e.x)&&Number.isFinite(e.hp)));smoke.push({stage,seconds:g.time,alive:g.enemies.length,queued:g.spawnQueue.length,elapsedMs:Date.now()-start});}
 await writeFile(new URL('validation.json',import.meta.url),JSON.stringify({version:7,checks,smoke,scope:'targeted mechanisms plus 12 game seconds per stage; not a campaign victory or large matchup matrix'},null,2));
 console.log(JSON.stringify({passed:checks.length,stageSmoke:smoke}));
-
