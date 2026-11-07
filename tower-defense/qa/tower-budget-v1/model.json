@@ -1,10 +1,10 @@
 {
-  "version": "tower-budget-3",
-  "status": "approved_for_runtime_v8",
+  "version": "tower-budget-4",
+  "status": "approved_for_runtime_v11",
   "battleTestsRun": 0,
   "policy": {
-    "version": "tower-budget-3",
-    "status": "approved_for_runtime_v8",
+    "version": "tower-budget-4",
+    "status": "approved_for_runtime_v11",
     "battleTests": false,
     "anchors": {
       "enemy": "silly",
@@ -40,7 +40,11 @@
           "grok": 0.2,
           "grok_elite": 0.05
         },
-        "note": "群伤按至少三个目标的能力计价；范围增益另付费，4×4不补回额外单体火力。混伤按基准编队的抗性收益计价。"
+        "note": "群伤按至少三个目标的能力计价；范围增益另付费，4×4不补回额外单体火力。混伤按基准编队的抗性收益计价。",
+        "blast": {
+          "coreFraction": 0.3,
+          "edgeMultiplier": 0.35
+        }
       }
     },
     "formation": {
@@ -809,69 +813,74 @@
       "radius": 55,
       "magicShare": 0.25,
       "pricingClass": "cannon",
-      "coefficient": 18.507899204008517,
+      "blast": {
+        "coreFraction": 0.3,
+        "edgeMultiplier": 0.35
+      },
+      "coefficient": 13.50264382855188,
       "magicFactor": 1.115625,
-      "aoeBudgetFactor": 4.449719092257398,
+      "aoeBudgetFactor": 3.246342082241609,
       "footprintFactor": 1,
       "geometricHits": 9,
-      "effectiveHits": 3,
+      "damageEquivalentHits": 5.400118727316888,
+      "effectiveHits": 2.1000296818292217,
       "cost": 130,
       "interval": 2.1,
-      "damage": 14,
-      "dps": 6.666666666666666,
+      "damage": 20,
+      "dps": 9.523809523809524,
       "physicalShare": 0.75,
-      "budgetDps": 7.0240278795036915,
+      "budgetDps": 9.627744140381589,
       "roleCap": 10,
-      "pricedFire": 123.3859946933901,
-      "unallocatedBudget": 6.614005306609897,
+      "pricedFire": 128.5966078909703,
+      "unallocatedBudget": 1.40339210902971,
       "singleTargetComparison": [
         {
           "enemy": "silly",
           "glmDps": 20,
-          "whaleDps": 6.666666666666666,
-          "ratio": 0.3333333333333333
+          "whaleDps": 9.523809523809524,
+          "ratio": 0.47619047619047616
         },
         {
           "enemy": "normal",
           "glmDps": 19,
-          "whaleDps": 6.333333333333332,
-          "ratio": 0.33333333333333326
+          "whaleDps": 9.047619047619047,
+          "ratio": 0.47619047619047616
         },
         {
           "enemy": "gpt_elite",
           "glmDps": 15,
-          "whaleDps": 5,
-          "ratio": 0.3333333333333333
+          "whaleDps": 7.142857142857142,
+          "ratio": 0.47619047619047616
         },
         {
           "enemy": "grok",
           "glmDps": 8,
-          "whaleDps": 3.5833333333333335,
-          "ratio": 0.4479166666666667
+          "whaleDps": 5.1190476190476195,
+          "ratio": 0.6398809523809524
         },
         {
           "enemy": "grok_elite",
           "glmDps": 3.999999999999999,
-          "whaleDps": 2.5833333333333326,
-          "ratio": 0.6458333333333333
+          "whaleDps": 3.69047619047619,
+          "ratio": 0.9226190476190477
         },
         {
           "enemy": "gemma",
           "glmDps": 20,
-          "whaleDps": 6.666666666666666,
-          "ratio": 0.3333333333333333
+          "whaleDps": 9.523809523809524,
+          "ratio": 0.47619047619047616
         },
         {
           "enemy": "cat",
           "glmDps": 20,
-          "whaleDps": 6.666666666666666,
-          "ratio": 0.3333333333333333
+          "whaleDps": 9.523809523809524,
+          "ratio": 0.47619047619047616
         },
         {
           "enemy": "claude",
           "glmDps": 20,
-          "whaleDps": 6.666666666666666,
-          "ratio": 0.3333333333333333
+          "whaleDps": 9.523809523809524,
+          "ratio": 0.47619047619047616
         }
       ]
     },
@@ -884,69 +893,74 @@
       "radius": 65,
       "magicShare": 0.25,
       "pricingClass": "cannon",
-      "coefficient": 21.762673613904177,
+      "blast": {
+        "coreFraction": 0.3,
+        "edgeMultiplier": 0.35
+      },
+      "coefficient": 15.740486619295602,
       "magicFactor": 1.115625,
-      "aoeBudgetFactor": 4.83735464897913,
+      "aoeBudgetFactor": 3.498757435593577,
       "footprintFactor": 1,
       "geometricHits": 12.333333333333334,
-      "effectiveHits": 3.8333333333333335,
+      "damageEquivalentHits": 7.320613282088648,
+      "effectiveHits": 2.580153320522162,
       "cost": 280,
       "interval": 2,
-      "damage": 25,
-      "dps": 12.5,
+      "damage": 34,
+      "dps": 17,
       "physicalShare": 0.75,
-      "budgetDps": 12.866066227318134,
+      "budgetDps": 17.788522475331845,
       "roleCap": 17.27272727272727,
-      "pricedFire": 272.0334201738022,
-      "unallocatedBudget": 7.966579826197801,
+      "pricedFire": 267.58827252802524,
+      "unallocatedBudget": 12.411727471974757,
       "singleTargetComparison": [
         {
           "enemy": "silly",
           "glmDps": 34.54545454545454,
-          "whaleDps": 12.5,
-          "ratio": 0.36184210526315796
+          "whaleDps": 17,
+          "ratio": 0.4921052631578948
         },
         {
           "enemy": "normal",
           "glmDps": 32.81818181818181,
-          "whaleDps": 11.875,
-          "ratio": 0.36184210526315796
+          "whaleDps": 16.15,
+          "ratio": 0.49210526315789477
         },
         {
           "enemy": "gpt_elite",
           "glmDps": 25.909090909090907,
-          "whaleDps": 9.375,
-          "ratio": 0.3618421052631579
+          "whaleDps": 12.75,
+          "ratio": 0.49210526315789477
         },
         {
           "enemy": "grok",
           "glmDps": 13.818181818181817,
-          "whaleDps": 6.718750000000001,
-          "ratio": 0.48622532894736853
+          "whaleDps": 9.137500000000001,
+          "ratio": 0.6612664473684212
         },
         {
           "enemy": "grok_elite",
           "glmDps": 6.9090909090909065,
-          "whaleDps": 4.843749999999999,
-          "ratio": 0.7010690789473686
+          "whaleDps": 6.5874999999999995,
+          "ratio": 0.9534539473684214
         },
         {
           "enemy": "gemma",
           "glmDps": 34.54545454545454,
-          "whaleDps": 12.5,
-          "ratio": 0.36184210526315796
+          "whaleDps": 17,
+          "ratio": 0.4921052631578948
         },
         {
           "enemy": "cat",
           "glmDps": 34.54545454545454,
-          "whaleDps": 12.5,
-          "ratio": 0.36184210526315796
+          "whaleDps": 17,
+          "ratio": 0.4921052631578948
         },
         {
           "enemy": "claude",
           "glmDps": 34.54545454545454,
-          "whaleDps": 12.5,
-          "ratio": 0.36184210526315796
+          "whaleDps": 17,
+          "ratio": 0.4921052631578948
         }
       ]
     },
@@ -959,69 +973,74 @@
       "radius": 75,
       "magicShare": 0.25,
       "pricingClass": "cannon",
-      "coefficient": 25.141152837894047,
+      "blast": {
+        "coreFraction": 0.3,
+        "edgeMultiplier": 0.35
+      },
+      "coefficient": 18.058881861483673,
       "magicFactor": 1.115625,
-      "aoeBudgetFactor": 5.196152422706632,
+      "aoeBudgetFactor": 3.732394585919135,
       "footprintFactor": 1,
       "geometricHits": 13.666666666666666,
-      "effectiveHits": 4.166666666666666,
+      "damageEquivalentHits": 8.632274999596605,
+      "effectiveHits": 2.9080687498991513,
       "cost": 500,
       "interval": 1.8,
-      "damage": 35,
-      "dps": 19.444444444444443,
+      "damage": 48,
+      "dps": 26.666666666666664,
       "physicalShare": 0.75,
-      "budgetDps": 19.887711722048564,
+      "budgetDps": 27.68720698408297,
       "roleCap": 27,
-      "pricedFire": 488.8557496257175,
-      "unallocatedBudget": 11.144250374282478,
+      "pricedFire": 481.5701829728979,
+      "unallocatedBudget": 18.429817027102104,
       "singleTargetComparison": [
         {
           "enemy": "silly",
           "glmDps": 54,
-          "whaleDps": 19.444444444444443,
-          "ratio": 0.36008230452674894
+          "whaleDps": 26.666666666666664,
+          "ratio": 0.49382716049382713
         },
         {
           "enemy": "normal",
           "glmDps": 51.3,
-          "whaleDps": 18.47222222222222,
-          "ratio": 0.360082304526749
+          "whaleDps": 25.33333333333333,
+          "ratio": 0.4938271604938271
         },
         {
           "enemy": "gpt_elite",
           "glmDps": 40.5,
-          "whaleDps": 14.583333333333332,
-          "ratio": 0.36008230452674894
+          "whaleDps": 20,
+          "ratio": 0.49382716049382713
         },
         {
           "enemy": "grok",
           "glmDps": 21.6,
-          "whaleDps": 10.45138888888889,
-          "ratio": 0.4838605967078189
+          "whaleDps": 14.333333333333334,
+          "ratio": 0.6635802469135802
         },
         {
           "enemy": "grok_elite",
           "glmDps": 10.799999999999997,
-          "whaleDps": 7.5347222222222205,
-          "ratio": 0.6976594650205762
+          "whaleDps": 10.33333333333333,
+          "ratio": 0.9567901234567902
         },
         {
           "enemy": "gemma",
           "glmDps": 54,
-          "whaleDps": 19.444444444444443,
-          "ratio": 0.36008230452674894
+          "whaleDps": 26.666666666666664,
+          "ratio": 0.49382716049382713
         },
         {
           "enemy": "cat",
           "glmDps": 54,
-          "whaleDps": 19.444444444444443,
-          "ratio": 0.36008230452674894
+          "whaleDps": 26.666666666666664,
+          "ratio": 0.49382716049382713
         },
         {
           "enemy": "claude",
           "glmDps": 54,
-          "whaleDps": 19.444444444444443,
-          "ratio": 0.36008230452674894
+          "whaleDps": 26.666666666666664,
+          "ratio": 0.49382716049382713
         }
       ]
     }
@@ -1307,19 +1326,24 @@
       "radius": 85,
       "magicShare": 0.25,
       "pricingClass": "cannon",
-      "coefficient": 30.051706433184695,
+      "blast": {
+        "coreFraction": 0.3,
+        "edgeMultiplier": 0.35
+      },
+      "coefficient": 21.4637445057421,
       "magicFactor": 1.115625,
-      "aoeBudgetFactor": 5.531726674375733,
+      "aoeBudgetFactor": 3.9509093527976646,
       "footprintFactor": 1,
       "cost": 950,
       "interval": 1.8,
-      "damage": 39,
-      "dps": 21.666666666666668,
-      "unroundedDps": 21.906687222472222,
-      "pricedFire": 651.1203060523351,
-      "roundingDelta": -7.21302728099829,
+      "damage": 55,
+      "dps": 30.555555555555554,
+      "unroundedDps": 30.671877088231852,
+      "pricedFire": 655.836637675453,
+      "roundingDelta": -2.496695657880423,
       "geometricHits": 15.666666666666666,
-      "effectiveHits": 4.666666666666666,
+      "damageEquivalentHits": 10.278033599367225,
+      "effectiveHits": 3.3195083998418062,
       "controlBudget": 291.66666666666663,
       "slow": 0.35,
       "slowDuration": 3,
@@ -1333,19 +1357,24 @@
       "radius": 125,
       "magicShare": 0.25,
       "pricingClass": "cannon",
-      "coefficient": 79.08406929347828,
+      "blast": {
+        "coreFraction": 0.3,
+        "edgeMultiplier": 0.35
+      },
+      "coefficient": 56.91022309255274,
       "magicFactor": 1.115625,
-      "aoeBudgetFactor": 7.166666666666667,
+      "aoeBudgetFactor": 5.157253571720234,
       "footprintFactor": 1,
       "cost": 5100,
       "interval": 3.8,
-      "damage": 245,
-      "dps": 64.47368421052632,
-      "unroundedDps": 64.48833558468108,
-      "pricedFire": 5098.8413097111,
-      "roundingDelta": -1.1586902889002886,
+      "damage": 340,
+      "dps": 89.47368421052632,
+      "unroundedDps": 89.61483056753971,
+      "pricedFire": 5091.967329333666,
+      "roundingDelta": -8.032670666333615,
       "geometricHits": 25.666666666666668,
-      "effectiveHits": 7.166666666666667,
+      "damageEquivalentHits": 17.629014286880935,
+      "effectiveHits": 5.157253571720234,
       "upgradeCost": 4600
     },
     {
@@ -1824,9 +1853,9 @@
       "price": 280,
       "cumulativeResearch": 280,
       "effect": {
-        "interval": 1.379688252759515,
-        "damage": 39,
-        "slowUptimeCap": 0.7610414873794095,
+        "interval": 1.3865902014762728,
+        "damage": 55,
+        "slowUptimeCap": 0.7572532958058462,
         "note": "加速增加的减速覆盖也消耗研究预算"
       }
     },
@@ -1836,8 +1865,8 @@
       "price": 420,
       "cumulativeResearch": 700,
       "effect": {
-        "interval": 1.0191448268645245,
-        "damage": 39,
+        "interval": 1.0265269111441875,
+        "damage": 55,
         "slowUptimeCap": 1,
         "note": "加速增加的减速覆盖也消耗研究预算"
       }
@@ -1848,8 +1877,8 @@
       "price": 560,
       "cumulativeResearch": 1260,
       "effect": {
-        "interval": 0.6853897958445633,
-        "damage": 39,
+        "interval": 0.6903543554478453,
+        "damage": 55,
         "slowUptimeCap": 1,
         "note": "加速增加的减速覆盖也消耗研究预算"
       }
@@ -1861,7 +1890,7 @@
       "cumulativeResearch": 1100,
       "effect": {
         "children": 2,
-        "childDamage": 50,
+        "childDamage": 68,
         "radius": 40
       }
     },
@@ -1872,7 +1901,7 @@
       "cumulativeResearch": 2750,
       "effect": {
         "children": 4,
-        "childDamage": 63,
+        "childDamage": 84,
         "radius": 40
       }
     },
@@ -1883,7 +1912,7 @@
       "cumulativeResearch": 4950,
       "effect": {
         "children": 6,
-        "childDamage": 75,
+        "childDamage": 101,
         "radius": 40
       }
     },
@@ -1987,7 +2016,7 @@
     "name": "三级塔参考阵型稳态清杂上限，不是战斗实测",
     "miniHp": 20,
     "miniSpeed": 60,
-    "whale": 2.3148148148148144,
+    "whale": 1.615593749943973,
     "glm": 1.3333333333333333,
     "qwenSmall": 0.8695652173913044,
     "qwenNormal": 0.6666666666666666,
@@ -2000,6 +2029,6 @@
     "Kimi的80/20是条件性输出的设计折价，不是玩家实际目标分布。",
     "Qwen建造投资与每名部队生产费分账，没有免费自动补员。",
     "研究表为未研究父塔的单项预算反解；完整组合不能机械叠乘。",
-    "本表是预算推导；v7运行时与发布验证见design/BALANCE-WORKFLOW.md及发布记录。"
+    "本表是预算推导；当前运行时与发布验证见design/BALANCE-WORKFLOW.md及发布记录。"
   ]
 }

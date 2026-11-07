@@ -1,6 +1,6 @@
 {
-  "version": 10,
-  "balance": 8,
+  "version": 11,
+  "balance": 11,
   "base": "/games/tower-defense/",
   "files": [
     {
@@ -50,13 +50,13 @@
     },
     {
       "path": "src/freebuild/data.js",
-      "bytes": 7426,
-      "sha256": "aef1c21f4a7e827d40832768d974afaed055d24d43f290e120c188753d1eac77"
+      "bytes": 7468,
+      "sha256": "c6fb919a0b5ee06df43d9362da604fecef90c9875132af3070afd7e3152593c0"
     },
     {
       "path": "src/freebuild/balance.js",
-      "bytes": 21924,
-      "sha256": "f4249f243ec4d23309e985cd46dc279a67bda7837affd4d967acb33335cd73cc"
+      "bytes": 22447,
+      "sha256": "295c8d76ff4f2aa9a58a0bc8962be37ef3336796e35efea108d5f9ae2501bb88"
     },
     {
       "path": "src/freebuild/campaign.js",
@@ -70,13 +70,18 @@
     },
     {
       "path": "src/freebuild/targeting.js",
-      "bytes": 2679,
-      "sha256": "b196e184aaa6e7c990bbe5ffa664fd991f30f33523fcbd853ac41590c35d8fdc"
+      "bytes": 2899,
+      "sha256": "f60d42ee8ee4853c02eb8dcf5cc50d669a2c9bf21889ee5fc720d85e3dcf6b5b"
     },
     {
       "path": "src/freebuild/weapons.js",
       "bytes": 710,
       "sha256": "0f9e5958c2e717baf07c5591ccad6a309f855e4dd151c41a677e50b97dd5560a"
+    },
+    {
+      "path": "src/freebuild/blast.js",
+      "bytes": 648,
+      "sha256": "3b550b184de18dc8bb7ed04e922b1299270da16bd8ad2d4d60b0c7775cbd273d"
     },
     {
       "path": "src/freebuild/levels.js",
@@ -85,8 +90,8 @@
     },
     {
       "path": "src/freebuild/engine.js",
-      "bytes": 21843,
-      "sha256": "9c40875eadf03d5eace30e1a309df19452b5334a1d91de43666162cbae9cd7f7"
+      "bytes": 22060,
+      "sha256": "7adbef2e367b994b9208dbd388e431fcba253027aea31cff70845bb95b90e1c0"
     },
     {
       "path": "src/freebuild/geometry.js",
@@ -105,8 +110,8 @@
     },
     {
       "path": "src/freebuild/render.js",
-      "bytes": 12509,
-      "sha256": "f1896e0f14d92e6597cb036ef525cb9dd8d4663eccd68fc9ad2f4983e364fc89"
+      "bytes": 12703,
+      "sha256": "8d86df904b736d8f121df752b1714ffc47de97e1cd1273cf43d405a9f0d22ce5"
     },
     {
       "path": "src/freebuild/metrics.js",
@@ -115,8 +120,8 @@
     },
     {
       "path": "src/freebuild/telemetry.js",
-      "bytes": 5963,
-      "sha256": "608d2c8d9784629db7cc3db07cecca2864fb401da49a4f4350b402e4d3e90989"
+      "bytes": 5964,
+      "sha256": "7a54f2f24a710f8df4d592ff9e07b89bbca99a71021f06e9eb4e9f81c0c3ca12"
     },
     {
       "path": "src/freebuild/beams.js",

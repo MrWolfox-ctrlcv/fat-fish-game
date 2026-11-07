@@ -1,0 +1,32 @@
+{
+  "version": 11,
+  "checks": [
+    "core, continuous falloff, edge contact and outside share one geometry",
+    "actual main and child shell impacts: full core, weaker middle and edge, no outside damage",
+    "radial scale is applied before physical/magic resistance",
+    "dense aim prefers effective damage instead of two weak edge grazes",
+    "repriced center damage respects all basic cannon role ceilings"
+  ],
+  "scope": "five focused checks; no campaign or large matchup matrix",
+  "blast": {
+    "coreFraction": 0.3,
+    "edgeMultiplier": 0.35
+  },
+  "whale": [
+    {
+      "damage": 20,
+      "edge": 7,
+      "radius": 55
+    },
+    {
+      "damage": 34,
+      "edge": 11.899999999999999,
+      "radius": 65
+    },
+    {
+      "damage": 48,
+      "edge": 16.799999999999997,
+      "radius": 75
+    }
+  ]
+}

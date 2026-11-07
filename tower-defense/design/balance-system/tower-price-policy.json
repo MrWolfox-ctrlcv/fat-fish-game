@@ -1,6 +1,6 @@
 {
-  "version": "tower-budget-3",
-  "status": "approved_for_runtime_v8",
+  "version": "tower-budget-4",
+  "status": "approved_for_runtime_v11",
   "battleTests": false,
   "anchors": {
     "enemy": "silly",
@@ -36,7 +36,11 @@
         "grok": 0.2,
         "grok_elite": 0.05
       },
-      "note": "群伤按至少三个目标的能力计价；范围增益另付费，4×4不补回额外单体火力。混伤按基准编队的抗性收益计价。"
+      "note": "群伤按至少三个目标的能力计价；范围增益另付费，4×4不补回额外单体火力。混伤按基准编队的抗性收益计价。",
+      "blast": {
+        "coreFraction": 0.3,
+        "edgeMultiplier": 0.35
+      }
     }
   },
   "formation": {
